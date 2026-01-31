@@ -1,0 +1,193 @@
+/* ===========================================================
+1. RESET E COLORI DI BASE
+===========================================================
+*/
+
+:root {
+    --sfondo: #121212;      /* Nero profondo */
+    --scheda: #1e1e1e;      /* Grigio scuro per i blocchi */
+    --oro: #c9a23f;         /* Oro per i dettagli */
+    --testo: #ffffff;       /* Bianco */
+}
+
+body {
+    background-color: var(--sfondo);
+    color: var(--testo);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+
+/* ===========================================================
+2. STRUTTURA DELLE SCHERMATE (BLOCKS)
+===========================================================
+*/
+
+.schermata {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+    text-align: center;
+}
+
+
+/* ===========================================================
+3. DESIGN DEL LOGIN (CARD)
+===========================================================
+*/
+
+.card-centrale {
+    background-color: var(--scheda);
+    padding: 40px 30px;
+    border-radius: 15px;
+    border-top: 5px solid var(--oro); /* Barra oro superiore */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+h1 {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+p {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 30px;
+}
+
+
+/* ===========================================================
+4. INPUT E BOTTONI
+===========================================================
+*/
+
+input {
+    width: 100%;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: var(--oro);
+    font-size: 1.2rem;
+    text-align: center;
+    box-sizing: border-box; /* Evita che l'input esca dai bordi */
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--oro);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+}
+
+button:active {
+    transform: scale(0.98); /* Effetto pressione al click */
+    background-color: #b08d35;
+}
+
+/* ===========================================================
+5. HEADER E INFO UTENTE (SISTEMATO)
+=========================================================== */
+.header-app {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #1a1a1a;
+    border-bottom: 1px solid #333;
+    margin-bottom: 10px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+}
+
+.btn-logout {
+    background: transparent;
+    border: 1px solid #ff4444;
+    color: #ff4444;
+    padding: 5px 12px;
+    font-size: 0.7rem;
+    width: auto; /* Sovrascrive il width 100% dei bottoni normali */
+}
+
+/* ===========================================================
+6. ASSISTENTE SMART (BOX STATO)
+=========================================================== */
+#stato-attivita {
+    margin: 15px;
+    padding: 18px;
+    border-radius: 15px;
+    color: white;
+    text-align: left; /* Migliore leggibilità per i messaggi */
+    transition: all 0.4s ease-in-out;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.stato-vuoto { background: #2c2c2c; border-left: 6px solid #ff9800; } 
+.stato-ok { background: #1b301b; border-left: 6px solid #4CAF50; }
+.stato-allarme { background: #3b1a1a; border-left: 6px solid #f44336; animation: pulse-allarme 2s infinite; }
+
+/* ===========================================================
+7. GRIGLIA PULSANTI (PULITA)
+=========================================================== */
+.grid-icone {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    padding: 15px;
+}
+
+.icona-quadrata {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 25px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.icona-quadrata:active { transform: scale(0.92); background: #333; }
+.icona-quadrata .emoji { font-size: 2.2rem; margin-bottom: 8px; }
+.icona-quadrata .label { color: #fff; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; text-align: center; }
+
+/* ===========================================================
+8. STILI PER FORM PRODUZIONE (NUOVO)
+=========================================================== */
+select {
+    width: 100%;
+    padding: 15px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 1rem;
+    margin-top: 5px;
+    appearance: none; /* Rimuove lo stile di default del sistema */
+}
+
+.form-group label {
+    display: block;
+    margin-top: 15px;
+    font-weight: bold;
+    color: var(--oro);
+}

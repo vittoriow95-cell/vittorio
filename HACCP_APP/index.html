@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>HACCP SYSTEM - Step 1</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+
+
+
+    <section id="sez-login" class="schermata">
+
+        <div class="card-centrale">
+
+            <h1>HACCP SYSTEM</h1>
+            <p>Accesso Protetto</p>
+
+            <input type="password" id="input-pin" placeholder="INSERISCI PIN">
+
+            <button onclick="logicaLogin()">ACCEDI</button>
+
+        </div>
+
+    </section>
+
+
+
+
+
+<section id="sez-admin-utenti" class="schermata" style="display:none">
+
+    <div style="padding: 10px; text-align: center;">
+        <h3 style="color: white; margin-bottom: 5px;">GESTIONE COLLABORATORI</h3>
+    </div>
+
+    <div class="card-centrale">
+        <p>Registra Nuovo Collaboratore</p>
+        
+        <input type="text" id="nuovo-nome-utente" placeholder="Nome e Cognome">
+        <input type="tel" 
+       id="nuovo-pin-utente" 
+       placeholder="PIN (4 cifre)" 
+       maxlength="4" 
+       inputmode="numeric" 
+       style="text-align: center; font-size: 1.2rem;">
+       
+        <div style="margin: 15px 0; text-align: left; color: white; background: #333; padding: 10px; border-radius: 5px; border: 1px solid #555;">
+            <p style="font-size: 0.8rem; margin-bottom: 5px; color: gold;">Ruolo Aziendale:</p>
+            <label>
+                <input type="radio" name="ruolo-utente" value="Operatore" checked> Operatore
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="ruolo-utente" value="Responsabile"> Responsabile Autocontrollo
+            </label>
+        </div>
+
+        <button onclick="aggiungiUtente()" style="margin-bottom: 10px;">REGISTRA UTENTE</button>
+        
+        <button onclick="vaiA('sez-admin')" style="background-color: #666;">⬅ TORNA AL MENU ADMIN</button>
+    </div>
+
+    <div id="lista-utenti-creati" class="elenco-dati"></div>
+
+</section>
+
+
+<section id="sez-admin-frigo" class="schermata" style="display:none">
+
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>CONFIGURAZIONE FRIGORIFERI</h3>
+    </div>
+
+    <div class="card-centrale">
+       <p>Aggiungi un nuovo frigo</p>
+        
+        <input type="text" id="nuovo-nome-frigo" placeholder="NOME FRIGO (es. Frigo Pesce)">
+
+        <div class="scelta-tipo">
+            <label>
+                <input type="radio" name="tipo-frigo" value="Positivo" checked> 🟢 Positivo (+4°C)
+            </label>
+            <br>
+            <label>
+                <input type="radio" name="tipo-frigo" value="Negativo"> ❄️ Negativo (-18°C)
+            </label>
+        </div>
+        
+        <button onclick="aggiungiFrigo()" style="margin-top: 15px;">AGGIUNGI MACCHINA</button>
+    </div>
+   
+    <div id="lista-frigo-creati" class="elenco-dati">
+        <p style="color:gray">Caricamento lista...</p> 
+    </div>
+</section>
+
+
+
+
+    <section id="sez-admin" class="schermata" style="display:none">
+
+        <header class="header-admin">
+            <h2>PANNELLO DI CONTROLLO</h2>
+            <p>Benvenuto, Responsabile</p>
+        </header>
+
+
+        <div class="grid-icone">
+
+            <div class="icona-quadrata" onclick="vaiA('sez-admin-utenti')">
+    <span class="emoji">👤</span>
+    <span class="label">UTENTI</span>
+</div>
+
+            <div class="icona-quadrata" onclick="vaiA('sez-admin-frigo')">
+    <span class="emoji">❄️</span>
+    <span class="label">FRIGORIFERI</span>
+</div>
+
+            <div class="icona-quadrata" onclick="vaiAStorico()">
+                <span class="emoji">📊</span>
+                <span class="label">STORICO</span>
+            </div>
+
+        </div>
+
+
+        <button onclick="logout()" class="btn-uscita">CHIUDI SESSIONE</button>
+
+    </section>
+
+
+
+
+
+<section id="sez-operatore" class="schermata" style="display:none">
+    <header class="header-app">
+        <div class="user-info">
+            <span class="emoji">👤</span>
+            <div>
+                <strong id="nome-operatore">---</strong>
+                <small id="ruolo-operatore" style="display:block; font-size: 0.7rem; opacity: 0.8;"></small>
+            </div>
+        </div>
+        <button onclick="logout()" class="btn-logout">ESCI</button>
+    </header>
+
+    <div id="stato-attivita" class="stato-vuoto">
+        <span id="testo-stato">Caricamento...</span>
+    </div>
+
+    <div class="grid-icone">
+        
+        <div class="icona-quadrata" onclick="vaiA('sez-op-temperature')">
+            <span class="emoji">🌡️</span>
+            <span class="label">Registra<br>Gradi</span>
+        </div>
+        
+        <div class="icona-quadrata" onclick="vaiA('sez-storico-admin')">
+            <span class="emoji">📋</span>
+            <span class="label">Vedi<br>Storico</span>
+        </div>
+
+        <div class="icona-quadrata" style="border-color: #4CAF50;" onclick="vaiA('sez-op-lotti')">
+            <span class="emoji">🏷️</span>
+            <span class="label" style="color: #4CAF50;">Produzione<br>Lotti</span>
+        </div>
+
+        <div id="extra-resp" class="icona-quadrata" style="display:none; border-color: gold;" onclick="vaiA('sez-admin')">
+            <span class="emoji">⚙️</span>
+            <span class="label" style="color: gold;">Menu<br>Admin</span>
+        </div>
+
+    </div>
+</section>
+
+
+<section id="sez-op-temperature" class="schermata" style="display:none">
+
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h3>REGISTRA GRADI</h3>
+    </div>
+
+    <div class="card-centrale">
+        <p>Seleziona il frigorifero:</p>
+        
+        <select id="select-frigo" class="input-moderno"></select>
+
+        <p>Temperatura rilevata (°C):</p>
+        <input type="number" id="temp-rilevata" placeholder="Es. 3.5" step="0.1">
+        
+        <button onclick="salvaTemperatura()">REGISTRA ORA</button>
+    </div>
+
+</section>
+
+
+<<section id="sez-op-lotti" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ INDIETRO</button>
+        <h3>PRODUZIONE E LOTTI</h3>
+    </div>
+    
+    <div class="card-centrale" style="padding: 20px 15px;">
+        <label style="color:var(--oro); font-size:0.8rem; display:block; text-align:left;">SELEZIONA PRODOTTO:</label>
+        <select id="select-prodotto-prep" style="margin-bottom:10px;"></select>
+        
+        <label style="color:var(--oro); font-size:0.8rem; display:block; text-align:left;">...OPPURE SCRIVI NOME NUOVO:</label>
+        <input type="text" id="nuovo-prodotto-nome" placeholder="Es: Sugo di Pesce" style="margin-bottom:15px;">
+
+        <div style="display: flex; gap: 10px;">
+            <div style="flex: 2;">
+                <label style="color:var(--oro); font-size:0.8rem; display:block; text-align:left;">LOTTO ORIGINE:</label>
+                <input type="text" id="lotto-origine" placeholder="Lotto fornitore">
+            </div>
+            <div style="flex: 1;">
+                <label style="color:var(--oro); font-size:0.8rem; display:block; text-align:left;">GG SCAD.:</label>
+                <input type="number" id="giorni-scadenza" value="3">
+            </div>
+        </div>
+
+        <label style="color:var(--oro); font-size:0.8rem; display:block; text-align:left;">QUANTITÀ:</label>
+        <input type="number" id="quantita-prep" placeholder="Es: 5" style="margin-bottom:20px;">
+
+        <button onclick="salvaLottoInterno()" style="background-color: #4CAF50;">SALVA E GENERA ETICHETTA</button>
+    </div>
+</section>
+
+
+    <section id="sez-app" class="schermata" style="display:none">
+        <h1>Benvenuto nell'App</h1>
+        <button onclick="logout()">LOGOUT</button>
+    </section>
+
+
+
+
+
+    <script src="app.js"></script>
+</body>
+</html>
