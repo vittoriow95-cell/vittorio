@@ -96,8 +96,20 @@ function vaiA(idSezione) {
     if (idSezione === "sez-op-temperature" || idSezione === "sez-registra-temp") {
         console.log("Apertura sezione temperature: carico i frigoriferi...");
         popolaMenuFrigo();
-        }
     }
+    
+    // 4. Logica speciale per la sezione produzione lotti
+    if (idSezione === "sez-op-lotti") {
+        console.log("Apertura sezione lotti: carico i prodotti...");
+        popolaSelectProdotti();
+    }
+    
+    // 5. Logica speciale per lo storico lotti
+    if (idSezione === "sez-storico-admin") {
+        console.log("Apertura storico lotti...");
+        caricaStoricoLotti();
+    }
+}
 
 function logout() {
     location.reload();
@@ -442,4 +454,127 @@ function popolaSelectProdotti() {
         opt.innerText = p;
         select.appendChild(opt);
     });
+}
+
+// Funzione per aprire lo storico e caricare i lotti
+function vaiAStorico() {
+    vaiA('sez-storico-admin');
+}
+
+// Funzione che calcola lo stato della scadenza
+function calcolaStatoScadenza(dataScadenzaStr) {
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0); // Reset ore per confronto preciso
+    
+    // Converti la data scadenza da stringa a oggetto Date
+    const partiData = dataScadenzaStr.split('/');
+    let dataScadenza;
+    
+    if (partiData.length === 3) {
+        // Formato: gg/mm/aaaa
+        dataScadenza = new Date(partiData[2], partiData[1] - 1, partiData[0]);
+    } else {
+        // Fallback se il formato è diverso
+        dataScadenza = new Date(dataScadenzaStr);
+    }
+    
+    dataScadenza.setHours(0, 0, 0, 0);
+    
+    // Calcola differenza in millisecondi e converti in giorni
+    const diffMs = oggi - dataScadenza;
+    const giorniDallaScadenza = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    let stato, colore, emoji;
+    
+    if (giorniDallaScadenza < 0) {
+        // Prodotto ancora valido
+        stato = "OK";
+        colore = "#4CAF50"; // Verde
+        emoji = "✅";
+    } else if (giorniDallaScadenza >= 0 && giorniDallaScadenza <= 5) {
+        // Scaduto da 0 a 5 giorni
+        stato = "ATTENZIONE";
+        colore = "#FFA500"; // Arancione/Giallo
+        emoji = "⚠️";
+    } else {
+        // Scaduto da 6+ giorni
+        stato = "CRITICO";
+        colore = "#f44336"; // Rosso
+        emoji = "🔴";
+    }
+    
+    return { stato, colore, emoji, giorniDallaScadenza };
+}
+
+// Funzione che visualizza i lotti nello storico
+function caricaStoricoLotti() {
+    const container = document.getElementById("container-storico-lotti");
+    if (!container) return;
+    
+    container.innerHTML = "";
+    
+    if (databaseLotti.length === 0) {
+        container.innerHTML = '<p style="color:gray; text-align:center;">Nessun lotto registrato.</p>';
+        return;
+    }
+    
+    // Inverti l'ordine per mostrare i lotti più recenti per primi
+    const lottiRecenti = databaseLotti.slice().reverse();
+    
+    // Costruisci l'HTML in una stringa per migliorare le prestazioni
+    let htmlContent = "";
+    
+    lottiRecenti.forEach((lotto, index) => {
+        const statoScadenza = calcolaStatoScadenza(lotto.scadenza);
+        
+        let messaggioScadenza = "";
+        if (statoScadenza.giorniDallaScadenza < 0) {
+            messaggioScadenza = `Scade tra ${Math.abs(statoScadenza.giorniDallaScadenza)} giorni`;
+        } else if (statoScadenza.giorniDallaScadenza === 0) {
+            messaggioScadenza = "Scade oggi";
+        } else {
+            messaggioScadenza = `Scaduto da ${statoScadenza.giorniDallaScadenza} giorni`;
+        }
+        
+        htmlContent += `
+            <div class="riga-lotto" style="
+                background: #2a2a2a; 
+                border-left: 5px solid ${statoScadenza.colore}; 
+                padding: 15px; 
+                margin-bottom: 10px; 
+                border-radius: 8px;
+            ">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong style="color: white; font-size: 1.1rem;">${lotto.prodotto}</strong>
+                        <br>
+                        <small style="color: #aaa;">Lotto: ${lotto.lottoInterno}</small>
+                        <br>
+                        <small style="color: #aaa;">Prodotto il: ${lotto.dataProduzione}</small>
+                        <br>
+                        <small style="color: #aaa;">Operatore: ${lotto.operatore}</small>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="
+                            background: ${statoScadenza.colore}; 
+                            color: white; 
+                            padding: 8px 12px; 
+                            border-radius: 8px; 
+                            font-weight: bold;
+                            margin-bottom: 5px;
+                        ">
+                            ${statoScadenza.emoji} ${statoScadenza.stato}
+                        </div>
+                        <small style="color: ${statoScadenza.colore};">
+                            Scadenza: ${lotto.scadenza}<br>
+                            ${messaggioScadenza}
+                        </small>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Assegna tutto l'HTML in una volta sola per migliori prestazioni
+    container.innerHTML = htmlContent;
 }
