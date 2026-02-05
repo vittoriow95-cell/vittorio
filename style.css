@@ -191,3 +191,89 @@ select {
     font-weight: bold;
     color: var(--oro);
 }
+
+/* ===========================================================
+9. HEADER SOTTOPAGINE E STORICO
+=========================================================== */
+.header-sottopagina {
+    background: #1a1a1a;
+    padding: 15px;
+    margin: -20px -20px 20px -20px;
+    border-bottom: 2px solid var(--oro);
+    text-align: center;
+}
+
+.header-sottopagina h3 {
+    margin: 10px 0 0 0;
+    color: var(--oro);
+    font-size: 1.1rem;
+}
+
+.header-sottopagina button {
+    background: transparent;
+    border: 1px solid #666;
+    color: #fff;
+    width: auto;
+    padding: 8px 15px;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+}
+
+.elenco-dati {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.riga-utente {
+    background: #2a2a2a;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--oro);
+}
+
+.header-admin {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    padding: 20px;
+    margin: -20px -20px 20px -20px;
+    border-bottom: 3px solid var(--oro);
+    text-align: center;
+}
+
+.header-admin h2 {
+    margin: 0 0 5px 0;
+    color: var(--oro);
+    font-size: 1.3rem;
+    letter-spacing: 1px;
+}
+
+.header-admin p {
+    margin: 0;
+    color: #888;
+    font-size: 0.85rem;
+}
+
+.btn-uscita {
+    margin-top: 20px;
+    background: transparent;
+    border: 1px solid #ff4444;
+    color: #ff4444;
+}
+
+.scelta-tipo {
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    text-align: left;
+}
+
+.scelta-tipo label {
+    color: #fff;
+    display: block;
+    margin: 8px 0;
+    cursor: pointer;
+}
+

@@ -96,8 +96,14 @@ function vaiA(idSezione) {
     if (idSezione === "sez-op-temperature" || idSezione === "sez-registra-temp") {
         console.log("Apertura sezione temperature: carico i frigoriferi...");
         popolaMenuFrigo();
-        }
     }
+    
+    // Carica la lista prodotti quando apriamo la sezione lotti
+    if (idSezione === "sez-op-lotti") {
+        console.log("Apertura sezione lotti: carico i prodotti...");
+        popolaSelectProdotti();
+    }
+}
 
 function logout() {
     location.reload();
@@ -443,3 +449,122 @@ function popolaSelectProdotti() {
         select.appendChild(opt);
     });
 }
+
+/* ===========================================================
+   8. FUNZIONI PER LO STORICO
+   =========================================================== */
+
+function vaiAStorico() {
+    vaiA('sez-storico-admin');
+    mostraStorico('temperature');
+}
+
+function mostraStorico(tipo) {
+    const btnTemp = document.getElementById("btn-tab-temp");
+    const btnLotti = document.getElementById("btn-tab-lotti");
+    const divTemp = document.getElementById("contenuto-storico-temp");
+    const divLotti = document.getElementById("contenuto-storico-lotti");
+
+    if (tipo === 'temperature') {
+        btnTemp.style.background = "var(--oro)";
+        btnLotti.style.background = "#555";
+        divTemp.style.display = "block";
+        divLotti.style.display = "none";
+        aggiornaStoricoTemperature();
+    } else {
+        btnTemp.style.background = "#555";
+        btnLotti.style.background = "var(--oro)";
+        divTemp.style.display = "none";
+        divLotti.style.display = "block";
+        aggiornaStoricoLotti();
+    }
+}
+
+function aggiornaStoricoTemperature() {
+    const contenitore = document.getElementById("contenuto-storico-temp");
+    if (!contenitore) return;
+    
+    contenitore.innerHTML = "";
+    
+    if (databaseTemperature.length === 0) {
+        contenitore.innerHTML = '<p style="color:gray; text-align:center; padding:20px;">Nessuna registrazione trovata</p>';
+        return;
+    }
+
+    // Mostriamo le registrazioni più recenti per prime
+    const registrazioniInvertite = [...databaseTemperature].reverse();
+    
+    registrazioniInvertite.forEach((record, index) => {
+        const coloreStato = record.stato === "OK" ? "#4CAF50" : 
+                           record.stato === "RIPOSO" ? "#FF9800" : "#f44336";
+        
+        const isChiuso = record.gradi === "CHIUSO";
+        
+        contenitore.innerHTML += `
+            <div class="riga-utente" style="border-left: 5px solid ${coloreStato}; margin-bottom: 8px; padding: 12px; background: #2a2a2a;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <strong style="color: ${coloreStato};">${record.stato}</strong>
+                    <small style="color: #888;">${record.data}</small>
+                </div>
+                <div style="font-size: 0.9rem; color: #ccc;">
+                    ${isChiuso ? 
+                        '🏖️ <strong>GIORNO DI RIPOSO</strong>' : 
+                        `📍 ${record.frigo} - <strong>${record.gradi}°C</strong>`
+                    }
+                </div>
+                <div style="font-size: 0.75rem; color: #999; margin-top: 5px;">
+                    👤 ${record.utente}
+                </div>
+            </div>
+        `;
+    });
+}
+
+function aggiornaStoricoLotti() {
+    const contenitore = document.getElementById("contenuto-storico-lotti");
+    if (!contenitore) return;
+    
+    contenitore.innerHTML = "";
+    
+    if (databaseLotti.length === 0) {
+        contenitore.innerHTML = '<p style="color:gray; text-align:center; padding:20px;">Nessun lotto registrato</p>';
+        return;
+    }
+
+    // Mostriamo i lotti più recenti per primi
+    const lottiInvertiti = [...databaseLotti].reverse();
+    
+    lottiInvertiti.forEach((lotto, index) => {
+        const oggi = new Date();
+        const scadenza = new Date(lotto.scadenza.split('/').reverse().join('-'));
+        const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+        
+        let coloreScadenza = "#4CAF50"; // Verde
+        if (giorniRimanenti <= 0) coloreScadenza = "#f44336"; // Rosso
+        else if (giorniRimanenti <= 1) coloreScadenza = "#FF9800"; // Arancione
+        
+        contenitore.innerHTML += `
+            <div class="riga-utente" style="border-left: 5px solid ${coloreScadenza}; margin-bottom: 10px; padding: 12px; background: #2a2a2a;">
+                <div style="margin-bottom: 8px;">
+                    <strong style="color: #c9a3f; font-size: 1.1rem;">${lotto.prodotto}</strong>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem; color: #ccc;">
+                    <div>🏷️ Lotto: <strong>${lotto.lottoInterno}</strong></div>
+                    <div>📦 Qt: <strong>${lotto.quantita}</strong></div>
+                    <div>📅 Prod: ${lotto.dataProduzione}</div>
+                    <div style="color: ${coloreScadenza};">⏰ Scad: ${lotto.scadenza}</div>
+                </div>
+                <div style="font-size: 0.75rem; color: #999; margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
+                    🔗 Origine: ${lotto.lottoOrigine} | 👤 ${lotto.operatore}
+                </div>
+                ${giorniRimanenti <= 1 && giorniRimanenti >= 0 ? 
+                    '<div style="margin-top: 5px; padding: 5px; background: #FF9800; color: #000; border-radius: 5px; text-align: center; font-size: 0.75rem; font-weight: bold;">⚠️ IN SCADENZA</div>' : 
+                    giorniRimanenti < 0 ? 
+                    '<div style="margin-top: 5px; padding: 5px; background: #f44336; color: #fff; border-radius: 5px; text-align: center; font-size: 0.75rem; font-weight: bold;">🚫 SCADUTO</div>' : 
+                    ''
+                }
+            </div>
+        `;
+    });
+}
+

@@ -199,7 +199,7 @@
 </section>
 
 
-<<section id="sez-op-lotti" class="schermata" style="display:none">
+<section id="sez-op-lotti" class="schermata" style="display:none">
     <div class="header-sottopagina">
         <button onclick="vaiA('sez-operatore')">⬅ INDIETRO</button>
         <h3>PRODUZIONE E LOTTI</h3>
@@ -236,6 +236,28 @@
         <button onclick="logout()">LOGOUT</button>
     </section>
 
+
+<section id="sez-storico-admin" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h3>STORICO REGISTRAZIONI</h3>
+    </div>
+
+    <div style="padding: 10px;">
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button onclick="mostraStorico('temperature')" id="btn-tab-temp" style="flex: 1; background: var(--oro);">🌡️ TEMPERATURE</button>
+            <button onclick="mostraStorico('lotti')" id="btn-tab-lotti" style="flex: 1; background: #555;">🏷️ LOTTI</button>
+        </div>
+        
+        <div id="contenuto-storico-temp" class="elenco-dati" style="max-height: 60vh; overflow-y: auto;">
+            <p style="color:gray;">Caricamento dati...</p>
+        </div>
+        
+        <div id="contenuto-storico-lotti" class="elenco-dati" style="max-height: 60vh; overflow-y: auto; display: none;">
+            <p style="color:gray;">Caricamento dati...</p>
+        </div>
+    </div>
+</section>
 
 
 
