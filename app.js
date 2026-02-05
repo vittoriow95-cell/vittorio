@@ -1040,73 +1040,33 @@ async function stampaEtichettaLotto(lotto) {
             config: config
         };
 
-        // Rileva piattaforma
-        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
-        const isAndroid = /android/i.test(userAgent);
-        const isChrome = /chrome/i.test(userAgent);
-
-        if (isAndroid && isChrome && navigator.bluetooth) {
-            // Stampa diretta via Web Bluetooth (Android/Chrome)
-            try {
-                await stampaBluetoothAndroid(datiStampa);
-                mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata via Bluetooth' : 'etichette inviate via Bluetooth'}!`, 'success');
-            } catch (err) {
-                mostraNotifica('⚠️ Errore stampa Bluetooth', 'warning');
-                console.error('Errore stampa Bluetooth:', err);
+        // Invia stampa al server locale
+        fetch('/stampa', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(datiStampa),
+            signal: AbortSignal.timeout(5000)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Errore stampa:', data.error);
             }
-            return;
-        } else if (isIOS) {
-            // iOS: mostra istruzioni/app per stampa
-            alert('La stampa Bluetooth diretta non è supportata su iOS per limiti Apple. Usa AirPrint (se la stampante lo supporta) oppure stampa da PC/Android.');
-            return;
-        } else {
-            // Desktop/server locale: stampa classica
-            fetch('/stampa', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(datiStampa),
-                signal: AbortSignal.timeout(5000)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    console.error('Errore stampa:', data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Errore connessione stampante:', error);
-                mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
-            });
-            setTimeout(() => {
-                mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
-            }, 100);
-        }
+        })
+        .catch(error => {
+            console.error('Errore connessione stampante:', error);
+            mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
+        });
+        setTimeout(() => {
+            mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
+        }, 100);
     } catch (error) {
         console.error('Errore stampa:', error);
         alert('Errore durante la stampa. Verifica che il server sia avviato.');
     }
 }
 
-// Stampa via Web Bluetooth (Android/Chrome)
-async function stampaBluetoothAndroid(datiStampa) {
-    // Esempio base: invia stringa comandi alla stampante Bluetooth
-    // Adatta questa funzione secondo il protocollo della tua stampante
-    const serviceUuid = '00001101-0000-1000-8000-00805f9b34fb'; // Serial Port Profile (SPP)
-    const options = {
-        filters: [{ namePrefix: '4B' }], // Cambia con il nome della tua stampante
-        optionalServices: [serviceUuid]
-    };
-    const device = await navigator.bluetooth.requestDevice(options);
-    const server = await device.gatt.connect();
-    // Trova il servizio e la caratteristica giusta (dipende dal modello)
-    // Qui va adattato in base alla stampante
-    // ...
-    // Esempio: invio dati come stringa
-    // await characteristic.writeValue(new TextEncoder().encode(datiStampa.comandiStampante));
-    // Per ora mostra solo un alert di test
-    alert('Stampa Bluetooth inviata (demo). Integra qui il protocollo della tua stampante!');
-}
+
 
 // VERIFICA SE IL SERVER È ATTIVO
 async function verificaServer() {
