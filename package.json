@@ -4,7 +4,9 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "agent": "node print-agent.js",
+    "test-agent": "node tools/test-agent.js"
   },
   "dependencies": {
     "imap": "^0.8.19",

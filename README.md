@@ -59,6 +59,36 @@ Poi riavvia con `AVVIA_SERVER.bat`
 
 ---
 
+## 🌐 Uso senza PC di casa (server cloud + agente stampa locale)
+
+Se vuoi usare l’app da ovunque **senza tenere acceso il PC di casa**, devi:
+1) **Pubblicare il server** su cloud (Render/Railway/etc.)
+2) **Lasciare acceso solo il PC in macelleria** collegato alla stampante
+
+### ✅ Avvio agente stampa (PC in macelleria)
+```bash
+npm run agent
+```
+
+Variabili utili:
+- `PRINT_AGENT_PORT` (default 7001)
+- `PRINT_AGENT_TOKEN` (token di sicurezza)
+- `PRINT_BAT_PATH` (percorso del file stampa_com3.bat)
+
+### ✅ Configurazione server cloud
+Imposta queste variabili sul server cloud:
+- `PRINT_AGENT_URL` = URL dell’agente (es. http://IP_DEL_PC:7001/stampa o URL tunnel)
+- `PRINT_AGENT_TOKEN` = lo stesso token dell’agente
+
+### ✅ Test agente stampa
+```bash
+npm run test-agent
+```
+
+Se il test risponde `ok: true`, l’agente è pronto.
+
+---
+
 ## 📧 Sistema PEC - Fatture Automatiche
 
 ### Account Configurato

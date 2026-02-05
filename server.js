@@ -25,8 +25,50 @@ function salvaDatabaseFornitori(db) {
 }
 
 const PORT = process.env.PORT || 5000;
+const PRINT_AGENT_URL = process.env.PRINT_AGENT_URL || '';
+const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || '';
 const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
+
+function postJson(urlStr, data, token) {
+    return new Promise((resolve, reject) => {
+        const { URL } = require('url');
+        const urlObj = new URL(urlStr);
+        const isHttps = urlObj.protocol === 'https:';
+        const lib = isHttps ? require('https') : require('http');
+        const payload = JSON.stringify(data || {});
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload)
+        };
+
+        if (token) {
+            headers['x-print-token'] = token;
+        }
+
+        const req = lib.request(
+            {
+                hostname: urlObj.hostname,
+                port: urlObj.port || (isHttps ? 443 : 80),
+                path: urlObj.pathname + urlObj.search,
+                method: 'POST',
+                headers
+            },
+            (res) => {
+                let body = '';
+                res.on('data', (chunk) => (body += chunk));
+                res.on('end', () => {
+                    resolve({ status: res.statusCode || 500, body });
+                });
+            }
+        );
+
+        req.on('error', reject);
+        req.write(payload);
+        req.end();
+    });
+}
 
 // Mittenti importanti da monitorare
 const MITTENTI_PRIORITARI = [
@@ -131,8 +173,21 @@ const server = http.createServer((req, res) => {
     else if (req.url === '/stampa' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
-        req.on('end', () => {
+        req.on('end', async () => {
             const dati = JSON.parse(body);
+
+            if (PRINT_AGENT_URL) {
+                try {
+                    const risposta = await postJson(PRINT_AGENT_URL, dati, PRINT_AGENT_TOKEN);
+                    res.writeHead(risposta.status, { 'Content-Type': 'application/json' });
+                    res.end(risposta.body || JSON.stringify({ success: false, message: 'Nessuna risposta agente' }));
+                } catch (err) {
+                    console.error('❌ Errore inoltro stampa:', err.message);
+                    res.writeHead(502, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, message: 'Errore inoltro stampa', error: err.message }));
+                }
+                return;
+            }
             
             console.log('\n📦 STAMPA RICHIESTA:');
             console.log('Prodotto:', dati.prodotto);
