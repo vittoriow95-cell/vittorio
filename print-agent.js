@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 
-const PORT = process.env.PRINT_AGENT_PORT || 7001;
+const PORT = process.env.PRINT_AGENT_PORT || 7002;
 const TOKEN = process.env.PRINT_AGENT_TOKEN || '';
 const BAT_PATH = process.env.PRINT_BAT_PATH || path.join(__dirname, 'stampa_com3.bat');
 
