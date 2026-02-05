@@ -1008,18 +1008,13 @@ async function stampaEtichettaLotto(lotto) {
     try {
         // Chiedi quante copie stampare
         const copie = prompt('Quante etichette vuoi stampare?', '1');
-        
-        if (!copie || copie === null) {
-            return;
-        }
-        
+        if (!copie || copie === null) return;
         const numeroCopie = parseInt(copie);
-        
         if (isNaN(numeroCopie) || numeroCopie < 1 || numeroCopie > 50) {
             alert('⚠️ Numero non valido! Inserisci un numero tra 1 e 50');
             return;
         }
-        
+
         // Carica configurazione stampa
         const config = JSON.parse(localStorage.getItem('haccp_config_stampa')) || {
             larghezza: 40,
@@ -1034,7 +1029,7 @@ async function stampaEtichettaLotto(lotto) {
             fontTitolo: '3',
             fontCampi: '2'
         };
-        
+
         // Prepara dati per la stampa
         const datiStampa = {
             prodotto: String(lotto.prodotto || ''),
@@ -1044,34 +1039,73 @@ async function stampaEtichettaLotto(lotto) {
             copie: numeroCopie,
             config: config
         };
-        
-        // Invia stampa al server
-        fetch('/stampa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datiStampa),
-            signal: AbortSignal.timeout(5000)
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                console.error('Errore stampa:', data.error);
+
+        // Rileva piattaforma
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+        const isAndroid = /android/i.test(userAgent);
+        const isChrome = /chrome/i.test(userAgent);
+
+        if (isAndroid && isChrome && navigator.bluetooth) {
+            // Stampa diretta via Web Bluetooth (Android/Chrome)
+            try {
+                await stampaBluetoothAndroid(datiStampa);
+                mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata via Bluetooth' : 'etichette inviate via Bluetooth'}!`, 'success');
+            } catch (err) {
+                mostraNotifica('⚠️ Errore stampa Bluetooth', 'warning');
+                console.error('Errore stampa Bluetooth:', err);
             }
-        })
-        .catch(error => {
-            console.error('Errore connessione stampante:', error);
-            mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
-        });
-        
-        // Notifica immediata
-        setTimeout(() => {
-            mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
-        }, 100);
-        
+            return;
+        } else if (isIOS) {
+            // iOS: mostra istruzioni/app per stampa
+            alert('La stampa Bluetooth diretta non è supportata su iOS per limiti Apple. Usa AirPrint (se la stampante lo supporta) oppure stampa da PC/Android.');
+            return;
+        } else {
+            // Desktop/server locale: stampa classica
+            fetch('/stampa', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(datiStampa),
+                signal: AbortSignal.timeout(5000)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Errore stampa:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Errore connessione stampante:', error);
+                mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
+            });
+            setTimeout(() => {
+                mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
+            }, 100);
+        }
     } catch (error) {
         console.error('Errore stampa:', error);
         alert('Errore durante la stampa. Verifica che il server sia avviato.');
     }
+}
+
+// Stampa via Web Bluetooth (Android/Chrome)
+async function stampaBluetoothAndroid(datiStampa) {
+    // Esempio base: invia stringa comandi alla stampante Bluetooth
+    // Adatta questa funzione secondo il protocollo della tua stampante
+    const serviceUuid = '00001101-0000-1000-8000-00805f9b34fb'; // Serial Port Profile (SPP)
+    const options = {
+        filters: [{ namePrefix: '4B' }], // Cambia con il nome della tua stampante
+        optionalServices: [serviceUuid]
+    };
+    const device = await navigator.bluetooth.requestDevice(options);
+    const server = await device.gatt.connect();
+    // Trova il servizio e la caratteristica giusta (dipende dal modello)
+    // Qui va adattato in base alla stampante
+    // ...
+    // Esempio: invio dati come stringa
+    // await characteristic.writeValue(new TextEncoder().encode(datiStampa.comandiStampante));
+    // Per ora mostra solo un alert di test
+    alert('Stampa Bluetooth inviata (demo). Integra qui il protocollo della tua stampante!');
 }
 
 // VERIFICA SE IL SERVER È ATTIVO
@@ -3274,38 +3308,37 @@ function verificaScadenze() {
     const oggi = new Date();
     // Escludi lotti terminati
     const lottiAttivi = databaseLotti.filter(l => !l.terminato);
-    
-    const scaduti = lottiAttivi.filter(lotto => {
+
+    // Nuova logica: giorni dalla scadenza (passato = positivo)
+    const ok = lottiAttivi.filter(lotto => {
         if (!lotto.scadenza) return false;
         const scadenza = parseDataItaliana(lotto.scadenza);
-        const diffGiorni = Math.floor((scadenza - oggi) / (1000 * 60 * 60 * 24));
-        return diffGiorni < 0;
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        return giorniDallaScadenza <= 0;
     });
-    
+    const attenzione = lottiAttivi.filter(lotto => {
+        if (!lotto.scadenza) return false;
+        const scadenza = parseDataItaliana(lotto.scadenza);
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        return giorniDallaScadenza > 0 && giorniDallaScadenza <= 5;
+    });
     const critici = lottiAttivi.filter(lotto => {
         if (!lotto.scadenza) return false;
         const scadenza = parseDataItaliana(lotto.scadenza);
-        const diffGiorni = Math.floor((scadenza - oggi) / (1000 * 60 * 60 * 24));
-        return diffGiorni >= 0 && diffGiorni <= 3;
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        return giorniDallaScadenza > 5;
     });
-    
-    const imminenti = lottiAttivi.filter(lotto => {
-        if (!lotto.scadenza) return false;
-        const scadenza = parseDataItaliana(lotto.scadenza);
-        const diffGiorni = Math.floor((scadenza - oggi) / (1000 * 60 * 60 * 24));
-        return diffGiorni > 3 && diffGiorni <= 7;
-    });
-    
-    if (scaduti.length > 0 || critici.length > 0) {
-        mostraNotifica(`⚠️ ${scaduti.length + critici.length} prodotti scaduti o in scadenza critica!`, 'error');
-    } else if (imminenti.length > 0) {
-        mostraNotifica(`⚠️ ${imminenti.length} prodotti in scadenza (prossimi 7 giorni)`, 'warning');
+
+    if (critici.length > 0) {
+        mostraNotifica(`🔴 ${critici.length} prodotti SCADUTI da oltre 5 giorni!`, 'error');
+    } else if (attenzione.length > 0) {
+        mostraNotifica(`🟡 ${attenzione.length} prodotti scaduti da 0 a 5 giorni`, 'warning');
     }
-    
+
     return {
-        scaduti: scaduti.length,
-        critici: critici.length,
-        imminenti: imminenti.length
+        ok: ok.length,
+        attenzione: attenzione.length,
+        critici: critici.length
     };
 }
 
@@ -3321,62 +3354,72 @@ function renderizzaScadenzario() {
     const container = document.getElementById('lista-scadenze');
     const alert = document.getElementById('alert-scadenze');
     const oggi = new Date();
-    
+
     // Escludi lotti terminati
     const lottiAttivi = databaseLotti.filter(l => !l.terminato);
-    
+
+    // Nuova logica: giorni dalla scadenza
     const prodottiConScadenza = lottiAttivi.map(lotto => {
         if (!lotto.scadenza) return null;
         const scadenza = parseDataItaliana(lotto.scadenza);
-        const diffGiorni = Math.floor((scadenza - oggi) / (1000 * 60 * 60 * 24));
-        return { ...lotto, scadenza: scadenza, giorniRimanenti: diffGiorni };
-    }).filter(p => p !== null).sort((a, b) => a.giorniRimanenti - b.giorniRimanenti);
-    
-    const scaduti = prodottiConScadenza.filter(p => p.giorniRimanenti < 0);
-    const critico = prodottiConScadenza.filter(p => p.giorniRimanenti >= 0 && p.giorniRimanenti <= 3);
-    const attenzione = prodottiConScadenza.filter(p => p.giorniRimanenti > 3 && p.giorniRimanenti <= 7);
-    
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        return { ...lotto, scadenza: scadenza, giorniDallaScadenza };
+    }).filter(p => p !== null).sort((a, b) => a.giorniDallaScadenza - b.giorniDallaScadenza);
+
+    const ok = prodottiConScadenza.filter(p => p.giorniDallaScadenza <= 0);
+    const attenzione = prodottiConScadenza.filter(p => p.giorniDallaScadenza > 0 && p.giorniDallaScadenza <= 5);
+    const critico = prodottiConScadenza.filter(p => p.giorniDallaScadenza > 5);
+
     let alertHTML = '';
-    if (scaduti.length > 0) {
-        alertHTML += `<div style="background:#333; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>⚫ ${scaduti.length} prodotti SCADUTI</strong></div>`;
-    }
     if (critico.length > 0) {
-        alertHTML += `<div style="background:#f44336; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>🚨 ${critico.length} prodotti in scadenza critica (0-3 giorni)</strong></div>`;
+        alertHTML += `<div style="background:#f44336; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>🔴 ${critico.length} prodotti SCADUTI da oltre 5 giorni</strong></div>`;
     }
     if (attenzione.length > 0) {
-        alertHTML += `<div style="background:#FF9800; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>⚠️ ${attenzione.length} prodotti in scadenza (4-7 giorni)</strong></div>`;
+        alertHTML += `<div style="background:#FFD60A; color:#222; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>🟡 ${attenzione.length} prodotti scaduti da 0 a 5 giorni</strong></div>`;
     }
-    
+    if (ok.length > 0) {
+        alertHTML += `<div style="background:#4CAF50; color:#fff; padding:15px; border-radius:8px; margin-bottom:15px;"><strong>🟢 ${ok.length} prodotti validi (non scaduti)</strong></div>`;
+    }
+
     const lottiTerminati = databaseLotti.filter(l => l.terminato).length;
     if (lottiTerminati > 0) {
         alertHTML += `<div style="background:#1a1a1a; padding:10px; border-radius:8px; margin-bottom:15px; font-size:13px; opacity:0.7;"><strong>ℹ️ ${lottiTerminati} lotti marcati come terminati (esclusi da questa lista)</strong></div>`;
     }
-    
+
     alert.innerHTML = alertHTML;
-    
+
     let html = '<table style="width:100%; border-collapse:collapse;">';
-    html += '<tr style="background:#333;"><th style="padding:12px;">Prodotto</th><th>Lotto</th><th>Scadenza</th><th>Giorni</th><th>Stato</th></tr>';
-    
+    html += '<tr style="background:#333;"><th style="padding:12px;">Prodotto</th><th>Lotto</th><th>Scadenza</th><th>Stato</th><th>Messaggio</th></tr>';
+
     prodottiConScadenza.forEach(p => {
         let colore = '#4CAF50';
-        let stato = '✅ OK';
-        if (p.giorniRimanenti < 0) {
-            colore = '#666';
-            stato = '❌ SCADUTO';
-        } else if (p.giorniRimanenti <= 3) {
+        let stato = '🟢 OK';
+        let messaggio = '';
+        if (p.giorniDallaScadenza < 0) {
+            // Futuro
+            if (p.giorniDallaScadenza === -1) {
+                messaggio = 'Scade domani';
+            } else {
+                messaggio = `Scade tra ${-p.giorniDallaScadenza} giorni`;
+            }
+        } else if (p.giorniDallaScadenza === 0) {
+            messaggio = 'Scade oggi';
+        } else if (p.giorniDallaScadenza > 0 && p.giorniDallaScadenza <= 5) {
+            colore = '#FFD60A';
+            stato = '🟡 ATTENZIONE';
+            messaggio = `Scaduto da ${p.giorniDallaScadenza} giorni`;
+        } else if (p.giorniDallaScadenza > 5) {
             colore = '#f44336';
-            stato = '🚨 CRITICO';
-        } else if (p.giorniRimanenti <= 7) {
-            colore = '#FF9800';
-            stato = '⚠️ ATTENZIONE';
+            stato = '🔴 CRITICO';
+            messaggio = `Scaduto da ${p.giorniDallaScadenza} giorni`;
         }
-        
+
         html += `<tr style="border-bottom:1px solid #555;">
             <td style="padding:12px;">${p.prodotto}</td>
             <td>${p.lottoInterno}</td>
             <td>${p.scadenza.toLocaleDateString('it-IT')}</td>
-            <td style="color:${colore}; font-weight:bold;">${p.giorniRimanenti}</td>
-            <td style="color:${colore};">${stato}</td>
+            <td style="color:${colore}; font-weight:bold;">${stato}</td>
+            <td style="color:${colore};">${messaggio}</td>
         </tr>`;
     });
     html += '</table>';
