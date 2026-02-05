@@ -774,11 +774,19 @@ const server = http.createServer((req, res) => {
     }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
     console.log('\n🚀 SERVER AVVIATO');
     console.log('🌐 http://localhost:' + PORT);
     console.log('🖨️ Stampante:', NOME_STAMPANTE);
     console.log('📧 Gestione PEC: Attiva');
+    
+    // Test connessione MongoDB all'avvio
+    try {
+        await database.connetti();
+    } catch (err) {
+        console.warn('⚠️ MongoDB non disponibile all\'avvio:', err.message);
+    }
+    
     console.log('');
 });
 
