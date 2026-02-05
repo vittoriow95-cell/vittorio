@@ -30,7 +30,7 @@ function aggiornaBarraCloudUser() {
         }
         
         // Sposta corpo più in basso per compensare barra fissa
-        document.body.style.paddingTop = '50px';
+        document.body.style.paddingTop = '8px';
     } else {
         barra.style.display = 'none';
         document.body.style.paddingTop = '0';
