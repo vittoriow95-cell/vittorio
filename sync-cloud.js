@@ -250,6 +250,8 @@ async function salvaDatiSuCloud() {
             ccp: localStorage.getItem('haccp_ccp'),
             configStampa: localStorage.getItem('haccp_config_stampa'),
             configPec: localStorage.getItem('haccp_pec_accounts'),
+            ingredienti: localStorage.getItem('haccp_ingredienti'),
+            fotoLotti: localStorage.getItem('haccp_foto_lotti'),
             ultimoSync: new Date().toISOString()
         };
         
@@ -302,7 +304,9 @@ async function caricaDatiDaCloud() {
                 elencoNomi: 'haccp_elenco_nomi',
                 ccp: 'haccp_ccp',
                 configStampa: 'haccp_config_stampa',
-                configPec: 'haccp_pec_accounts'
+                configPec: 'haccp_pec_accounts',
+                ingredienti: 'haccp_ingredienti',
+                fotoLotti: 'haccp_foto_lotti'
             };
 
             // Ripristina TUTTI i dati
@@ -319,6 +323,8 @@ async function caricaDatiDaCloud() {
             if (typeof aggiornaListaUtenti === 'function') aggiornaListaUtenti();
             if (typeof aggiornaListaFrigo === 'function') aggiornaListaFrigo();
             if (typeof renderizzaLotti === 'function') renderizzaLotti();
+            if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
+            if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
             
             mostraNotifica('📥 Dati caricati dal cloud', 'success');
         } else if (risultato.nuovoUtente) {

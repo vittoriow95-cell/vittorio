@@ -15,3 +15,5 @@ CREA_TASK_AUTO_UPDATE.ps1
 temp_ocr/
 poppler/
 *.prn
+foto-lotti/
+foto-ingredienti/

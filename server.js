@@ -30,6 +30,17 @@ const PRINT_AGENT_URL = process.env.PRINT_AGENT_URL || '';
 const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || '';
 const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
+const FOTO_LOTTI_DIR = path.join(__dirname, 'foto-lotti');
+const FOTO_INGREDIENTI_DIR = path.join(__dirname, 'foto-ingredienti');
+
+function ensureDir(dirPath) {
+    if (!fs.existsSync(dirPath)) {
+        fs.mkdirSync(dirPath, { recursive: true });
+    }
+}
+
+ensureDir(FOTO_LOTTI_DIR);
+ensureDir(FOTO_INGREDIENTI_DIR);
 
 function postJson(urlStr, data, token) {
     return new Promise((resolve, reject) => {
@@ -160,6 +171,27 @@ const server = http.createServer((req, res) => {
             '.gif': 'image/gif'
         };
         
+        fs.readFile(filePath, (err, data) => {
+            if (err) {
+                res.writeHead(404);
+                res.end('File non trovato');
+                return;
+            }
+            res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+            res.end(data);
+        });
+    }
+    // Servi foto lotti e ingredienti
+    else if (req.url.startsWith('/foto-lotti/') || req.url.startsWith('/foto-ingredienti/')) {
+        const filePath = path.join(__dirname, req.url);
+        const ext = path.extname(filePath).toLowerCase();
+        const mimeTypes = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        };
         fs.readFile(filePath, (err, data) => {
             if (err) {
                 res.writeHead(404);
@@ -663,6 +695,54 @@ const server = http.createServer((req, res) => {
     }
     
     // ========== API DATABASE CLOUD ==========
+
+    // Upload foto lotti/ingredienti
+    else if (req.url === '/api/upload-foto' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+            try {
+                const { tipo, dataUrl } = JSON.parse(body || '{}');
+
+                if (!dataUrl || !tipo) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Dati mancanti' }));
+                    return;
+                }
+
+                const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
+                if (!match) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Formato immagine non valido' }));
+                    return;
+                }
+
+                const mime = match[1];
+                const base64Data = match[2];
+                const buffer = Buffer.from(base64Data, 'base64');
+
+                if (buffer.length > 5 * 1024 * 1024) {
+                    res.writeHead(413, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Immagine troppo grande' }));
+                    return;
+                }
+
+                const ext = mime.split('/')[1] || 'png';
+                const nomeFile = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const dir = tipo === 'ingrediente' ? FOTO_INGREDIENTI_DIR : FOTO_LOTTI_DIR;
+                const urlBase = tipo === 'ingrediente' ? '/foto-ingredienti/' : '/foto-lotti/';
+                const filePath = path.join(dir, nomeFile);
+
+                fs.writeFileSync(filePath, buffer);
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: true, url: urlBase + nomeFile }));
+            } catch (error) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
     
     // Login utente
     else if (req.url === '/api/login' && req.method === 'POST') {

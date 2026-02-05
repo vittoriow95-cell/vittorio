@@ -26,6 +26,20 @@
     </button>
 </div>
 
+<!-- MODAL SELEZIONE INGREDIENTI -->
+<div id="modal-seleziona-ingredienti" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
+    <div style="background:#1a1a1a; padding:30px; border-radius:15px; max-width:600px; width:90%; margin:20px; border:2px solid #4CAF50;">
+        <h3 style="color:#4CAF50; margin-bottom:20px; text-align:center;">✅ SELEZIONA INGREDIENTI</h3>
+        <div id="lista-ingredienti-selezione" style="max-height:300px; overflow-y:auto; background:#111; padding:10px; border-radius:8px; border:1px solid #333; margin-bottom:20px;"></div>
+        <button type="button" onclick="confermaSelezioneIngredienti()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer; margin-bottom:10px;">
+            ✅ CONFERMA SELEZIONE
+        </button>
+        <button type="button" onclick="chiudiModalSelezionaIngredienti()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
+            ❌ ANNULLA
+        </button>
+    </div>
+</div>
+
 <!-- LOGIN -->
 <section id="sez-login" class="schermata">
     <div class="card-centrale">
@@ -792,6 +806,16 @@
             <span class="label">Produzione<br>Lotti</span>
         </div>
 
+        <div class="icona-quadrata" onclick="vaiA('sez-op-ingredienti')" style="border-color: #4CAF50;">
+            <span class="emoji">🧂</span>
+            <span class="label" style="color: #4CAF50;">INGRE-<br>DIENTI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-foto-lotti')" style="border-color: #2196F3;">
+            <span class="emoji">📸</span>
+            <span class="label" style="color: #2196F3;">FOTO<br>LOTTI</span>
+        </div>
+
         <div class="icona-quadrata" onclick="vaiAPulizie()">
             <span class="emoji">🧹</span>
             <span class="label">PULIZIE</span>
@@ -879,6 +903,45 @@
     <button class="btn-floating" onclick="apriModalLotto()">+</button>
 </section>
 
+<!-- OPERATORE - INGREDIENTI -->
+<section id="sez-op-ingredienti" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h2>🧂 REGISTRO INGREDIENTI</h2>
+    </div>
+
+    <div class="card-centrale" style="max-width: 700px;">
+        <label class="label-oro" for="nome-ingrediente" style="margin-bottom:3px; font-size:0.85rem;">NOME INGREDIENTE:</label>
+        <input type="text" id="nome-ingrediente" placeholder="Es: Farina 00" style="margin-bottom:6px;">
+
+        <label class="label-oro" for="lotto-ingrediente" style="margin-bottom:3px; font-size:0.85rem;">LOTTO:</label>
+        <input type="text" id="lotto-ingrediente" placeholder="Es: LOT12345" style="margin-bottom:6px;">
+
+        <label class="label-oro" for="scadenza-ingrediente" style="margin-bottom:3px; font-size:0.85rem;">SCADENZA:</label>
+        <input type="date" id="scadenza-ingrediente" style="margin-bottom:6px;">
+
+        <label class="label-oro" for="foto-ingrediente" style="margin-bottom:3px; font-size:0.85rem;">FOTO ETICHETTA:</label>
+        <input type="file" id="foto-ingrediente" accept="image/*" capture="environment" style="margin-bottom:6px;" onchange="gestisciFotoIngredienteManuale(this)">
+        <div id="preview-foto-ingrediente-manuale" style="margin-bottom:10px;"></div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+            <button type="button" onclick="salvaIngredienteManuale()" style="padding:10px; background:#4CAF50;">✅ SALVA</button>
+            <button type="button" onclick="scansionaIngredienteFoto()" style="padding:10px; background:#2196F3;">📷 OCR DA FOTO</button>
+        </div>
+    </div>
+
+    <div id="lista-ingredienti" style="padding: 20px; max-width: 900px; margin: auto;"></div>
+</section>
+
+<!-- OPERATORE - FOTO LOTTI -->
+<section id="sez-op-foto-lotti" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h2>📸 ARCHIVIO FOTO LOTTI</h2>
+    </div>
+    <div id="lista-foto-lotti" style="padding: 20px; max-width: 900px; margin: auto;"></div>
+</section>
+
 <!-- MODAL PRODUZIONE -->
 <div id="modal-produzione" class="overlay-lotto" style="display:none;">
     <div class="card-centrale" style="position: relative; max-width: 450px;">
@@ -892,25 +955,28 @@
         <label for="nuovo-prodotto-input" style="position: absolute; left: -9999px;">Nuovo prodotto</label>
         <input type="text" id="nuovo-prodotto-input" placeholder="Nome nuovo prodotto" style="display:none; margin-bottom:6px; padding:10px 12px;">
 
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-            <div style="flex:1;">
-                <label class="label-oro" for="giorni-scadenza-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCAD. GG:</label>
-                <input type="number" id="giorni-scadenza-lotto" value="3" style="padding:10px 12px;">
-            </div>
-        </div>
+        <label class="label-oro" for="data-scadenza-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCADENZA:</label>
+        <input type="date" id="data-scadenza-lotto" style="margin-bottom:6px; padding:10px 12px;">
+
+        <label class="label-oro" for="lotto-origine-lotto" style="margin-bottom:3px; font-size:0.85rem;">LOTTO ORIGINE:</label>
+        <input type="text" id="lotto-origine-lotto" placeholder="Lotto fornitore" style="margin-bottom:6px; padding:10px 12px;">
 
         <div class="label-oro" style="margin-bottom:3px; font-size:0.85rem;">LOTTI INGREDIENTI:</div>
         <div id="lista-ingredienti-usati" style="background:rgba(5, 5, 7, 0.95); padding:6px; border-radius:5px; margin-bottom:6px; min-height:35px; border: 1px solid rgba(255, 255, 255, 0.25);">
             <p style="color:#ccc; font-size:11px; margin:0;">Nessun ingrediente aggiunto</p>
         </div>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-            <button type="button" onclick="aggiungiIngredienteManuale()" style="padding:7px; font-size:12px; background:#4CAF50;">
-                ⌨️ INSERISCI
+            <button type="button" onclick="apriModalSelezionaIngredienti()" style="padding:7px; font-size:12px; background:#4CAF50;">
+                ✅ SELEZIONA
             </button>
-            <button type="button" onclick="scansionaLottoFoto()" style="padding:7px; font-size:12px; background:#2196F3;">
-                📷 SCANSIONA
+            <button type="button" onclick="vaiA('sez-op-ingredienti')" style="padding:7px; font-size:12px; background:#2196F3;">
+                📦 REGISTRO
             </button>
         </div>
+
+        <label class="label-oro" for="input-foto-lotto-prodotto" style="margin-bottom:3px; font-size:0.85rem;">FOTO ETICHETTA PRODOTTO:</label>
+        <input type="file" id="input-foto-lotto-prodotto" accept="image/*" capture="environment" style="margin-bottom:6px;" onchange="processaFotoEtichettaLotto(this)">
+        <div id="preview-foto-lotto-prodotto" style="margin-bottom:6px;"></div>
 
         <label class="label-oro" for="note-lotto" style="margin-bottom:3px; font-size:0.85rem;">NOTE (opzionale):</label>
         <textarea id="note-lotto" placeholder="Note aggiuntive..." style="height:40px; margin-bottom:6px; padding:10px 12px;"></textarea>
@@ -920,41 +986,42 @@
     </div>
 </div>
 
-<!-- MODAL SCANSIONE LOTTO -->
-<div id="modal-scansione-lotto" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
+<!-- MODAL SCANSIONE INGREDIENTE -->
+<div id="modal-scansione-ingrediente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
     <div style="background:#1a1a1a; padding:30px; border-radius:15px; max-width:600px; width:90%; margin:20px; border:2px solid #2196F3;">
-        <h3 style="color:#2196F3; margin-bottom:20px; text-align:center;">📷 SCANSIONE LOTTO DA FOTO</h3>
+        <h3 style="color:#2196F3; margin-bottom:20px; text-align:center;">📷 SCANSIONE INGREDIENTE</h3>
         
-        <label for="input-foto-lotto" style="position: absolute; left: -9999px;">Seleziona foto lotto</label>
-        <input type="file" id="input-foto-lotto" accept="image/*" capture="environment" style="display:none;" onchange="processaFotoLotto(this)">
+        <label for="input-foto-ingrediente-ocr" style="position: absolute; left: -9999px;">Seleziona foto ingrediente</label>
+        <input type="file" id="input-foto-ingrediente-ocr" accept="image/*" capture="environment" style="display:none;" onchange="processaFotoIngrediente(this)">
         
         <div style="margin-bottom:20px;">
-            <button type="button" onclick="document.getElementById('input-foto-lotto').click()" style="width:100%; padding:15px; font-size:16px; background:#2196F3; border:none; border-radius:8px; color:white; cursor:pointer;">
+            <button type="button" onclick="document.getElementById('input-foto-ingrediente-ocr').click()" style="width:100%; padding:15px; font-size:16px; background:#2196F3; border:none; border-radius:8px; color:white; cursor:pointer;">
                 📸 SCATTA FOTO / CARICA IMMAGINE
             </button>
         </div>
         
-        <div id="preview-foto-lotto" style="margin-bottom:20px; text-align:center;">
-            <!-- Anteprima foto -->
-        </div>
+        <div id="preview-foto-ingrediente" style="margin-bottom:20px; text-align:center;"></div>
         
-        <div id="risultato-ocr-lotto" style="background:#2a2a2a; padding:15px; border-radius:8px; margin-bottom:20px; min-height:100px; color:#fff;">
+        <div id="risultato-ocr-ingrediente" style="background:#2a2a2a; padding:15px; border-radius:8px; margin-bottom:20px; min-height:100px; color:#fff;">
             <p style="color:#888; margin:0;">In attesa di foto...</p>
         </div>
         
-        <div id="form-lotto-estratto" style="display:none; margin-bottom:20px;">
-            <label for="lotto-estratto-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Lotto rilevato:</label>
-            <input type="text" id="lotto-estratto-ocr" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+        <div id="form-ingrediente-estratto" style="display:none; margin-bottom:20px;">
+            <label for="nome-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Nome:</label>
+            <input type="text" id="nome-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:12px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+
+            <label for="lotto-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Lotto:</label>
+            <input type="text" id="lotto-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:12px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+
+            <label for="scadenza-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Scadenza:</label>
+            <input type="date" id="scadenza-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
             
-            <label for="quantita-estratta-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Quantità:</label>
-            <input type="text" id="quantita-estratta-ocr" placeholder="es: 5kg" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
-            
-            <button type="button" onclick="confermaLottoScansionato()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer;">
-                ✅ AGGIUNGI LOTTO
+            <button type="button" onclick="confermaIngredienteScansionato()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer;">
+                ✅ SALVA INGREDIENTE
             </button>
         </div>
         
-        <button type="button" onclick="chiudiModalScansione()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
+        <button type="button" onclick="chiudiModalScansioneIngrediente()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
             ❌ ANNULLA
         </button>
     </div>
