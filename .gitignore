@@ -6,3 +6,6 @@ node_modules/
 # build/cache
 .temp/
 .cache/
+temp_ocr/
+poppler/
+*.prn
