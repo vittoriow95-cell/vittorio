@@ -101,8 +101,10 @@ const server = http.createServer((req, res) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true, metodo: 'stampa_locale', copie }));
             } catch (err) {
+                console.error('❌ ERRORE PRINT-AGENT:', err.message);
+                console.error('Stack:', err.stack);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ success: false, message: err.message }));
+                res.end(JSON.stringify({ success: false, message: err.message, stack: err.stack }));
             }
         });
         return;
