@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Estrazione PDF</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #1a1a1a; color: #fff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: #4CAF50; }
+        .upload-area { border: 2px dashed #4CAF50; padding: 40px; text-align: center; margin: 20px 0; border-radius: 10px; cursor: pointer; }
+        .upload-area:hover { background: #2a2a2a; }
+        .results { margin-top: 30px; }
+        .result-box { background: #2a2a2a; padding: 20px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #4CAF50; }
+        .strategy { color: #FFD700; font-weight: bold; }
+        .extracted { color: #4CAF50; font-size: 18px; margin: 10px 0; }
+        .text-preview { background: #0a0a0a; padding: 15px; margin: 10px 0; border-radius: 5px; font-family: monospace; font-size: 12px; max-height: 300px; overflow-y: auto; white-space: pre-wrap; }
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug Estrazione Nomi dalle Fatture</h1>
+        <p>Carica un PDF per vedere come il sistema estrae il nome del fornitore</p>
+        
+        <div class="upload-area" id="uploadArea" onclick="document.getElementById('pdfInput').click()">
+            <h2>📄 Trascina qui un PDF o clicca per selezionare</h2>
+            <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+        </div>
+        
+        <div class="results" id="results"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+    <script>
+        const pdfInput = document.getElementById('pdfInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const results = document.getElementById('results');
+
+        // Drag and drop
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '#2a2a2a';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.background = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.background = '';
+            const file = e.dataTransfer.files[0];
+            if (file && file.type === 'application/pdf') {
+                analyzePDF(file);
+            }
+        });
+
+        pdfInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) analyzePDF(file);
+        });
+
+        async function analyzePDF(file) {
+            results.innerHTML = '<h2>⏳ Analisi in corso...</h2>';
+
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument(arrayBuffer).promise;
+            
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+
+            // Mostra risultati
+            let html = '<h2>📋 Risultati Analisi</h2>';
+            html += `<div class="result-box"><strong>📄 File:</strong> ${file.name}<br><strong>📏 Pagine:</strong> ${pdf.numPages}<br><strong>📝 Caratteri totali:</strong> ${fullText.length}</div>`;
+
+            // Prime 100 righe
+            const righe = fullText.split('\n');
+            html += '<div class="result-box"><h3>📄 Prime 100 righe del PDF:</h3><div class="text-preview">';
+            html += righe.slice(0, 100).map((r, i) => `${i + 1}: ${r}`).join('\n');
+            html += '</div></div>';
+
+            // Test delle strategie
+            html += '<h2>🔍 Test Strategie Estrazione</h2>';
+
+            const PAROLE_ESCLUSE = /^(via|viale|piazza|corso|largo|strada|cap|tel|fax|email|pec|cod|sdi|fattura|invoice|data|del|pag|cliente|oggetto|importo|totale|iva|documento|numero|note|descrizione|contatti|come|nomina|protocollo|dott|responsabile|occupazione|soget|mav|bollettino|allegato|rinnovo|pagina|sociale|destinatario|mittente|spett|egregio|partita)$/i;
+
+            // STRATEGIA 1: Cedente/Prestatore
+            let match = fullText.match(/Cedente[\s\/]*Prestatore[\s\S]{0,200}?Denominazione[\s\n:]+([A-Z][A-Za-zÀ-ÿ0-9\s\.&'\-]{5,60}?)(?:\n|P\.IVA|Codice)/i);
+            if (match) {
+                html += `<div class="result-box"><div class="strategy">✅ STRATEGIA 1: Cedente/Prestatore</div><div class="extracted">${match[1].trim()}</div></div>`;
+            } else {
+                html += '<div class="result-box"><div class="strategy">❌ STRATEGIA 1: Cedente/Prestatore</div><div class="error">Non trovato</div></div>';
+            }
+
+            // STRATEGIA 2: Ragione Sociale
+            match = fullText.match(/(?:Ragione\s*Sociale|Ditta)[\s\n:]+([A-Z][A-Za-zÀ-ÿ0-9\s\.&'\-]{5,60})(?:\s*\n|S\.r\.l\.|S\.p\.A\.|Srl|Spa|P\.IVA)/i);
+            if (match) {
+                html += `<div class="result-box"><div class="strategy">✅ STRATEGIA 2: Ragione Sociale</div><div class="extracted">${match[1].trim()}</div></div>`;
+            } else {
+                html += '<div class="result-box"><div class="strategy">❌ STRATEGIA 2: Ragione Sociale</div><div class="error">Non trovato</div></div>';
+            }
+
+            // STRATEGIA 3: S.r.l./S.p.A.
+            match = fullText.match(/([A-Z][A-Za-zÀ-ÿ0-9\s\.&'\-]{5,50})\s+(?:S\.r\.l\.|S\.p\.A\.|S\.a\.s\.|S\.n\.c\.|Srl|Spa|Sas|Snc)(?:\s|\.|$|\n)/i);
+            if (match) {
+                html += `<div class="result-box"><div class="strategy">✅ STRATEGIA 3: Nome + S.r.l./S.p.A.</div><div class="extracted">${match[1].trim()}</div></div>`;
+            } else {
+                html += '<div class="result-box"><div class="strategy">❌ STRATEGIA 3: Nome + S.r.l./S.p.A.</div><div class="error">Non trovato</div></div>';
+            }
+
+            // STRATEGIA 4: P.IVA
+            let pivaFound = false;
+            for (let i = 0; i < Math.min(50, righe.length); i++) {
+                if (righe[i].match(/P\.?\s*I\.?V\.?A\.?[\s:]*\d{11}/i)) {
+                    html += `<div class="result-box"><div class="strategy">🔍 STRATEGIA 4: P.IVA trovata alla riga ${i + 1}</div><div class="text-preview">`;
+                    for (let j = Math.max(0, i - 7); j <= Math.min(i + 3, righe.length - 1); j++) {
+                        html += `${j + 1}: ${righe[j]}\n`;
+                    }
+                    html += '</div>';
+                    
+                    // Cerca nome nelle righe precedenti
+                    for (let j = Math.max(0, i - 7); j < i; j++) {
+                        const riga = righe[j].trim();
+                        const parole = riga.split(/\s+/).filter(p => p.length > 2);
+                        
+                        if (riga.length >= 8 && riga.length <= 70 && 
+                            parole.length >= 2 &&
+                            riga.match(/^[A-Z0-9][A-Za-zÀ-ÿ0-9\s\.&'\-]+$/) &&
+                            !PAROLE_ESCLUSE.test(riga) &&
+                            !riga.match(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/) &&
+                            !riga.match(/^\d+$/) &&
+                            !riga.match(/^(Via|Viale|Piazza|Corso)/i)) {
+                            html += `<div class="extracted">Candidato riga ${j + 1}: ${riga}</div>`;
+                            pivaFound = true;
+                            break;
+                        }
+                    }
+                    html += '</div>';
+                    break;
+                }
+            }
+            if (!pivaFound) {
+                html += '<div class="result-box"><div class="strategy">❌ STRATEGIA 4: P.IVA</div><div class="error">Non trovato</div></div>';
+            }
+
+            results.innerHTML = html;
+        }
+    </script>
+</body>
+</html>

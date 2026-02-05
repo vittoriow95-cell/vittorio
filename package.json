@@ -1,0 +1,18 @@
+{
+  "name": "haccp-app",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.3",
+    "pdf-parse": "^1.1.1",
+    "pdf-poppler": "^0.2.3",
+    "pdfkit": "^0.17.2",
+    "tesseract.js": "^7.0.0",
+    "xml2js": "^0.6.2"
+  }
+}

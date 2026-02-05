@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HACCP SYSTEM</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230A84FF'/><text x='50' y='70' font-size='60' text-anchor='middle' fill='white' font-weight='bold'>H</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section id="sez-login" class="schermata">
+    <div class="card-centrale">
+        <h1>HACCP SYSTEM</h1>
+        <p>Accesso Protetto</p>
+        <label for="input-pin" style="position: absolute; left: -9999px;">PIN di accesso</label>
+        <input type="password" id="input-pin" placeholder="INSERISCI PIN">
+        <button onclick="logicaLogin()">ACCEDI</button>
+    </div>
+</section>
+
+<!-- ADMIN - GESTIONE UTENTI -->
+<section id="sez-admin-utenti" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>GESTIONE COLLABORATORI</h3>
+    </div>
+
+    <div class="card-centrale">
+        <p>Registra Nuovo Collaboratore</p>
+        <label for="nuovo-nome-utente" style="position: absolute; left: -9999px;">Nome e Cognome</label>
+        <input type="text" id="nuovo-nome-utente" placeholder="Nome e Cognome">
+        <label for="nuovo-pin-utente" style="position: absolute; left: -9999px;">PIN (4 cifre)</label>
+        <input type="tel" id="nuovo-pin-utente" placeholder="PIN (4 cifre)" maxlength="4" inputmode="numeric">
+        
+        <div style="margin: 15px 0; text-align: left; color: white; background: #333; padding: 10px; border-radius: 5px;">
+            <p style="font-size: 0.8rem; margin-bottom: 5px; color: gold;">Ruolo Aziendale:</p>
+            <label><input type="radio" name="ruolo-utente" value="Operatore" checked> Operatore</label><br>
+            <label><input type="radio" name="ruolo-utente" value="Responsabile"> Responsabile Autocontrollo</label>
+        </div>
+
+        <button onclick="aggiungiUtente()">REGISTRA UTENTE</button>
+    </div>
+
+    <div id="lista-utenti-creati" class="elenco-dati"></div>
+</section>
+
+<!-- ADMIN - GESTIONE FRIGORIFERI -->
+<section id="sez-admin-frigo" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>CONFIGURAZIONE FRIGORIFERI</h3>
+    </div>
+
+    <div class="card-centrale">
+        <p>Aggiungi un nuovo frigo</p>
+        <label for="nuovo-nome-frigo" style="position: absolute; left: -9999px;">Nome frigorifero</label>
+        <input type="text" id="nuovo-nome-frigo" placeholder="NOME FRIGO (es. Frigo Pesce)">
+
+        <div style="margin: 15px 0;">
+            <label><input type="radio" name="tipo-frigo" value="Positivo" checked> 🟢 Positivo (+4°C)</label><br>
+            <label><input type="radio" name="tipo-frigo" value="Negativo"> ❄️ Negativo (-18°C)</label>
+        </div>
+        
+        <button onclick="aggiungiFrigo()">AGGIUNGI MACCHINA</button>
+    </div>
+   
+    <div id="lista-frigo-creati" class="elenco-dati"></div>
+</section>
+
+<!-- ADMIN - CONFIGURAZIONE PEC -->
+<section id="sez-admin-pec" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>📧 CONFIGURAZIONE PEC</h3>
+    </div>
+
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        <div style="background:#1a1a1a; padding:20px; border-radius:10px; margin-bottom:20px;">
+            <h4 style="margin:0 0 15px 0; color:#4CAF50;">Account PEC Configurati</h4>
+            <div id="lista-pec-accounts" style="margin-bottom: 15px;">
+                <!-- Lista generata dinamicamente -->
+            </div>
+            <button type="button" onclick="aggiungiAccountPEC()" style="width:100%; padding:12px; font-size:15px; background:#4CAF50;">
+                ➕ AGGIUNGI ACCOUNT PEC
+            </button>
+        </div>
+
+        <div style="background:#1a1a1a; padding:20px; border-radius:10px; margin-bottom:20px;">
+            <h4 style="margin:0 0 15px 0; color:#FF9800;">🤖 Scansione Automatica</h4>
+            <div id="stato-autoscan" style="font-size:13px; margin-bottom:12px; color:#888; padding:10px; background:#0a0a0a; border-radius:5px;">
+                🔴 <strong>DISATTIVO</strong> - Scansione manuale
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <button id="btn-toggle-autoscan" type="button" onclick="toggleScansionePECAutomatica()" style="padding:10px; font-size:14px; background:#4CAF50;">
+                    ▶️ ATTIVA AUTO-SCAN
+                </button>
+                <button type="button" onclick="cambiaIntervalloScansione()" style="padding:10px; font-size:14px; background:#FF9800;">
+                    ⏱️ INTERVALLO
+                </button>
+            </div>
+        </div>
+
+        <div style="background:#1a1a1a; padding:20px; border-radius:10px; margin-bottom:20px;">
+            <h4 style="margin:0 0 15px 0; color:#2196F3;">📥 Scansione Manuale</h4>
+            <div id="log-pec" style="background:#0a0a0a; padding:12px; border-radius:5px; max-height:250px; overflow-y:auto; font-family:monospace; font-size:11px; margin-bottom:12px; color:#0f0;">
+                Pronto per scansionare...
+            </div>
+            <button type="button" onclick="avviaScansionePEC()" style="width:100%; padding:12px; font-size:15px; background:#2196F3;">
+                📥 AVVIA SCANSIONE
+            </button>
+        </div>
+
+        <div style="background:#1a1a1a; padding:20px; border-radius:10px;">
+            <h4 style="margin:0 0 15px 0; color:#9C27B0;">🔄 Riorganizza Fatture</h4>
+            <p style="font-size:12px; color:#888; margin:0 0 12px 0;">
+                Rinomina automaticamente le fatture già salvate usando i nomi intelligenti estratti dai PDF (data + azienda + numero fattura).
+            </p>
+            <button type="button" onclick="riorganizzaFattureEsistenti()" style="width:100%; padding:12px; font-size:15px; background:#9C27B0;">
+                🔄 RIORGANIZZA FILE ESISTENTI
+            </button>
+            
+            <button type="button" onclick="mostraGestioneFornitori()" style="width:100%; padding:12px; font-size:15px; background:#FF9800; margin-top:10px;">
+                📁 CORREGGI NOMI FORNITORI
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- ADMIN - IMPOSTAZIONI STAMPA -->
+<section id="sez-admin-stampa" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>🖨️ IMPOSTAZIONI STAMPA</h3>
+    </div>
+
+    <div class="card-centrale" style="max-width: 600px;">
+        <h4 style="margin-bottom:20px">Dimensioni Etichetta</h4>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:30px">
+            <div>
+                <label for="cfg-larghezza" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Larghezza (mm)</label>
+                <input type="number" id="cfg-larghezza" value="40" min="20" max="100" 
+                       style="width:100%; padding:10px; font-size:16px; text-align:center">
+            </div>
+            <div>
+                <label for="cfg-altezza" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Altezza (mm)</label>
+                <input type="number" id="cfg-altezza" value="30" min="20" max="100"
+                       style="width:100%; padding:10px; font-size:16px; text-align:center">
+            </div>
+        </div>
+
+        <h4 style="margin-bottom:20px">Layout Etichetta</h4>
+        
+        <div style="background:#f5f5f5; padding:15px; border-radius:8px; margin-bottom:20px">
+            <div style="margin-bottom:15px">
+                <label style="color:#000; font-size:16px"><input type="checkbox" id="cfg-mostra-titolo" checked> Mostra "ETICHETTA HACCP"</label>
+            </div>
+            <div style="margin-bottom:15px">
+                <label style="color:#000; font-size:16px"><input type="checkbox" id="cfg-mostra-prodotto" checked> Mostra Prodotto</label>
+            </div>
+            <div style="margin-bottom:15px">
+                <label style="color:#000; font-size:16px"><input type="checkbox" id="cfg-mostra-lotto" checked> Mostra Lotto</label>
+            </div>
+            <div style="margin-bottom:15px">
+                <label style="color:#000; font-size:16px"><input type="checkbox" id="cfg-mostra-produzione" checked> Mostra Data Produzione</label>
+            </div>
+            <div>
+                <label style="color:#000; font-size:16px"><input type="checkbox" id="cfg-mostra-scadenza" checked> Mostra Data Scadenza</label>
+            </div>
+        </div>
+
+        <h4 style="margin-bottom:20px">Dimensioni Testo</h4>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:30px">
+            <div>
+                <label for="cfg-size-titolo" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Titolo</label>
+                <select id="cfg-size-titolo" style="width:100%; padding:10px">
+                    <option value="2">Piccolo</option>
+                    <option value="3" selected>Medio</option>
+                    <option value="4">Grande</option>
+                </select>
+            </div>
+            <div>
+                <label for="cfg-size-campi" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Campi</label>
+                <select id="cfg-size-campi" style="width:100%; padding:10px">
+                    <option value="1">Piccolo</option>
+                    <option value="2" selected>Medio</option>
+                    <option value="3">Grande</option>
+                </select>
+            </div>
+        </div>
+
+        <h4 style="margin-bottom:20px">Stile Carattere</h4>
+        
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:30px">
+            <div>
+                <label for="cfg-font-titolo" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Font Titolo</label>
+                <select id="cfg-font-titolo" style="width:100%; padding:10px">
+                    <option value="3">Standard</option>
+                    <option value="4">Grassetto</option>
+                    <option value="5">Corsivo</option>
+                    <option value="1">Piccolo</option>
+                    <option value="TSS24.BF2">Grande Elegante</option>
+                </select>
+            </div>
+            <div>
+                <label for="cfg-font-campi" style="color:#000; font-weight:bold; display:block; margin-bottom:8px">Font Campi</label>
+                <select id="cfg-font-campi" style="width:100%; padding:10px">
+                    <option value="3">Standard</option>
+                    <option value="4">Grassetto</option>
+                    <option value="5">Corsivo</option>
+                    <option value="1">Piccolo</option>
+                    <option value="2" selected>Normale</option>
+                </select>
+            </div>
+        </div>
+
+        <button type="button" onclick="salvaConfigurazioneStampa()" style="width:100%; padding:15px; font-size:18px; background:#4CAF50">
+            💾 SALVA CONFIGURAZIONE
+        </button>
+
+        <button type="button" onclick="testStampa()" style="width:100%; padding:15px; font-size:16px; background:#2196F3; margin-top:15px">
+            🧪 STAMPA DI TEST
+        </button>
+
+    </div>
+</section>
+
+<!-- OPERATORE - VISUALIZZA FATTURE PEC -->
+<section id="sez-op-pec" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>📁 FATTURE IMPORTATE</h2>
+    </div>
+
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        <div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:15px;">
+            <p style="color:#888; font-size:0.9rem; margin:0;">Le fatture sono organizzate per fornitore nelle cartelle configurate</p>
+        </div>
+
+        <div id="lista-fatture-importate" style="max-height:calc(100vh - 250px); overflow-y:auto;">
+            <!-- Lista generata dinamicamente -->
+        </div>
+        
+        <button type="button" onclick="caricaListaFatture()" style="width:100%; padding:10px; font-size:14px; background:#2196F3; margin-top:15px;">
+            🔄 AGGIORNA LISTA
+        </button>
+    </div>
+</section>
+
+<!-- ADMIN - DASHBOARD -->
+<section id="sez-admin" class="schermata" style="display:none">
+    <header class="header-admin">
+        <h2>PANNELLO DI CONTROLLO</h2>
+        <p>Benvenuto, Responsabile</p>
+        <button onclick="toggleTema()" class="btn-tema" title="Cambia tema">
+            <span id="icona-tema">🌙</span>
+        </button>
+    </header>
+
+    <div class="grid-icone">
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-utenti')">
+            <span class="emoji">👤</span>
+            <span class="label">UTENTI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-frigo')">
+            <span class="emoji">❄️</span>
+            <span class="label">FRIGORIFERI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-pec')" style="border-color: #00D9FF;">
+            <span class="emoji">📧</span>
+            <span class="label" style="color: #00D9FF;">FATTURE<br>PEC</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="caricaDashboardAvanzata()" style="border-color: #0A84FF;">
+            <span class="emoji">📊</span>
+            <span class="label" style="color: #0A84FF;">GRAFICI<br>ANALISI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiAStorico()">
+            <span class="emoji">📋</span>
+            <span class="label">STORICO</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-stampa')" style="border-color: #9C27B0;">
+            <span class="emoji">🖨️</span>
+            <span class="label">STAMPA</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="apriGeneratoreReport()" style="border-color: #2196F3;">
+            <span class="emoji">📄</span>
+            <span class="label" style="color: #2196F3;">REPORT<br>MENSILE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-backup')" style="border-color: #FF9800;">
+            <span class="emoji">💾</span>
+            <span class="label" style="color: #FF9800;">BACKUP</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-calendario')" style="border-color: #FFD60A;">
+            <span class="emoji">📅</span>
+            <span class="label" style="color: #FFD60A;">CALENDARIO<br>SCADENZE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-alert')" style="border-color: #30D158;">
+            <span class="emoji">📧</span>
+            <span class="label" style="color: #30D158;">ALERT<br>EMAIL/SMS</span>
+        </div>
+    </div>
+
+    <button onclick="logout()" class="btn-uscita">CHIUDI SESSIONE</button>
+</section>
+
+<!-- OPERATORE - SCADENZARIO -->
+<section id="sez-op-scadenzario" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>📅 SCADENZARIO PRODOTTI</h2>
+    </div>
+    <div class="contenuto">
+        <div id="alert-scadenze" style="margin-bottom:20px;"></div>
+        <div id="lista-scadenze"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - MANUTENZIONI -->
+<section id="sez-op-manutenzioni" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>🔧 MANUTENZIONI ATTREZZATURE</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="aggiungiAttrezzatura()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">➕ NUOVA ATTREZZATURA</button>
+        <div id="lista-attrezzature"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - FORNITORI -->
+<section id="sez-op-fornitori" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>🏢 REGISTRO FORNITORI QUALIFICATI</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="aggiungiFornitore()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">➕ NUOVO FORNITORE</button>
+        <div id="lista-fornitori"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - ALLERGENI -->
+<section id="sez-op-allergeni" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>⚠️ REGISTRO ALLERGENI</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="aggiungiProdottoAllergeni()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">➕ NUOVO PRODOTTO</button>
+        <div id="lista-allergeni"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - CCP -->
+<section id="sez-op-ccp" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>📋 PUNTI CRITICI DI CONTROLLO (CCP)</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="registraControlloCCP()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">✅ REGISTRA CONTROLLO</button>
+        <div id="lista-ccp"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - FORMAZIONE -->
+<section id="sez-op-formazione" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>🎓 FORMAZIONE PERSONALE</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="aggiungiAttestato()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">➕ NUOVO ATTESTATO</button>
+        <div id="alert-scadenze-formazione" style="margin-bottom:20px;"></div>
+        <div id="lista-formazione"></div>
+    </div>
+</section>
+
+<!-- OPERATORE - INVENTARIO -->
+<section id="sez-op-inventario" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA INDIETRO</button>
+        <h2>📦 INVENTARIO MATERIE PRIME</h2>
+    </div>
+    <div class="contenuto">
+        <button type="button" onclick="aggiungiMateriaPrima()" style="width:100%; padding:15px; background:#4CAF50; margin-bottom:20px;">➕ AGGIUNGI GIACENZA</button>
+        <div id="lista-inventario"></div>
+    </div>
+</section>
+
+<!-- ADMIN - DASHBOARD -->
+<section id="sez-admin-dashboard" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h2>📊 DASHBOARD AVANZATA</h2>
+    </div>
+    
+    <div class="contenuto" style="max-width: 1400px; margin: 0 auto; padding: 24px;">
+        
+        <!-- Card Statistiche -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
+            <div class="stat-card">
+                <div class="stat-icon">🌡️</div>
+                <div class="stat-value" id="stat-temperature">0</div>
+                <div class="stat-label">Controlli Temp.</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🏷️</div>
+                <div class="stat-value" id="stat-lotti">0</div>
+                <div class="stat-label">Lotti Attivi</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-value" id="stat-nc">0</div>
+                <div class="stat-label">Non Conformità</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <div class="stat-value" id="stat-scadenze">0</div>
+                <div class="stat-label">In Scadenza</div>
+            </div>
+        </div>
+
+        <!-- Grafici -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+            <div class="chart-container">
+                <h3>Temperature Ultimi 7 Giorni</h3>
+                <canvas id="chartTemperature"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Lotti per Categoria</h3>
+                <canvas id="chartLotti"></canvas>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div class="chart-container">
+                <h3>Non Conformità per Tipo</h3>
+                <canvas id="chartNC"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Scadenze Prossime 30 Giorni</h3>
+                <canvas id="chartScadenze"></canvas>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+<!-- ADMIN - EXPORT PDF REPORT -->
+<section id="sez-admin-report" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h2>📄 GENERA REPORT HACCP</h2>
+    </div>
+    
+    <div class="contenuto" style="max-width: 800px; margin: 0 auto;">
+        
+        <div class="card-centrale" style="padding: 32px;">
+            <h3 style="margin-bottom: 24px; text-align: center;">Seleziona Periodo Report</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+                <div>
+                    <label class="label-oro" for="report-data-inizio">Data Inizio</label>
+                    <input type="date" id="report-data-inizio">
+                </div>
+                <div>
+                    <label class="label-oro" for="report-data-fine">Data Fine</label>
+                    <input type="date" id="report-data-fine">
+                </div>
+            </div>
+            
+            <h3 style="margin: 32px 0 16px 0;">Sezioni da Includere</h3>
+            
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 24px; border-radius: 16px; margin-bottom: 24px;">
+                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-temp" checked> 🌡️ Temperature Frigoriferi
+                </label>
+                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-lotti" checked> 🏷️ Lotti Produzione
+                </label>
+                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-nc" checked> ⚠️ Non Conformità
+                </label>
+                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-sanif" checked> 🧼 Sanificazioni
+                </label>
+                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-manut" checked> 🔧 Manutenzioni
+                </label>
+                <label style="display: block; font-size: 1rem;">
+                    <input type="checkbox" id="report-inc-form" checked> 🎓 Formazione Personale
+                </label>
+            </div>
+            
+            <button onclick="generaReportPDF()" style="width: 100%; padding: 18px; font-size: 1.1rem; background: linear-gradient(135deg, #FF453A, #FF9F0A);">
+                📥 GENERA E SCARICA PDF
+            </button>
+        </div>
+        
+    </div>
+</section>
+
+<!-- ADMIN - BACKUP & RESTORE -->
+<section id="sez-admin-backup" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h2>💾 BACKUP E RIPRISTINO</h2>
+    </div>
+    
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        
+        <!-- Export Dati -->
+        <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 16px;">📤 Esporta Dati</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                Scarica un file JSON con tutti i dati dell'applicazione. Conservalo in un luogo sicuro.
+            </p>
+            <button onclick="esportaDatiCompleti()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #30D158, #28a745);">
+                💾 ESPORTA TUTTI I DATI (JSON)
+            </button>
+        </div>
+        
+        <!-- Import Dati -->
+        <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 16px;">📥 Importa/Ripristina Dati</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                ⚠️ ATTENZIONE: Questa operazione sovrascriverà tutti i dati esistenti!
+            </p>
+            <label for="file-import-backup" style="display: block; margin-bottom: 8px; color: var(--oro);">Seleziona file backup:</label>
+            <input type="file" id="file-import-backup" accept=".json" style="margin-bottom: 16px;">
+            <button onclick="importaDatiCompleti()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #FF9F0A, #f57c00);">
+                📥 CARICA E RIPRISTINA BACKUP
+            </button>
+        </div>
+        
+        <!-- Backup Automatico -->
+        <div class="card-centrale" style="padding: 32px;">
+            <h3 style="margin-bottom: 16px;">⏰ Backup Automatico</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px;">
+                Programma backup automatici periodici dei dati.
+            </p>
+            
+            <label class="label-oro" for="backup-frequenza">Frequenza Backup</label>
+            <select id="backup-frequenza" style="margin-bottom: 16px;">
+                <option value="disabled">Disabilitato</option>
+                <option value="daily">Giornaliero (ore 23:00)</option>
+                <option value="weekly">Settimanale (Domenica 23:00)</option>
+                <option value="monthly">Mensile (Ultimo giorno del mese)</option>
+            </select>
+            
+            <button onclick="salvaImpostazioniBackup()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #0A84FF, #2196F3);">
+                ✅ SALVA IMPOSTAZIONI
+            </button>
+            
+            <div id="info-ultimo-backup" style="margin-top: 20px; padding: 16px; background: rgba(255, 255, 255, 0.05); border-radius: 12px; text-align: center;">
+                <small>Ultimo backup: Mai effettuato</small>
+            </div>
+        </div>
+        
+    </div>
+</section>
+
+<!-- ADMIN - CALENDARIO SCADENZE -->
+<section id="sez-admin-calendario" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h2>📅 CALENDARIO SCADENZE</h2>
+    </div>
+    
+    <div class="contenuto" style="max-width: 1200px; margin: 0 auto;">
+        
+        <!-- Controlli Navigazione -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 16px; background: rgba(255, 255, 255, 0.05); border-radius: 16px;">
+            <button onclick="calendarioMesePrecedente()" style="padding: 12px 24px;">⬅ Mese Prec.</button>
+            <h3 id="calendario-mese-anno" style="margin: 0;">Gennaio 2026</h3>
+            <button onclick="calendarioMeseSuccessivo()" style="padding: 12px 24px;">Mese Succ. ➡</button>
+        </div>
+        
+        <!-- Legenda -->
+        <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 20px; background: #FF453A; border-radius: 50%;"></div>
+                <span>Scaduto</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 20px; background: #FF9F0A; border-radius: 50%;"></div>
+                <span>Critico (0-3 gg)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 20px; background: #FFD60A; border-radius: 50%;"></div>
+                <span>Imminente (4-7 gg)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="width: 20px; height: 20px; background: #30D158; border-radius: 50%;"></div>
+                <span>OK (>7 gg)</span>
+            </div>
+        </div>
+        
+        <!-- Griglia Calendario -->
+        <div id="calendario-container" style="background: rgba(255, 255, 255, 0.05); padding: 24px; border-radius: 16px;">
+            <!-- Intestazione giorni settimana -->
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px;">
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Lun</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Mar</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Mer</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Gio</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Ven</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Sab</div>
+                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Dom</div>
+            </div>
+            
+            <!-- Giorni del mese (generati dinamicamente) -->
+            <div id="calendario-giorni" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+                <!-- Popolato da JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Dettagli Giorno Selezionato -->
+        <div id="calendario-dettagli" style="margin-top: 24px; padding: 24px; background: rgba(255, 255, 255, 0.05); border-radius: 16px; display: none;">
+            <h3 id="calendario-dettagli-titolo" style="margin-bottom: 16px;">Prodotti in scadenza</h3>
+            <div id="calendario-dettagli-lista"></div>
+        </div>
+        
+    </div>
+</section>
+
+<!-- ADMIN - CONFIGURAZIONE ALERT EMAIL/WHATSAPP -->
+<section id="sez-admin-alert" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h2>📧 CONFIGURAZIONE ALERT</h2>
+    </div>
+    
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        
+        <!-- Alert Email -->
+        <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 24px;">📧 Alert Email</h3>
+            
+            <label class="label-oro" for="alert-email-enabled">Abilita Notifiche Email</label>
+            <select id="alert-email-enabled" style="margin-bottom: 16px;">
+                <option value="false">Disabilitate</option>
+                <option value="true">Abilitate</option>
+            </select>
+            
+            <label class="label-oro" for="alert-email-destinatario">Email Destinatario</label>
+            <input type="email" id="alert-email-destinatario" placeholder="esempio@email.it" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-email-smtp">Server SMTP</label>
+            <input type="text" id="alert-email-smtp" placeholder="smtp.gmail.com" value="smtp.gmail.com" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-email-porta">Porta SMTP</label>
+            <input type="number" id="alert-email-porta" placeholder="587" value="587" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-email-mittente">Email Mittente</label>
+            <input type="email" id="alert-email-mittente" placeholder="haccp@tuodominio.it" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-email-password">Password Email</label>
+            <input type="password" id="alert-email-password" placeholder="Password app" style="margin-bottom: 24px;">
+            
+            <h4 style="margin-bottom: 16px;">Eventi da Monitorare</h4>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 12px;">
+                    <input type="checkbox" id="alert-email-scadenze" checked> Prodotti in scadenza critica
+                </label>
+                <label style="display: block; margin-bottom: 12px;">
+                    <input type="checkbox" id="alert-email-temperature" checked> Temperature fuori range
+                </label>
+                <label style="display: block; margin-bottom: 12px;">
+                    <input type="checkbox" id="alert-email-nc" checked> Nuove non conformità
+                </label>
+                <label style="display: block;">
+                    <input type="checkbox" id="alert-email-manutenzioni" checked> Manutenzioni in scadenza
+                </label>
+            </div>
+            
+            <button onclick="testEmail()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: linear-gradient(135deg, #64D2FF, #2196F3);">
+                🧪 INVIA EMAIL DI TEST
+            </button>
+            
+            <button onclick="salvaConfigurazioneEmail()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #30D158, #28a745);">
+                ✅ SALVA CONFIGURAZIONE EMAIL
+            </button>
+        </div>
+        
+        <!-- Alert WhatsApp -->
+        <div class="card-centrale" style="padding: 32px;">
+            <h3 style="margin-bottom: 24px;">💬 Alert WhatsApp</h3>
+            
+            <label class="label-oro" for="alert-whatsapp-enabled">Abilita Notifiche WhatsApp</label>
+            <select id="alert-whatsapp-enabled" style="margin-bottom: 16px;">
+                <option value="false">Disabilitate</option>
+                <option value="true">Abilitate</option>
+            </select>
+            
+            <label class="label-oro" for="alert-whatsapp-numero">Numero WhatsApp (con prefisso +39)</label>
+            <input type="tel" id="alert-whatsapp-numero" placeholder="+393331234567" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-whatsapp-apikey">API Key Twilio/CallMeBot</label>
+            <input type="text" id="alert-whatsapp-apikey" placeholder="Inserisci API Key" style="margin-bottom: 16px;">
+            
+            <label class="label-oro" for="alert-whatsapp-sid">Account SID (Twilio)</label>
+            <input type="text" id="alert-whatsapp-sid" placeholder="ACxxxxxxxxxxxxxx" style="margin-bottom: 24px;">
+            
+            <h4 style="margin-bottom: 16px;">Eventi da Monitorare</h4>
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 12px;">
+                    <input type="checkbox" id="alert-whatsapp-scadenze" checked> Prodotti scaduti
+                </label>
+                <label style="display: block; margin-bottom: 12px;">
+                    <input type="checkbox" id="alert-whatsapp-temperature" checked> Temperature critiche
+                </label>
+                <label style="display: block;">
+                    <input type="checkbox" id="alert-whatsapp-nc" checked> Non conformità gravi
+                </label>
+            </div>
+            
+            <button onclick="testWhatsApp()" style="width: 100%; padding: 12px; margin-bottom: 12px; background: linear-gradient(135deg, #30D158, #25D366);">
+                🧪 INVIA MESSAGGIO DI TEST
+            </button>
+            
+            <button onclick="salvaConfigurazioneWhatsApp()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #30D158, #28a745);">
+                ✅ SALVA CONFIGURAZIONE WHATSAPP
+            </button>
+        </div>
+        
+    </div>
+</section>
+
+<!-- OPERATORE - DASHBOARD -->
+<section id="sez-operatore" class="schermata" style="display:none">
+    <header class="header-app">
+        <div class="user-info">
+            <span class="emoji">👤</span>
+            <div>
+                <strong id="nome-operatore">---</strong>
+                <small id="ruolo-operatore" style="display:block; font-size: 0.7rem; opacity: 0.8;"></small>
+            </div>
+        </div>
+        <button onclick="toggleTema()" class="btn-tema-mini" title="Cambia tema">
+            <span id="icona-tema-op">🌙</span>
+        </button>
+        <button onclick="logout()" class="btn-logout">ESCI</button>
+    </header>
+
+    <div id="stato-attivita" class="stato-vuoto">
+        <span id="testo-stato">Caricamento...</span>
+    </div>
+
+    <!-- Dashboard Stats -->
+    <div id="dashboard-stats" style="padding: 20px; max-width: 1200px; margin: 0 auto 30px;"></div>
+    <div id="dashboard-grafici" style="padding: 20px; max-width: 1200px; margin: 0 auto;"></div>
+
+    <div class="grid-icone">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-temperature')">
+            <span class="emoji">🌡️</span>
+            <span class="label">Registra<br>Gradi</span>
+        </div>
+        
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
+            <span class="emoji">🏷️</span>
+            <span class="label">Produzione<br>Lotti</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiAPulizie()">
+            <span class="emoji">🧹</span>
+            <span class="label">PULIZIE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiANC()" style="border-color: #ff5252;">
+            <span class="emoji">⚠️</span>
+            <span class="label" style="color: #ff5252;">NON<br>CONFORMITÀ</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-scadenzario')" style="border-color: #f44336;">
+            <span class="emoji">📅</span>
+            <span class="label" style="color: #f44336;">SCADEN-<br>ZARIO</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-manutenzioni')" style="border-color: #FF5722;">
+            <span class="emoji">🔧</span>
+            <span class="label" style="color: #FF5722;">MANUTEN-<br>ZIONI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-fornitori')" style="border-color: #00BCD4;">
+            <span class="emoji">🏢</span>
+            <span class="label" style="color: #00BCD4;">FORNITORI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-allergeni')" style="border-color: #E91E63;">
+            <span class="emoji">⚠️</span>
+            <span class="label" style="color: #E91E63;">ALLERGENI</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-ccp')" style="border-color: #9C27B0;">
+            <span class="emoji">📋</span>
+            <span class="label" style="color: #9C27B0;">CCP</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-formazione')" style="border-color: #4CAF50;">
+            <span class="emoji">🎓</span>
+            <span class="label" style="color: #4CAF50;">FORMA-<br>ZIONE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-inventario')" style="border-color: #795548;">
+            <span class="emoji">📦</span>
+            <span class="label" style="color: #795548;">INVENTA-<br>RIO</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-pec')" style="border-color: #FF9800;">
+            <span class="emoji">📧</span>
+            <span class="label" style="color: #FF9800;">FATTURE<br>PEC</span>
+        </div>
+    </div>
+</section>
+
+<!-- OPERATORE - REGISTRA TEMPERATURE -->
+<section id="sez-op-temperature" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h3>REGISTRA GRADI</h3>
+    </div>
+
+    <div class="card-centrale">
+        <label for="select-frigo">Seleziona il frigorifero:</label>
+        <select id="select-frigo"></select>
+
+        <label for="temp-rilevata">Temperatura rilevata (°C):</label>
+        <input type="number" id="temp-rilevata" placeholder="Es. 3.5" step="0.1">
+        
+        <button onclick="salvaTemperatura()">REGISTRA ORA</button>
+    </div>
+</section>
+
+<!-- OPERATORE - LOTTI -->
+<section id="sez-op-lotti" class="schermata" style="display:none">
+    <div class="header-data">
+        <button onclick="vaiA('sez-operatore')" class="btn-mini-back">⬅ MENU</button>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span onclick="cambiaDataLotti(-1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">◀</span>
+            <b id="data-visualizzata-lotti" style="color:gold;">31/01/2026</b>
+            <span onclick="cambiaDataLotti(1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">▶</span>
+        </div>
+        <div style="width: 80px;"></div>
+    </div>
+
+    <div id="lista-lotti-giorno" style="padding: 20px; max-width: 900px; margin: auto;"></div>
+
+    <button class="btn-floating" onclick="apriModalLotto()">+</button>
+</section>
+
+<!-- MODAL PRODUZIONE -->
+<div id="modal-produzione" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="position: relative; max-width: 450px;">
+        <button onclick="chiudiModalLotto()" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.3s;">&times;</button>
+        
+        <h3 style="margin-bottom:8px; font-size:1rem; color:#fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">REGISTRA PRODUZIONE</h3>
+        
+        <label class="label-oro" for="select-prodotto-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCEGLI PRODOTTO:</label>
+        <select id="select-prodotto-lotto" onchange="gestisciNuovoProdotto(this.value)" style="margin-bottom:6px; padding:10px 12px;"></select>
+        
+        <label for="nuovo-prodotto-input" style="position: absolute; left: -9999px;">Nuovo prodotto</label>
+        <input type="text" id="nuovo-prodotto-input" placeholder="Nome nuovo prodotto" style="display:none; margin-bottom:6px; padding:10px 12px;">
+
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+            <div style="flex:1;">
+                <label class="label-oro" for="giorni-scadenza-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCAD. GG:</label>
+                <input type="number" id="giorni-scadenza-lotto" value="3" style="padding:10px 12px;">
+            </div>
+        </div>
+
+        <div class="label-oro" style="margin-bottom:3px; font-size:0.85rem;">LOTTI INGREDIENTI:</div>
+        <div id="lista-ingredienti-usati" style="background:rgba(5, 5, 7, 0.95); padding:6px; border-radius:5px; margin-bottom:6px; min-height:35px; border: 1px solid rgba(255, 255, 255, 0.25);">
+            <p style="color:#ccc; font-size:11px; margin:0;">Nessun ingrediente aggiunto</p>
+        </div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
+            <button type="button" onclick="aggiungiIngredienteManuale()" style="padding:7px; font-size:12px; background:#4CAF50;">
+                ⌨️ INSERISCI
+            </button>
+            <button type="button" onclick="scansionaLottoFoto()" style="padding:7px; font-size:12px; background:#2196F3;">
+                📷 SCANSIONA
+            </button>
+        </div>
+
+        <label class="label-oro" for="note-lotto" style="margin-bottom:3px; font-size:0.85rem;">NOTE (opzionale):</label>
+        <textarea id="note-lotto" placeholder="Note aggiuntive..." style="height:40px; margin-bottom:6px; padding:10px 12px;"></textarea>
+
+        <button type="button" onclick="confermaSalvataggioLotto()" style="margin-bottom:4px; padding:10px 14px;">SALVA E STAMPA</button>
+        <button type="button" onclick="chiudiModalLotto()" style="background:#444; padding:10px 14px;">ANNULLA</button>
+    </div>
+</div>
+
+<!-- MODAL SCANSIONE LOTTO -->
+<div id="modal-scansione-lotto" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
+    <div style="background:#1a1a1a; padding:30px; border-radius:15px; max-width:600px; width:90%; margin:20px; border:2px solid #2196F3;">
+        <h3 style="color:#2196F3; margin-bottom:20px; text-align:center;">📷 SCANSIONE LOTTO DA FOTO</h3>
+        
+        <label for="input-foto-lotto" style="position: absolute; left: -9999px;">Seleziona foto lotto</label>
+        <input type="file" id="input-foto-lotto" accept="image/*" capture="environment" style="display:none;" onchange="processaFotoLotto(this)">
+        
+        <div style="margin-bottom:20px;">
+            <button type="button" onclick="document.getElementById('input-foto-lotto').click()" style="width:100%; padding:15px; font-size:16px; background:#2196F3; border:none; border-radius:8px; color:white; cursor:pointer;">
+                📸 SCATTA FOTO / CARICA IMMAGINE
+            </button>
+        </div>
+        
+        <div id="preview-foto-lotto" style="margin-bottom:20px; text-align:center;">
+            <!-- Anteprima foto -->
+        </div>
+        
+        <div id="risultato-ocr-lotto" style="background:#2a2a2a; padding:15px; border-radius:8px; margin-bottom:20px; min-height:100px; color:#fff;">
+            <p style="color:#888; margin:0;">In attesa di foto...</p>
+        </div>
+        
+        <div id="form-lotto-estratto" style="display:none; margin-bottom:20px;">
+            <label for="lotto-estratto-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Lotto rilevato:</label>
+            <input type="text" id="lotto-estratto-ocr" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+            
+            <label for="quantita-estratta-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Quantità:</label>
+            <input type="text" id="quantita-estratta-ocr" placeholder="es: 5kg" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+            
+            <button type="button" onclick="confermaLottoScansionato()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer;">
+                ✅ AGGIUNGI LOTTO
+            </button>
+        </div>
+        
+        <button type="button" onclick="chiudiModalScansione()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
+            ❌ ANNULLA
+        </button>
+    </div>
+</div>
+
+<!-- OPERATORE - PULIZIE -->
+<section id="sez-op-pulizie" class="schermata" style="display:none">
+    <div class="header-data">
+        <button onclick="vaiA('sez-operatore')" class="btn-mini-back">⬅ MENU</button>
+        <h3 style="color: var(--oro); margin: 0;">REGISTRO PULIZIE</h3>
+        <div style="width: 80px;"></div>
+    </div>
+
+    <p style="text-align: center; color: #888; font-size: 0.85rem; margin: 10px 0;">Sanificazione Ambienti</p>
+
+    <div style="display: flex; justify-content: center; align-items: center; gap: 15px; padding: 15px; background: #1a1a1a;">
+        <span onclick="cambiaDataPulizie(-1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">◀</span>
+        <b id="data-visualizzata-pulizie" style="color: gold; font-size: 1.2rem;">--/--/----</b>
+        <span onclick="cambiaDataPulizie(1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">▶</span>
+    </div>
+
+    <div id="lista-pulizie-giorno" style="padding: 20px; max-width: 700px; margin: auto;"></div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button onclick="registraPulizieGiorno()" style="padding: 15px 40px; font-size: 1.1rem;">
+            ✅ CONFERMA PULIZIE COMPLETATE
+        </button>
+    </div>
+</section>
+
+<!-- OPERATORE - NON CONFORMITÀ -->
+<section id="sez-op-nc" class="schermata" style="display:none">
+    <div class="header-data">
+        <button onclick="vaiA('sez-operatore')" class="btn-mini-back">⬅ MENU</button>
+        <h3 style="color: var(--oro); margin: 0;">NON CONFORMITÀ</h3>
+        <div style="width: 80px;"></div>
+    </div>
+
+    <p style="text-align: center; color: #888; font-size: 0.85rem; margin: 10px 0;">Segnalazioni e Azioni Correttive</p>
+
+    <div style="display: flex; gap: 10px; padding: 15px; justify-content: center; background: #1a1a1a;">
+        <button id="filtro-aperte" onclick="filtraNC('aperte')" style="flex: 1; max-width: 200px; background: #ff5252;">🔴 APERTE</button>
+        <button id="filtro-chiuse" onclick="filtraNC('chiuse')" style="flex: 1; max-width: 200px; background: #444;">✅ CHIUSE</button>
+        <button id="filtro-tutte" onclick="filtraNC('tutte')" style="flex: 1; max-width: 200px; background: #444;">📋 TUTTE</button>
+    </div>
+
+    <div id="lista-nc" style="padding: 20px; max-width: 900px; margin: auto;"></div>
+
+    <button class="btn-floating" onclick="apriModalNC()">+</button>
+</section>
+
+<!-- MODAL NON CONFORMITÀ -->
+<div id="modal-nc" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="max-width: 600px;">
+        <h3 style="margin-bottom:20px; color: #ff5252;">⚠️ SEGNALA NON CONFORMITÀ</h3>
+        
+        <label class="label-oro" for="nc-tipo">TIPO ANOMALIA:</label>
+        <select id="nc-tipo">
+            <option value="">-- Seleziona --</option>
+            <option value="Temperatura Fuori Range">🌡️ Temperatura Fuori Range</option>
+            <option value="Prodotto Scaduto">📅 Prodotto Scaduto</option>
+            <option value="Merce Non Conforme">📦 Merce Non Conforme</option>
+            <option value="Igiene Carente">🧹 Igiene Carente</option>
+            <option value="Attrezzatura Rotta">🔧 Attrezzatura Rotta</option>
+            <option value="Contaminazione">☣️ Contaminazione</option>
+            <option value="Altro">❓ Altro</option>
+        </select>
+
+        <label class="label-oro" for="nc-area">AREA/REPARTO:</label>
+        <select id="nc-area">
+            <option value="">-- Seleziona --</option>
+            <option value="Bancone Vendita">Bancone Vendita</option>
+            <option value="Cella Frigo">Cella Frigo</option>
+            <option value="Laboratorio">Laboratorio Lavorazione</option>
+            <option value="Magazzino">Magazzino</option>
+            <option value="Ricevimento Merci">Ricevimento Merci</option>
+        </select>
+
+        <label class="label-oro" for="nc-descrizione">DESCRIZIONE DETTAGLIATA:</label>
+        <textarea id="nc-descrizione" placeholder="Descrivi cosa è successo..." style="min-height: 100px;"></textarea>
+
+        <label class="label-oro" for="nc-gravita">GRAVITÀ:</label>
+        <select id="nc-gravita">
+            <option value="Bassa">🟢 Bassa</option>
+            <option value="Media">🟡 Media</option>
+            <option value="Alta">🔴 Alta</option>
+        </select>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="salvaNC()" style="flex: 1; background: #ff5252;">REGISTRA NC</button>
+            <button onclick="chiudiModalNC()" style="flex: 1; background: #444;">ANNULLA</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL AZIONE CORRETTIVA -->
+<div id="modal-azione-correttiva" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale">
+        <h3 style="margin-bottom:20px; color: #4CAF50;">✅ AZIONE CORRETTIVA</h3>
+        
+        <input type="hidden" id="nc-id-chiusura">
+        
+        <label class="label-oro" for="nc-azione">AZIONE INTRAPRESA:</label>
+        <textarea id="nc-azione" placeholder="Descrivi cosa hai fatto..." style="min-height: 100px;"></textarea>
+
+        <label class="label-oro" for="nc-responsabile">RESPONSABILE CHIUSURA:</label>
+        <input type="text" id="nc-responsabile" readonly>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="chiudiNC()" style="flex: 1; background: #4CAF50;">CHIUDI NC</button>
+            <button onclick="chiudiModalAzioneCorrettiva()" style="flex: 1; background: #444;">ANNULLA</button>
+        </div>
+    </div>
+</div>
+
+<!-- STORICO -->
+<section id="sez-storico-admin" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA AL MENU</button>
+        <h3>STORICO COMPLETO</h3>
+    </div>
+
+    <div style="padding: 15px; max-width: 900px; margin: auto;">
+        
+        <div style="background: #1c1c1f; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+            <label for="filtro-data-inizio" style="color: var(--oro); font-size: 0.85rem;">Periodo:</label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="date" id="filtro-data-inizio" style="flex: 1;">
+                <input type="date" id="filtro-data-fine" style="flex: 1;">
+            </div>
+            <button onclick="filtraStorico()" style="margin-top: 10px;">FILTRA DATI</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; padding: 10px; justify-content: center; background: #1a1a1a; flex-wrap: wrap;">
+            <button onclick="mostraTabStorico('temperature')" id="tab-temp" class="tab-btn" style="flex: 1; min-width: 100px;">🌡️ TEMP</button>
+            <button onclick="mostraTabStorico('lotti')" id="tab-lotti" class="tab-btn" style="flex: 1; min-width: 100px;">🏷️ LOTTI</button>
+            <button onclick="mostraTabStorico('pulizie')" id="tab-pulizie" class="tab-btn" style="flex: 1; min-width: 100px;">🧹 PULIZIE</button>
+            <button onclick="mostraTabStorico('nc')" id="tab-nc" class="tab-btn" style="flex: 1; min-width: 100px;">⚠️ NC</button>
+        </div>
+
+        <div id="storico-temperature" class="elenco-dati"></div>
+        <div id="storico-lotti" class="elenco-dati" style="display:none;"></div>
+        <div id="storico-pulizie" class="elenco-dati" style="display:none;"></div>
+        <div id="storico-nc" class="elenco-dati" style="display:none;"></div>
+
+        <button onclick="esportaStoricoCSV()" style="margin-top: 20px; background: #4CAF50;">💾 SCARICA CSV</button>
+    </div>
+</section>
+
+<!-- GENERATORE REPORT MENSILE -->
+<section id="sez-report-mensile" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA AL MENU</button>
+        <h3>REPORT MENSILE HACCP</h3>
+    </div>
+
+    <div style="padding: 20px; max-width: 800px; margin: auto;">
+        
+        <div class="card-centrale" style="max-width: 500px;">
+            <h3 style="color: #2196F3;">📄 GENERA REPORT</h3>
+            <p style="font-size: 0.9rem; color: #aaa;">Seleziona il mese da esportare per ASL/Audit</p>
+
+            <label class="label-oro" for="mese-report">MESE E ANNO:</label>
+            <input type="month" id="mese-report" style="margin-bottom: 20px;">
+
+            <button onclick="generaReportMensile()" style="background: #2196F3; padding: 15px; font-size: 1.1rem;">
+                📊 GENERA E VISUALIZZA
+            </button>
+        </div>
+
+        <div id="anteprima-report" style="display:none; margin-top: 30px; background: white; padding: 30px; border-radius: 12px; color: black;"></div>
+
+        <div id="azioni-report" style="display:none; margin-top: 20px; gap: 15px; justify-content: center;">
+            <button onclick="stampaReport()" style="background: #4CAF50; padding: 15px 30px;">🖨️ STAMPA</button>
+            <button onclick="scaricaReportPDF()" style="background: #f44336; padding: 15px 30px;">📥 PDF</button>
+        </div>
+
+    </div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
