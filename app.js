@@ -1046,7 +1046,7 @@ async function stampaEtichettaLotto(lotto) {
         };
         
         // Invia stampa al server
-        fetch('http://localhost:5000/stampa', {
+        fetch('/stampa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(datiStampa),
@@ -1077,7 +1077,7 @@ async function stampaEtichettaLotto(lotto) {
 // VERIFICA SE IL SERVER È ATTIVO
 async function verificaServer() {
     try {
-        const response = await fetch('http://localhost:5000/test', {
+        const response = await fetch('/test', {
             method: 'GET',
             signal: AbortSignal.timeout(2000)
         });
@@ -1103,7 +1103,7 @@ async function generaCSVPerCLabel(lotto) {
         `;
         document.body.appendChild(popup);
         
-        const response = await fetch('http://localhost:5000/stampa', {
+        const response = await fetch('/stampa', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(lotto)
@@ -2566,7 +2566,7 @@ async function testConnessionePEC(index) {
     mostraNotifica('🔄 Test in corso...', 'info');
     
     try {
-        const response = await fetch('http://localhost:5000/pec-test', {
+        const response = await fetch('/pec-test', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(account)
@@ -2631,7 +2631,7 @@ async function avviaScansionePEC() {
     aggiungiLogPEC(`📧 Account da scansionare: ${accountsValidi.length}`);
     
     try {
-        const response = await fetch('http://localhost:5000/pec-scan', {
+        const response = await fetch('/pec-scan', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ accounts: accountsValidi })
@@ -2941,7 +2941,7 @@ async function riorganizzaFattureEsistenti() {
     mostraNotifica('🔄 Avvio riorganizzazione...', 'info');
     
     try {
-        const response = await fetch('http://localhost:5000/riorganizza-fatture', {
+        const response = await fetch('/riorganizza-fatture', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cartella: accountObj.cartella })
@@ -2989,7 +2989,7 @@ async function mostraGestioneFornitori() {
     }
     
     try {
-        const response = await fetch(`http://localhost:5000/lista-cartelle?cartella=${encodeURIComponent(accountObj.cartella)}`);
+        const response = await fetch(`/lista-cartelle?cartella=${encodeURIComponent(accountObj.cartella)}`);
         const cartelle = await response.json();
         
         if (cartelle.errore) {
@@ -3092,7 +3092,7 @@ async function rinominaFornitore(vecchioNome, cartellaBase) {
     
     try {
         // 1. Salva nel database per riconoscimento futuro
-        const dbResponse = await fetch('http://localhost:5000/salva-correzione-fornitore', {
+        const dbResponse = await fetch('/salva-correzione-fornitore', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -3152,7 +3152,7 @@ async function caricaListaFatture() {
     }
     
     try {
-        const response = await fetch('http://localhost:5000/lista-fatture', {
+        const response = await fetch('/lista-fatture', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ cartelle: accounts.map(a => a.cartella) })
@@ -3256,7 +3256,7 @@ function renderizzaListaFatture(fatture) {
 }
 
 function apriCartella(percorso) {
-    fetch('http://localhost:5000/apri-cartella', {
+    fetch('/apri-cartella', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ percorso })
