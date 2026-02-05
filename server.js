@@ -974,16 +974,21 @@ async function estraiTestoConOCR(pdfBuffer, filename) {
         try {
             // Converti PDF → PNG con pdf-poppler
             const poppler = require('pdf-poppler');
-            const popplerPath = path.join(__dirname, 'poppler', 'poppler-24.08.0', 'Library', 'bin');
+            const popplerPathEnv = process.env.POPPLER_PATH;
+            const popplerPathLocal = path.join(__dirname, 'poppler', 'poppler-24.08.0', 'Library', 'bin');
+            const popplerPath = popplerPathEnv || (fs.existsSync(popplerPathLocal) ? popplerPathLocal : undefined);
             
             const opts = {
                 format: 'png',
                 out_dir: tempDir,
                 out_prefix: path.basename(imgPath),
                 page: 1, // Solo prima pagina
-                scale: 2000, // Alta risoluzione per OCR
-                poppler_path: popplerPath // Path binari Poppler
+                scale: 2000 // Alta risoluzione per OCR
             };
+
+            if (popplerPath) {
+                opts.poppler_path = popplerPath; // Path binari Poppler
+            }
             
             await poppler.convert(pdfPath, opts);
             
