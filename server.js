@@ -208,7 +208,12 @@ const server = http.createServer((req, res) => {
         });
     }
     // Endpoint stampa
-    else if (req.url.startsWith('/stampa') && req.method === 'POST') {
+    else if (req.url.startsWith('/stampa')) {
+        if (req.method !== 'POST') {
+            res.writeHead(405, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, message: 'Metodo non consentito' }));
+            return;
+        }
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', async () => {
