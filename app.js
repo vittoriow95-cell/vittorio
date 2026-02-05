@@ -536,17 +536,34 @@ function aggiornaStoricoLotti() {
     
     lottiInvertiti.forEach((lotto, index) => {
         const oggi = new Date();
-        const scadenza = new Date(lotto.scadenza.split('/').reverse().join('-'));
-        const giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+        let scadenza;
+        let giorniRimanenti;
+        
+        // Parse date safely - assume DD/MM/YYYY format
+        try {
+            const parts = lotto.scadenza.split('/');
+            if (parts.length === 3) {
+                // Create date as YYYY-MM-DD
+                scadenza = new Date(parts[2], parts[1] - 1, parts[0]);
+                giorniRimanenti = Math.ceil((scadenza - oggi) / (1000 * 60 * 60 * 24));
+            } else {
+                // Fallback to current date if format is unexpected
+                scadenza = new Date();
+                giorniRimanenti = 0;
+            }
+        } catch (e) {
+            scadenza = new Date();
+            giorniRimanenti = 0;
+        }
         
         let coloreScadenza = "#4CAF50"; // Verde
         if (giorniRimanenti <= 0) coloreScadenza = "#f44336"; // Rosso
-        else if (giorniRimanenti <= 1) coloreScadenza = "#FF9800"; // Arancione
+        else if (giorniRimanenti <= 2) coloreScadenza = "#FF9800"; // Arancione
         
         contenitore.innerHTML += `
             <div class="riga-utente" style="border-left: 5px solid ${coloreScadenza}; margin-bottom: 10px; padding: 12px; background: #2a2a2a;">
                 <div style="margin-bottom: 8px;">
-                    <strong style="color: #c9a3f; font-size: 1.1rem;">${lotto.prodotto}</strong>
+                    <strong style="color: #c9a03f; font-size: 1.1rem;">${lotto.prodotto}</strong>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; font-size: 0.85rem; color: #ccc;">
                     <div>🏷️ Lotto: <strong>${lotto.lottoInterno}</strong></div>
@@ -557,7 +574,7 @@ function aggiornaStoricoLotti() {
                 <div style="font-size: 0.75rem; color: #999; margin-top: 8px; padding-top: 8px; border-top: 1px solid #444;">
                     🔗 Origine: ${lotto.lottoOrigine} | 👤 ${lotto.operatore}
                 </div>
-                ${giorniRimanenti <= 1 && giorniRimanenti >= 0 ? 
+                ${giorniRimanenti <= 2 && giorniRimanenti >= 0 ? 
                     '<div style="margin-top: 5px; padding: 5px; background: #FF9800; color: #000; border-radius: 5px; text-align: center; font-size: 0.75rem; font-weight: bold;">⚠️ IN SCADENZA</div>' : 
                     giorniRimanenti < 0 ? 
                     '<div style="margin-top: 5px; padding: 5px; background: #f44336; color: #fff; border-radius: 5px; text-align: center; font-size: 0.75rem; font-weight: bold;">🚫 SCADUTO</div>' : 
