@@ -208,7 +208,7 @@ const server = http.createServer((req, res) => {
         });
     }
     // Endpoint stampa
-    else if (req.url === '/stampa' && req.method === 'POST') {
+    else if (req.url.startsWith('/stampa') && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
         req.on('end', async () => {
