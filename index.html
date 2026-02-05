@@ -12,6 +12,20 @@
 </head>
 <body>
 
+<!-- BARRA CLOUD UTENTE (sempre visibile) -->
+<div id="cloud-user-bar" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: linear-gradient(135deg, #0A84FF 0%, #0066CC 100%); color: white; padding: 8px 15px; z-index: 9999; box-shadow: 0 2px 10px rgba(0,0,0,0.3); font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 16px;">☁️</span>
+        <div>
+            <strong id="cloud-username-display">---</strong>
+            <small id="cloud-sync-status" style="display: block; opacity: 0.8; font-size: 11px;">Sincronizzato</small>
+        </div>
+    </div>
+    <button onclick="effettuaLogout()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: 600;">
+        🚪 ESCI
+    </button>
+</div>
+
 <!-- LOGIN -->
 <section id="sez-login" class="schermata">
     <div class="card-centrale">
@@ -1121,6 +1135,7 @@
     </div>
 </section>
 
+<script src="sync-cloud.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

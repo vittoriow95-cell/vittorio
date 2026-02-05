@@ -7,6 +7,7 @@ const { simpleParser } = require('mailparser');
 const xml2js = require('xml2js');
 const pdf = require('pdf-parse');
 const { createWorker } = require('tesseract.js');
+const database = require('./database');
 
 // Database fornitori per mappatura intelligente
 const DB_FORNITORI_PATH = path.join(__dirname, 'fornitori_db.json');
@@ -655,6 +656,112 @@ const server = http.createServer((req, res) => {
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: true }));
             } catch (error) {
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
+    
+    // ========== API DATABASE CLOUD ==========
+    
+    // Login utente
+    else if (req.url === '/api/login' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { username, password } = JSON.parse(body);
+                
+                if (!username || !password) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Username e password richiesti' }));
+                    return;
+                }
+                
+                const risultato = await database.verificaUtente(username, password);
+                
+                res.writeHead(risultato.success ? 200 : 401, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(risultato));
+            } catch (error) {
+                console.error('❌ Errore login:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
+    
+    // Registrazione nuovo utente
+    else if (req.url === '/api/register' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { username, password, email } = JSON.parse(body);
+                
+                if (!username || !password) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Username e password richiesti' }));
+                    return;
+                }
+                
+                const risultato = await database.registraUtente(username, password, email);
+                
+                res.writeHead(risultato.success ? 200 : 400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(risultato));
+            } catch (error) {
+                console.error('❌ Errore registrazione:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
+    
+    // Salva dati utente
+    else if (req.url === '/api/save-data' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { username, dati } = JSON.parse(body);
+                
+                if (!username || !dati) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Username e dati richiesti' }));
+                    return;
+                }
+                
+                const risultato = await database.salvaDatiUtente(username, dati);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(risultato));
+            } catch (error) {
+                console.error('❌ Errore salvataggio dati:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
+    
+    // Carica dati utente
+    else if (req.url === '/api/load-data' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { username } = JSON.parse(body);
+                
+                if (!username) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Username richiesto' }));
+                    return;
+                }
+                
+                const risultato = await database.caricaDatiUtente(username);
+                
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(risultato));
+            } catch (error) {
+                console.error('❌ Errore caricamento dati:', error);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ success: false, error: error.message }));
             }
