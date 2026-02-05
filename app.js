@@ -459,7 +459,6 @@ function popolaSelectProdotti() {
 // Funzione per aprire lo storico e caricare i lotti
 function vaiAStorico() {
     vaiA('sez-storico-admin');
-    caricaStoricoLotti();
 }
 
 // Funzione che calcola lo stato della scadenza
@@ -519,10 +518,13 @@ function caricaStoricoLotti() {
         return;
     }
     
-    // Ordina i lotti dal più recente al più vecchio
-    const lottiOrdinati = databaseLotti.slice().reverse();
+    // Inverti l'ordine per mostrare i lotti più recenti per primi
+    const lottiRecenti = databaseLotti.slice().reverse();
     
-    lottiOrdinati.forEach((lotto, index) => {
+    // Costruisci l'HTML in una stringa per migliorare le prestazioni
+    let htmlContent = "";
+    
+    lottiRecenti.forEach((lotto, index) => {
         const statoScadenza = calcolaStatoScadenza(lotto.scadenza);
         
         let messaggioScadenza = "";
@@ -534,7 +536,7 @@ function caricaStoricoLotti() {
             messaggioScadenza = `Scaduto da ${statoScadenza.giorniDallaScadenza} giorni`;
         }
         
-        container.innerHTML += `
+        htmlContent += `
             <div class="riga-lotto" style="
                 background: #2a2a2a; 
                 border-left: 5px solid ${statoScadenza.colore}; 
@@ -572,4 +574,7 @@ function caricaStoricoLotti() {
             </div>
         `;
     });
+    
+    // Assegna tutto l'HTML in una volta sola per migliori prestazioni
+    container.innerHTML = htmlContent;
 }
