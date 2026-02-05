@@ -688,12 +688,25 @@ function ripristinaLotto(lotto) {
     if (!confirm(`Ripristinare il lotto "${lotto.prodotto}"?\n\nTornerà visibile negli alert di scadenza.`)) {
         return;
     }
-    
+
+    const index = databaseLotti.findIndex(l =>
+        l.lottoInterno === lotto.lottoInterno &&
+        l.dataProduzione === lotto.dataProduzione
+    );
+
+    if (index !== -1) {
+        databaseLotti[index].terminato = false;
+        delete databaseLotti[index].dataTerminazione;
+        delete databaseLotti[index].operatoreTerminazione;
+        localStorage.setItem("haccp_lotti", JSON.stringify(databaseLotti));
+
+        renderizzaLottiGiorno();
+        mostraNotifica(`↺ Lotto "${lotto.prodotto}" ripristinato`, 'success');
+    }
+}
 
 function cambiaLotto(lotto) {
-    if (!confirm(`Cambiare lotto per "${lotto.prodotto}"?
-    const index = databaseLotti.findIndex(l => 
-        l.lottoInterno === lotto.lottoInterno && 
+    if (!confirm(`Cambiare lotto per "${lotto.prodotto}"?\n\nIl lotto attuale verra archiviato e ne verra creato uno nuovo.`)) {
         return;
     }
 
@@ -730,19 +743,6 @@ function cambiaLotto(lotto) {
     ingredientiLottoCorrente = Array.isArray(lotto.ingredientiUsati) ? [...lotto.ingredientiUsati] : [];
     renderizzaIngredientiUsati();
     mostraNotifica('🔁 Nuovo lotto pronto da compilare', 'info');
-}
-        l.dataProduzione === lotto.dataProduzione
-    );
-    
-    if (index !== -1) {
-        databaseLotti[index].terminato = false;
-        delete databaseLotti[index].dataTerminazione;
-        delete databaseLotti[index].operatoreTerminazione;
-        localStorage.setItem("haccp_lotti", JSON.stringify(databaseLotti));
-        
-        renderizzaLottiGiorno();
-        mostraNotifica(`↺ Lotto "${lotto.prodotto}" ripristinato`, 'success');
-    }
 }
 
 

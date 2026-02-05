@@ -157,6 +157,11 @@ const server = http.createServer((req, res) => {
             res.writeHead(200, { 'Content-Type': 'application/javascript' });
             res.end(data);
         });
+    } else if (req.url === '/sync-cloud.js') {
+        fs.readFile('sync-cloud.js', (err, data) => {
+            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.end(data);
+        });
     } 
     // Servi file dalla cartella assets
     else if (req.url.startsWith('/assets/')) {
