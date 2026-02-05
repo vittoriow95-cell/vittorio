@@ -170,7 +170,7 @@ function mostraRegistrazione() {
                 Registrati
             </button>
             
-            <button onclick="mostraLogin(); document.getElementById('login-overlay').remove(); mostraLogin();" 
+            <button onclick="document.getElementById('login-overlay').remove(); mostraLogin();" 
                 style="width: 100%; padding: 14px; background: #2a2a2a; border: 1px solid #444; border-radius: 8px; color: white; font-size: 14px; cursor: pointer;">
                 ← Torna al login
             </button>
@@ -287,14 +287,29 @@ async function caricaDatiDaCloud() {
         const risultato = await response.json();
         
         if (risultato.success && risultato.dati) {
+            const keyMap = {
+                utenti: 'haccp_utenti',
+                frigo: 'haccp_frigo',
+                temperature: 'haccp_log',
+                lotti: 'haccp_lotti',
+                nc: 'haccp_nc',
+                sanificazione: 'haccp_sanificazione',
+                attrezzature: 'haccp_attrezzature',
+                fornitori: 'haccp_fornitori',
+                allergeni: 'haccp_allergeni',
+                formazione: 'haccp_formazione',
+                inventario: 'haccp_inventario',
+                elencoNomi: 'haccp_elenco_nomi',
+                ccp: 'haccp_ccp',
+                configStampa: 'haccp_config_stampa',
+                configPec: 'haccp_pec_accounts'
+            };
+
             // Ripristina TUTTI i dati
             for (const [chiave, valore] of Object.entries(risultato.dati)) {
                 if (chiave !== 'ultimoSync' && valore) {
-                    if (chiave.startsWith('config')) {
-                        localStorage.setItem(chiave, valore);
-                    } else {
-                        localStorage.setItem(`haccp_${chiave}`, valore);
-                    }
+                    const storageKey = keyMap[chiave] || `haccp_${chiave}`;
+                    localStorage.setItem(storageKey, valore);
                 }
             }
             

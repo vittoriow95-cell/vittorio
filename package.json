@@ -9,6 +9,7 @@
     "test-agent": "node tools/test-agent.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "imap": "^0.8.19",
     "mailparser": "^3.9.3",
     "mongodb": "^7.1.0",

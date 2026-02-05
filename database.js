@@ -1,4 +1,5 @@
 const { MongoClient } = require('mongodb');
+const bcrypt = require('bcryptjs');
 
 // Connection string MongoDB Atlas - CONFIGURARE SU RENDER!
 const MONGODB_URI = process.env.MONGODB_URI || '';
@@ -104,11 +105,27 @@ async function verificaUtente(username, password) {
             return { success: false, error: 'Utente non trovato' };
         }
         
-        // SEMPLICE confronto password (per ora) - TODO: hash in futuro
-        if (utente.password !== password) {
-            return { success: false, error: 'Password errata' };
+        const hashed = utente.password || '';
+        const isHashed = typeof hashed === 'string' && hashed.startsWith('$2');
+
+        if (isHashed) {
+            const ok = await bcrypt.compare(password, hashed);
+            if (!ok) {
+                return { success: false, error: 'Password errata' };
+            }
+        } else {
+            if (utente.password !== password) {
+                return { success: false, error: 'Password errata' };
+            }
+
+            // Migrazione trasparente da plaintext a hash
+            const nuovoHash = await bcrypt.hash(password, 10);
+            await collection.updateOne(
+                { username: username.toLowerCase() },
+                { $set: { password: nuovoHash } }
+            );
         }
-        
+
         return { success: true, username: utente.username };
     } catch (error) {
         console.error('❌ Errore verifica utente:', error);
@@ -134,9 +151,10 @@ async function registraUtente(username, password, email = '') {
         }
         
         // Crea nuovo utente
+        const passwordHash = await bcrypt.hash(password, 10);
         const nuovoUtente = {
             username: username.toLowerCase(),
-            password: password, // TODO: hash in futuro
+            password: passwordHash,
             email: email,
             dataRegistrazione: new Date(),
             attivo: true
