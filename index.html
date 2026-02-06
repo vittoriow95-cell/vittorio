@@ -797,73 +797,76 @@
 
     <div class="grid-icone">
         <div class="icona-quadrata" onclick="vaiA('sez-op-temperature')">
-            <span class="emoji">🌡️</span>
-            <span class="label">Registra<br>Gradi</span>
+            <span class="emoji">❄️</span>
+            <span class="label">FRIGORIFERI</span>
         </div>
         
-        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
-            <span class="emoji">🏷️</span>
-            <span class="label">Produzione<br>Lotti</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-ingredienti')" style="border-color: #4CAF50;">
-            <span class="emoji">🧂</span>
-            <span class="label" style="color: #4CAF50;">INGRE-<br>DIENTI</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-foto-lotti')" style="border-color: #2196F3;">
-            <span class="emoji">📸</span>
-            <span class="label" style="color: #2196F3;">FOTO<br>LOTTI</span>
-        </div>
-
         <div class="icona-quadrata" onclick="vaiAPulizie()">
-            <span class="emoji">🧹</span>
-            <span class="label">PULIZIE</span>
+            <span class="emoji">🧼</span>
+            <span class="label">CONTROLLO<br>PULIZIE</span>
         </div>
 
-        <div class="icona-quadrata" onclick="vaiANC()" style="border-color: #ff5252;">
-            <span class="emoji">⚠️</span>
-            <span class="label" style="color: #ff5252;">NON<br>CONFORMITÀ</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-scadenzario')" style="border-color: #f44336;">
-            <span class="emoji">📅</span>
-            <span class="label" style="color: #f44336;">SCADEN-<br>ZARIO</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-manutenzioni')" style="border-color: #FF5722;">
-            <span class="emoji">🔧</span>
-            <span class="label" style="color: #FF5722;">MANUTEN-<br>ZIONI</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-fornitori')" style="border-color: #00BCD4;">
-            <span class="emoji">🏢</span>
-            <span class="label" style="color: #00BCD4;">FORNITORI</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-allergeni')" style="border-color: #E91E63;">
-            <span class="emoji">⚠️</span>
-            <span class="label" style="color: #E91E63;">ALLERGENI</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-ccp')" style="border-color: #9C27B0;">
-            <span class="emoji">📋</span>
-            <span class="label" style="color: #9C27B0;">CCP</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-formazione')" style="border-color: #4CAF50;">
-            <span class="emoji">🎓</span>
-            <span class="label" style="color: #4CAF50;">FORMA-<br>ZIONE</span>
-        </div>
-
-        <div class="icona-quadrata" onclick="vaiA('sez-op-inventario')" style="border-color: #795548;">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
             <span class="emoji">📦</span>
-            <span class="label" style="color: #795548;">INVENTA-<br>RIO</span>
+            <span class="label">TRACCIA-<br>BILITA</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')" style="border-color: #9C27B0;">
+            <span class="emoji">🖨️</span>
+            <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
         </div>
 
         <div class="icona-quadrata" onclick="vaiA('sez-op-pec')" style="border-color: #FF9800;">
             <span class="emoji">📧</span>
-            <span class="label" style="color: #FF9800;">FATTURE<br>PEC</span>
+            <span class="label" style="color: #FF9800;">PEC</span>
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:center; gap:12px; padding: 18px 20px 8px; flex-wrap:wrap;">
+        <button type="button" onclick="vaiA('sez-op-archivi')" style="padding:10px 16px; border-radius:999px; background:#1f2a36; border:1px solid #2c3a49; color:#fff; font-size:12px;">
+            📁 I MIEI ARCHIVI
+        </button>
+        <button type="button" onclick="apriGeneratoreReport()" style="padding:10px 16px; border-radius:999px; background:#1f2a36; border:1px solid #2c3a49; color:#fff; font-size:12px;">
+            📄 I MIEI DOCUMENTI
+        </button>
+    </div>
+</section>
+
+<button id="btn-back-fixed" type="button" onclick="vaiA('sez-operatore')" style="display:none;" aria-label="Torna al menu">
+    ⬅
+</button>
+
+<!-- OPERATORE - ARCHIVI -->
+<section id="sez-op-archivi" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h2>📁 I MIEI ARCHIVI</h2>
+    </div>
+
+    <div class="grid-icone" style="padding: 20px; max-width: 1200px; margin: 0 auto;">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-temperature')">
+            <span class="emoji">❄️</span>
+            <span class="label">FRIGORIFERI</span>
+        </div>
+        
+        <div class="icona-quadrata" onclick="vaiAPulizie()">
+            <span class="emoji">🧼</span>
+            <span class="label">CONTROLLO<br>PULIZIE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
+            <span class="emoji">📦</span>
+            <span class="label">TRACCIA-<br>BILITA</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')" style="border-color: #9C27B0;">
+            <span class="emoji">🖨️</span>
+            <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-op-pec')" style="border-color: #FF9800;">
+            <span class="emoji">📧</span>
+            <span class="label" style="color: #FF9800;">PEC</span>
         </div>
     </div>
 </section>

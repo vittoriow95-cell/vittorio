@@ -250,6 +250,12 @@ function vaiA(idSezione) {
         alert("Errore tecnico: sezione non trovata.");
     }
 
+    const btnBackFixed = document.getElementById('btn-back-fixed');
+    if (btnBackFixed) {
+        const isOperatore = idSezione && idSezione.startsWith('sez-op-');
+        btnBackFixed.style.display = (isOperatore && idSezione !== 'sez-operatore') ? 'flex' : 'none';
+    }
+
     // 3. Logica speciale per caricamento frigo
     if (idSezione === "sez-op-temperature" || idSezione === "sez-registra-temp") {
         console.log("Apertura sezione temperature: carico i frigoriferi...");
