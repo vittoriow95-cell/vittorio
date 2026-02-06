@@ -48,7 +48,22 @@ function buildComandi(dati, config) {
     return { comandiStampante, copie };
 }
 
+function setCors(res, origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-print-token');
+    res.setHeader('Access-Control-Max-Age', '86400');
+}
+
 const server = http.createServer((req, res) => {
+    setCors(res, req.headers.origin);
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
     if (req.url === '/health' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));

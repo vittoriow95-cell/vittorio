@@ -550,6 +550,10 @@ function segnaRiposoRapido(quando) {
 let dataVisualizzata = new Date();
 let timerScansionePECAutomatica = null;
 let intervalloScansionePEC = 30; // minuti
+let ricetteProdotti = JSON.parse(localStorage.getItem('haccp_ricette')) || {};
+let modalSelezioneModo = 'ricetta';
+let ingredienteInSelezioneIndex = null;
+let prodottoCorrenteSelezionato = '';
 
 // Cambia giorno nel registro lotti (frecce avanti/indietro)
 function cambiaDataLotti(offset) {
@@ -579,7 +583,8 @@ function renderizzaLottiGiorno() {
         const isTerminato = l.terminato === true;
         const badgeTerminato = isTerminato ? '<span style="background:#666; color:#fff; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:bold;">✓ TERMINATO</span>' : '';
         const ingredientiText = (l.ingredientiUsati || [])
-            .map(i => [i.nome, i.lotto].filter(Boolean).join(' '))
+            .map(i => i.nome)
+            .filter(Boolean)
             .join(', ');
         const fotoHtml = l.fotoLottoUrl
             ? `<div style="margin-top:8px;"><img src="${l.fotoLottoUrl}" style="max-height:60px; border-radius:6px; border:1px solid #333;"></div>`
@@ -593,9 +598,6 @@ function renderizzaLottiGiorno() {
                     ${l.prodotto}
                     ${badgeTerminato}
                 </div>
-                <div class="card-lotto-info">Lotto produzione: ${l.lottoInterno || 'N/A'}</div>
-                <div class="card-lotto-info">Lotto origine: ${l.lottoOrigine || 'N/A'}</div>
-                <div class="card-lotto-info">Scadenza: ${l.scadenza}</div>
                 ${ingredientiText ? `<div class="card-lotto-ingredienti">Ingredienti: ${ingredientiText}</div>` : ''}
                 ${fotoHtml}
             </div>
@@ -756,6 +758,10 @@ function apriModalLotto() {
     ingredientiLottoCorrente = []; // Reset lista ingredienti
     renderizzaIngredientiUsati();
     popolaSelectProdotti(); // Riempie la tendina con i prodotti salvati
+    impostaModalTracciabilita();
+    modalSelezioneModo = 'ricetta';
+    ingredienteInSelezioneIndex = null;
+    prodottoCorrenteSelezionato = '';
     fotoLottoTempUrl = '';
     const lottoOrigineEl = document.getElementById('lotto-origine-lotto');
     if (lottoOrigineEl) lottoOrigineEl.value = '';
@@ -793,53 +799,115 @@ let fotoIngredienteManualeDataUrl = '';
 
 // Apre selezione ingredienti
 function apriModalSelezionaIngredienti() {
+    modalSelezioneModo = 'ricetta';
+    ingredienteInSelezioneIndex = null;
     renderizzaSelezioneIngredienti();
     document.getElementById('modal-seleziona-ingredienti').style.display = 'flex';
 }
 
 function chiudiModalSelezionaIngredienti() {
     document.getElementById('modal-seleziona-ingredienti').style.display = 'none';
+    modalSelezioneModo = 'ricetta';
+    ingredienteInSelezioneIndex = null;
 }
 
 function renderizzaSelezioneIngredienti() {
     const container = document.getElementById('lista-ingredienti-selezione');
     if (!container) return;
 
-    if (databaseIngredienti.length === 0) {
+    const titolo = document.querySelector('#modal-seleziona-ingredienti h3');
+
+    if (modalSelezioneModo === 'lotto') {
+        const idx = ingredienteInSelezioneIndex;
+        const nome = idx !== null && ingredientiLottoCorrente[idx] ? ingredientiLottoCorrente[idx].nome : '';
+        if (titolo) titolo.textContent = nome ? `✅ SELEZIONA LOTTO - ${nome}` : '✅ SELEZIONA LOTTO';
+
+        const nomeNorm = normalizzaNomeIngrediente(nome);
+        const lottiDisponibili = databaseIngredienti.filter(i => !i.archiviato && normalizzaNomeIngrediente(i.nome) === nomeNorm);
+
+        if (lottiDisponibili.length === 0) {
+            container.innerHTML = '<p style="color:#aaa; font-size:12px; text-align:center;">Nessun lotto disponibile per questo ingrediente</p>';
+            return;
+        }
+
+        const selezionato = ingredientiLottoCorrente[idx] ? ingredientiLottoCorrente[idx].id : '';
+        container.innerHTML = lottiDisponibili.map((ing) => {
+            const checked = String(selezionato) === String(ing.id) ? 'checked' : '';
+            const descr = [ing.lotto, ing.scadenza].filter(Boolean).join(' | ');
+            return `
+                <label style="display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #333;">
+                    <input type="radio" name="lotto-ingrediente-radio" data-ing-id="${ing.id}" ${checked}>
+                    <span style="color:#ddd; font-size:13px;">${descr || 'Lotto disponibile'}</span>
+                </label>
+            `;
+        }).join('');
+        return;
+    }
+
+    if (titolo) titolo.textContent = '✅ SELEZIONA INGREDIENTI';
+
+    const ingredientiUnici = Array.from(new Set(databaseIngredienti
+        .filter(i => !i.archiviato)
+        .map(i => i.nome)
+        .filter(Boolean))
+    );
+
+    if (ingredientiUnici.length === 0) {
         container.innerHTML = '<p style="color:#aaa; font-size:12px; text-align:center;">Nessun ingrediente disponibile</p>';
         return;
     }
 
-    const selezionati = new Set(ingredientiLottoCorrente.map(i => i.id));
-    container.innerHTML = databaseIngredienti.map((ing) => {
-        const checked = selezionati.has(ing.id) ? 'checked' : '';
-        const descr = [ing.nome, ing.lotto, ing.scadenza].filter(Boolean).join(' | ');
+    const selezionati = new Set(ingredientiLottoCorrente.map(i => normalizzaNomeIngrediente(i.nome)));
+    container.innerHTML = ingredientiUnici.map((nome) => {
+        const checked = selezionati.has(normalizzaNomeIngrediente(nome)) ? 'checked' : '';
         return `
             <label style="display:flex; gap:10px; align-items:center; padding:8px; border-bottom:1px solid #333;">
-                <input type="checkbox" data-ing-id="${ing.id}" ${checked}>
-                <span style="color:#ddd; font-size:13px;">${descr}</span>
+                <input type="checkbox" data-ingrediente-nome="${nome}" ${checked}>
+                <span style="color:#ddd; font-size:13px;">${nome}</span>
             </label>
         `;
     }).join('');
 }
 
 function confermaSelezioneIngredienti() {
+    if (modalSelezioneModo === 'lotto') {
+        const radio = document.querySelector('#lista-ingredienti-selezione input[type="radio"]:checked');
+        if (!radio || ingredienteInSelezioneIndex === null) {
+            mostraNotifica('⚠️ Seleziona un lotto', 'warning');
+            return;
+        }
+        const id = radio.getAttribute('data-ing-id');
+        const item = databaseIngredienti.find(i => String(i.id) === String(id));
+        if (item) {
+            ingredientiLottoCorrente[ingredienteInSelezioneIndex] = {
+                id: item.id,
+                nome: item.nome,
+                lotto: item.lotto,
+                scadenza: item.scadenza,
+                fotoUrl: item.fotoUrl || ''
+            };
+        }
+
+        renderizzaIngredientiUsati();
+        chiudiModalSelezionaIngredienti();
+        return;
+    }
+
     const checks = document.querySelectorAll('#lista-ingredienti-selezione input[type="checkbox"]');
     const selezionati = [];
     checks.forEach((c) => {
         if (c.checked) {
-            const id = c.getAttribute('data-ing-id');
-            const item = databaseIngredienti.find(i => String(i.id) === String(id));
-            if (item) selezionati.push(item);
+            const nome = c.getAttribute('data-ingrediente-nome');
+            if (nome) selezionati.push(nome);
         }
     });
 
-    ingredientiLottoCorrente = selezionati.map(i => ({
-        id: i.id,
-        nome: i.nome,
-        lotto: i.lotto,
-        scadenza: i.scadenza,
-        fotoUrl: i.fotoUrl || ''
+    ingredientiLottoCorrente = selezionati.map(nome => ({
+        id: '',
+        nome: nome,
+        lotto: '',
+        scadenza: '',
+        fotoUrl: ''
     }));
 
     renderizzaIngredientiUsati();
@@ -855,6 +923,11 @@ function gestisciNuovoProdotto(valore) {
     } else {
         inputNuovo.style.display = "none";
     }
+
+    if (valore && valore !== "+ Nuovo Prodotto") {
+        prodottoCorrenteSelezionato = valore;
+        caricaRicettaProdotto(valore);
+    }
 }
 
 // Visualizza lista ingredienti usati
@@ -868,13 +941,14 @@ function renderizzaIngredientiUsati() {
     
     let html = '';
     ingredientiLottoCorrente.forEach((ing, i) => {
-        const descr = [ing.nome, ing.lotto, ing.scadenza].filter(Boolean).join(' | ');
+        const stato = ing.lotto ? '✅ Lotto selezionato' : '⚠️ Seleziona lotto';
         html += `
-            <div style="background:rgba(42, 42, 42, 0.8); padding:6px 8px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center; border-left:2px solid #4CAF50;">
+            <div onclick="apriSelezioneLottoIngrediente(${i})" style="background:rgba(42, 42, 42, 0.8); padding:6px 8px; margin-bottom:4px; border-radius:4px; display:flex; justify-content:space-between; align-items:center; border-left:2px solid #4CAF50; cursor:pointer;">
                 <div style="flex:1; min-width:0;">
-                    <span style="color:#4CAF50; font-weight:bold; font-size:12px;">📦 ${descr || 'Ingrediente'}</span>
+                    <div style="color:#4CAF50; font-weight:bold; font-size:12px;">📦 ${ing.nome || 'Ingrediente'}</div>
+                    <div style="color:#aaa; font-size:11px;">${stato}</div>
                 </div>
-                <button type="button" onclick="rimuoviIngredienteUsato(${i})" style="background:#f44336; padding:3px 7px; border:none; border-radius:3px; cursor:pointer; font-size:11px; flex-shrink:0;">
+                <button type="button" onclick="event.stopPropagation(); rimuoviIngredienteUsato(${i});" style="background:#f44336; padding:3px 7px; border:none; border-radius:3px; cursor:pointer; font-size:11px; flex-shrink:0;">
                     🗑️
                 </button>
             </div>
@@ -888,6 +962,73 @@ function renderizzaIngredientiUsati() {
 function rimuoviIngredienteUsato(index) {
     ingredientiLottoCorrente.splice(index, 1);
     renderizzaIngredientiUsati();
+}
+
+function apriSelezioneLottoIngrediente(index) {
+    if (index === null || index === undefined) return;
+    ingredienteInSelezioneIndex = index;
+    modalSelezioneModo = 'lotto';
+    renderizzaSelezioneIngredienti();
+    document.getElementById('modal-seleziona-ingredienti').style.display = 'flex';
+}
+
+function normalizzaNomeIngrediente(nome) {
+    return String(nome || '').trim().toLowerCase();
+}
+
+function caricaRicettaProdotto(prodotto) {
+    const ricetta = ricetteProdotti[prodotto];
+    if (Array.isArray(ricetta) && ricetta.length > 0) {
+        ingredientiLottoCorrente = ricetta.map(nome => ({
+            id: '',
+            nome: nome,
+            lotto: '',
+            scadenza: '',
+            fotoUrl: ''
+        }));
+    } else {
+        ingredientiLottoCorrente = [];
+    }
+    renderizzaIngredientiUsati();
+}
+
+function impostaModalTracciabilita() {
+    const daNascondere = [
+        'data-scadenza-lotto',
+        'lotto-origine-lotto',
+        'input-foto-lotto-prodotto',
+        'note-lotto'
+    ];
+
+    daNascondere.forEach((id) => {
+        const input = document.getElementById(id);
+        const label = document.querySelector(`label[for="${id}"]`);
+        if (label) label.style.display = 'none';
+        if (input) input.style.display = 'none';
+    });
+
+    const previewFoto = document.getElementById('preview-foto-lotto-prodotto');
+    if (previewFoto) previewFoto.style.display = 'none';
+
+    const btnRegistro = document.querySelector('button[onclick="vaiA(\'sez-op-ingredienti\')"]');
+    if (btnRegistro) btnRegistro.style.display = 'none';
+}
+
+function calcolaScadenzaProduzione() {
+    const dateValide = ingredientiLottoCorrente
+        .map(i => i.scadenza)
+        .filter(Boolean)
+        .map(s => new Date(s))
+        .filter(d => !isNaN(d.getTime()));
+
+    if (dateValide.length > 0) {
+        const minDate = new Date(Math.min(...dateValide.map(d => d.getTime())));
+        return minDate.toLocaleDateString('it-IT');
+    }
+
+    const oggi = new Date();
+    oggi.setDate(oggi.getDate() + 3);
+    return oggi.toLocaleDateString('it-IT');
 }
 
 // Apre modal scansione ingrediente
@@ -1250,6 +1391,17 @@ function confermaSalvataggioLotto() {
             alert('⚠️ Seleziona o inserisci il nome del prodotto!');
             return false;
         }
+
+        if (!ingredientiLottoCorrente || ingredientiLottoCorrente.length === 0) {
+            alert('⚠️ Seleziona gli ingredienti della ricetta');
+            return false;
+        }
+
+        const ingredientiMancanti = ingredientiLottoCorrente.filter(i => !i.lotto);
+        if (ingredientiMancanti.length > 0) {
+            alert('⚠️ Seleziona il lotto per tutti gli ingredienti');
+            return false;
+        }
         
         // Se è un nome nuovo, salvalo nell'elenco
         if (nuovoProdottoInput && !elencoNomiProdotti.includes(nuovoProdottoInput)) {
@@ -1280,7 +1432,11 @@ function confermaSalvataggioLotto() {
                 dataScadenza = parsed;
             }
         } else {
-            dataScadenza.setDate(oggi.getDate() + 3);
+            const calcolata = calcolaScadenzaProduzione();
+            const parsed = new Date(calcolata.split('/').reverse().join('-'));
+            if (!isNaN(parsed.getTime())) {
+                dataScadenza = parsed;
+            }
         }
         
         // Crea oggetto lotto
@@ -1288,7 +1444,7 @@ function confermaSalvataggioLotto() {
             dataProduzione: oggi.toLocaleDateString('it-IT'),
             prodotto: prodottoFinale,
             lottoInterno: codiceLotto,
-            lottoOrigine: lottoOrigineInput || codiceLotto,
+            lottoOrigine: codiceLotto,
             ingredientiUsati: [...ingredientiLottoCorrente],
             note: note,
             scadenza: dataScadenza.toLocaleDateString('it-IT'),
@@ -1326,11 +1482,18 @@ function confermaSalvataggioLotto() {
             renderizzaLottiGiorno();
         }, 100);
         
-        // Stampa in background
+        // Stampa in background (senza input aggiuntivi)
         setTimeout(() => {
-            stampaEtichettaLotto(nuovoLotto);
+            stampaEtichettaLottoAuto(nuovoLotto);
         }, 200);
         
+        // Salva ricetta per il prodotto
+        const ricettaAggiornata = Array.from(new Set(ingredientiLottoCorrente.map(i => i.nome).filter(Boolean)));
+        if (ricettaAggiornata.length > 0) {
+            ricetteProdotti[prodottoFinale] = ricettaAggiornata;
+            localStorage.setItem('haccp_ricette', JSON.stringify(ricetteProdotti));
+        }
+
         // Notifica
         setTimeout(() => {
             mostraNotifica(`✅ LOTTO CREATO: ${codiceLotto}`, 'success');
@@ -1350,6 +1513,41 @@ function confermaSalvataggioLotto() {
 /* ===========================================================
    10. STAMPA ETICHETTE LOTTI
    =========================================================== */
+
+const PRINT_DIRECT_URL = 'https://print.miohaccp.it/stampa';
+const PRINT_DIRECT_TIMEOUT_MS = 2500;
+const PRINT_FALLBACK_TIMEOUT_MS = 7000;
+
+async function inviaStampa(datiStampa) {
+    const token = localStorage.getItem('haccp_print_token') || '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) {
+        headers['x-print-token'] = token;
+    }
+
+    const targets = [];
+    if (PRINT_DIRECT_URL && location.hostname.endsWith('onrender.com')) {
+        targets.push({ url: PRINT_DIRECT_URL, timeout: PRINT_DIRECT_TIMEOUT_MS });
+    }
+    targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS });
+
+    let lastError = null;
+    for (const target of targets) {
+        try {
+            const response = await fetch(target.url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(datiStampa),
+                signal: AbortSignal.timeout(target.timeout)
+            });
+            return await response.json();
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    throw lastError || new Error('Stampa non raggiungibile');
+}
 
 async function stampaEtichettaLotto(lotto) {
     try {
@@ -1388,13 +1586,7 @@ async function stampaEtichettaLotto(lotto) {
         };
 
         // Invia stampa al server locale
-        fetch('/stampa', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(datiStampa),
-            signal: AbortSignal.timeout(5000)
-        })
-        .then(response => response.json())
+        inviaStampa(datiStampa)
         .then(data => {
             if (!data.success) {
                 console.error('Errore stampa:', data.error);
@@ -1410,6 +1602,53 @@ async function stampaEtichettaLotto(lotto) {
     } catch (error) {
         console.error('Errore stampa:', error);
         alert('Errore durante la stampa. Verifica che il server sia avviato.');
+    }
+}
+
+async function stampaEtichettaLottoAuto(lotto) {
+    try {
+        const copieSalvate = parseInt(localStorage.getItem('haccp_copie_auto') || '1');
+        const numeroCopie = isNaN(copieSalvate) || copieSalvate < 1 ? 1 : copieSalvate;
+
+        const config = JSON.parse(localStorage.getItem('haccp_config_stampa')) || {
+            larghezza: 40,
+            altezza: 30,
+            mostraTitolo: true,
+            mostraProdotto: true,
+            mostraLotto: true,
+            mostraProduzione: true,
+            mostraScadenza: true,
+            sizeTitolo: 3,
+            sizeCampi: 2,
+            fontTitolo: '3',
+            fontCampi: '2'
+        };
+
+        const datiStampa = {
+            prodotto: String(lotto.prodotto || ''),
+            lottoOrigine: String(lotto.lottoOrigine || ''),
+            dataProduzione: String(lotto.dataProduzione || ''),
+            scadenza: String(lotto.scadenza || lotto.dataScadenza || ''),
+            copie: numeroCopie,
+            config: config
+        };
+
+        inviaStampa(datiStampa)
+        .then(data => {
+            if (!data.success) {
+                console.error('Errore stampa:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Errore connessione stampante:', error);
+            mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
+        });
+
+        setTimeout(() => {
+            mostraNotifica(`🖨️ ${numeroCopie} ${numeroCopie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
+        }, 100);
+    } catch (error) {
+        console.error('Errore stampa automatica:', error);
     }
 }
 
@@ -1444,15 +1683,9 @@ async function generaCSVPerCLabel(lotto) {
         `;
         document.body.appendChild(popup);
         
-        const response = await fetch('/stampa', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(lotto)
-        });
-        
+        const risultato = await inviaStampa(lotto);
+
         document.body.removeChild(popup);
-        
-        const risultato = await response.json();
         
         if (risultato.success) {
             alert('✅ ETICHETTA STAMPATA!\n\n' + lotto.prodotto + '\n' + lotto.lottoInterno);

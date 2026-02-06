@@ -14,7 +14,7 @@
 
 ### Fase 1: Print System (Cloud + Local)
 - ✅ Render cloud deployment (https://vittorio-az8f.onrender.com)
-- ✅ Cloudflare tunnel per printer locale (https://appreciated-genesis-distributed-predict.trycloudflare.com)
+- ✅ Cloudflare tunnel per printer locale (https://print.miohaccp.it)
 - ✅ Print-agent su porta 7002 (COM3 printer)
 - ✅ End-to-end printing: Render → Tunnel → Agent → Printer ✅
 
@@ -114,7 +114,7 @@
 | **App Produzione** | https://vittorio-az8f.onrender.com |
 | **Render Dashboard** | https://dashboard.render.com (cerca "vittorio") |
 | **MongoDB Atlas** | https://cloud.mongodb.com (Cluster0 - haccp_db) |
-| **Tunnel Cloudflare** | https://appreciated-genesis-distributed-predict.trycloudflare.com |
+| **Tunnel Cloudflare** | https://print.miohaccp.it |
 
 ---
 
@@ -176,7 +176,7 @@
 
 ### Environment Variables su Render
 ```
-PRINT_AGENT_URL = https://appreciated-genesis-distributed-predict.trycloudflare.com
+PRINT_AGENT_URL = https://print.miohaccp.it
 PRINT_AGENT_TOKEN = (non richiesto al momento)
 MONGODB_URI = mongodb+srv://vittoriow95_db_user:7QEFCW1cLcN2fIyH@cluster0.hiflzh5.mongodb.net/?appName=Cluster0
 PORT = 5000 (default)
