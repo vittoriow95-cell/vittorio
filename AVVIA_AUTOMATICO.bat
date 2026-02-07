@@ -10,6 +10,9 @@ powershell -Command "$p = Test-NetConnection -ComputerName localhost -Port 7002 
 :: Avvio tunnel cloudflared per stampa remota
 start "" /B "%~dp0AVVIA_TUNNEL.bat"
 
+:: Watchdog tunnel (riavvio automatico se cade)
+powershell -WindowStyle Hidden -ExecutionPolicy Bypass -File "%~dp0TUNNEL_WATCHDOG.ps1" >nul 2>&1
+
 :: Apri app locale
 start http://localhost:5000
 
