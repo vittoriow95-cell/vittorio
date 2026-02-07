@@ -6,6 +6,11 @@ let utenteLoggato = null;
 let sincroinCorso = false;
 const AUTO_CLOUD_USERNAME_KEY = 'haccp_cloud_username';
 const AUTO_CLOUD_DEFAULT = 'il rifugio della volpe';
+const SEDE_PARAM_KEY = 'sede';
+const SEDE_MAP = {
+    macelleria: 'il rifugio della volpe',
+    braceria: 'braceria volpe'
+};
 
 // Controlla se utente è loggato
 function isLoggato() {
@@ -15,8 +20,19 @@ function isLoggato() {
     return !!utenteLoggato;
 }
 
+function getSedeDaUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const sedeRaw = (params.get(SEDE_PARAM_KEY) || '').trim().toLowerCase();
+        return SEDE_MAP[sedeRaw] || '';
+    } catch (err) {
+        return '';
+    }
+}
+
 function impostaUtenteCloudAutomatico() {
-    const usernameSalvato = localStorage.getItem(AUTO_CLOUD_USERNAME_KEY) || AUTO_CLOUD_DEFAULT;
+    const sedeDaUrl = getSedeDaUrl();
+    const usernameSalvato = sedeDaUrl || localStorage.getItem(AUTO_CLOUD_USERNAME_KEY) || AUTO_CLOUD_DEFAULT;
     utenteLoggato = usernameSalvato;
     sessionStorage.setItem('haccp_username', usernameSalvato);
 }
