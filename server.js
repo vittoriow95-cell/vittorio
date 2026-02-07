@@ -144,22 +144,42 @@ const server = http.createServer((req, res) => {
     // Servi file app
     if (req.url === '/' || req.url === '/index.html') {
         fs.readFile('index.html', (err, data) => {
-            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.writeHead(200, {
+                'Content-Type': 'text/html',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0'
+            });
             res.end(data);
         });
     } else if (req.url === '/style.css') {
         fs.readFile('style.css', (err, data) => {
-            res.writeHead(200, { 'Content-Type': 'text/css' });
+            res.writeHead(200, {
+                'Content-Type': 'text/css',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0'
+            });
             res.end(data);
         });
     } else if (req.url === '/app.js') {
         fs.readFile('app.js', (err, data) => {
-            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.writeHead(200, {
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0'
+            });
             res.end(data);
         });
     } else if (req.url === '/sync-cloud.js') {
         fs.readFile('sync-cloud.js', (err, data) => {
-            res.writeHead(200, { 'Content-Type': 'application/javascript' });
+            res.writeHead(200, {
+                'Content-Type': 'application/javascript',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0'
+            });
             res.end(data);
         });
     } 
