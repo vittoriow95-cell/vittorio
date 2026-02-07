@@ -29,10 +29,10 @@ if %errorlevel% equ 0 (
 echo [1/3] Pulizia porte...
 powershell -Command "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue" >nul 2>&1
 
-echo [2/3] Avvio server in background...
+echo [2/4] Avvio server in background...
 start /B "" node server.js
 
-echo [3/3] Attesa avvio server...
+echo [3/4] Attesa avvio server...
 timeout /t 3 /nobreak >nul
 
 :: Verifica che il server sia partito
@@ -46,6 +46,18 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
+echo [4/4] Avvio print-agent in background...
+start /B "" node print-agent.js
+
+timeout /t 2 /nobreak >nul
+powershell -Command "$test = Test-NetConnection -ComputerName localhost -Port 7002 -InformationLevel Quiet -WarningAction SilentlyContinue; if ($test) { exit 0 } else { exit 1 }" >nul 2>&1
+
+if %errorlevel% neq 0 (
+    echo.
+    echo [ATTENZIONE] Print-agent non avviato sulla porta 7002.
+    echo La stampa potrebbe non funzionare finche' non si avvia.
+)
+
 echo.
 echo ========================================
 echo   SERVER ATTIVO
@@ -53,6 +65,7 @@ echo ========================================
 echo.
 echo ^> URL: http://localhost:5000
 echo ^> Stampante: 4BARCODE 4B-2054L(BT)
+echo ^> Print-agent: http://localhost:7002
 echo ^> Gestione PEC: Attiva
 echo.
 echo ATTENZIONE: NON CHIUDERE QUESTA FINESTRA!

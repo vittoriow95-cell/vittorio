@@ -4,7 +4,9 @@ const path = require('path');
 const http = require('http');
 
 const SERVER_PORT = 5000;
+const PRINT_AGENT_PORT = 7002;
 let serverProcess = null;
+let printAgentProcess = null;
 
 function waitForServer(url, timeoutMs = 15000) {
     const start = Date.now();
@@ -40,6 +42,19 @@ function startServer() {
     });
 }
 
+function startPrintAgent() {
+    const agentPath = path.join(__dirname, 'print-agent.js');
+
+    printAgentProcess = spawn(process.execPath, [agentPath], {
+        env: { ...process.env, PRINT_AGENT_PORT: String(PRINT_AGENT_PORT) },
+        stdio: 'inherit'
+    });
+
+    printAgentProcess.on('exit', () => {
+        printAgentProcess = null;
+    });
+}
+
 async function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
@@ -60,6 +75,7 @@ async function createWindow() {
 
 app.whenReady().then(async () => {
     startServer();
+    startPrintAgent();
 
     try {
         await createWindow();
@@ -77,6 +93,10 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => {
     if (serverProcess) {
         serverProcess.kill();
+    }
+
+    if (printAgentProcess) {
+        printAgentProcess.kill();
     }
 
     if (process.platform !== 'darwin') {
