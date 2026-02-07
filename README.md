@@ -1,5 +1,7 @@
 # 📋 HACCP APP - Sistema Gestione Completo
 
+> 💰 **NOVITÀ**: Vuoi sapere quanto vale questa app? Leggi l'[analisi di valore e valutazione di mercato](VALUTAZIONE_APP.md) (€15.000 - €45.000 stimati)
+
 ## 🚀 Avvio Rapido
 
 ### 1. Prima installazione
@@ -243,6 +245,7 @@ Il sistema riconosce automaticamente email da:
 - `AVVIA_SERVER.bat` - Avvio rapido
 - `PULISCI_PORTE.bat` - Risoluzione problemi porte
 - `stampa_com3.bat` - Driver stampa TSPL
+- `VALUTAZIONE_APP.md` - 💰 **Analisi di valore e valutazione di mercato**
 
 ---
 
