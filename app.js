@@ -913,13 +913,6 @@ function rimuoviFotoIngrediente(index) {
 
 function apriModalAssociaProdotto() {
     renderizzaListaProdottiAssocia();
-    const input = document.getElementById('scadenza-prodotto');
-    if (input) {
-        input.value = scadenzaManualeTemp || '';
-        input.focus();
-    }
-    const modal = document.getElementById('modal-associa-prodotto');
-    if (modal) modal.style.display = 'flex';
 }
 
 function chiudiModalAssociaProdotto() {
@@ -940,7 +933,7 @@ function renderizzaListaProdottiAssocia() {
         return;
     }
 
-    select.innerHTML = '<option value="">-- Seleziona prodotto --</option>' + lista.map((p) => {
+    select.innerHTML = '<option value="">ASSOCIA PRODOTTO</option>' + lista.map((p) => {
         const selected = p.nome === prodottoAssociatoTemp ? 'selected' : '';
         return `<option value="${p.nome}" ${selected}>${p.nome}</option>`;
     }).join('');

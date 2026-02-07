@@ -946,7 +946,7 @@
     <div style="padding: 20px; max-width: 1000px; margin: auto;">
         <div style="background:#1a1a1a; padding:12px; border-radius:10px; border:1px dashed #333;">
             <div style="color:#aaa; font-size:12px; margin-bottom:6px;">FOTOCAMERA</div>
-            <div style="background:#000; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:1 / 1; width:100%; max-width:300px; max-height:300px; margin:0 auto;">
+            <div style="background:#000; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:1 / 1; width:100%; max-width:480px; max-height:480px; margin:0 auto;">
                 <video id="camera-ingredienti" playsinline autoplay muted style="width:100%; height:100%; object-fit:cover; display:block;"></video>
                 <canvas id="camera-ingredienti-canvas" width="1280" height="720" style="display:none;"></canvas>
                 <button type="button" onclick="scattaFotoIngredienti()" aria-label="Scatta foto" style="position:absolute; bottom:12px; left:50%; transform:translateX(-50%); width:58px; height:58px; border-radius:50%; border:3px solid #fff; background:rgba(255,255,255,0.25); box-shadow:0 0 0 4px rgba(0,0,0,0.35);"></button>
@@ -959,9 +959,11 @@
 
         <div id="lista-foto-ingredienti" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:10px;"></div>
 
-        <div style="position: relative; min-height: 80px; margin-top: 10px;">
-            <button type="button" onclick="apriModalAssociaProdotto()" style="position:absolute; left:50%; transform:translateX(-50%); padding:6px 12px; font-size:12px;">ASSOCIA PRODOTTO</button>
-            <button type="button" onclick="convalidaTracciabilitaCamera()" style="position:absolute; right:0; bottom:0; padding:6px 12px; font-size:12px; background:#2196F3;">CONVALIDA</button>
+        <div style="position: relative; min-height: 80px; margin-top: 10px; display:flex; gap:10px; align-items:center;">
+            <select id="select-prodotto-associa" onchange="selezionaProdottoAssocia(this.value)" style="flex:1; padding:8px 12px; font-size:12px; background:#2b2b2b; color:#fff; border:1px solid #333; border-radius:10px;">
+                <option value="">ASSOCIA PRODOTTO</option>
+            </select>
+            <button type="button" onclick="convalidaTracciabilitaCamera()" style="padding:6px 12px; font-size:12px; background:#2196F3;">CONVALIDA</button>
         </div>
 
         <div id="prodotto-associato-box" style="margin-top:12px; color:#aaa; font-size:12px;">Prodotto: nessuno</div>
