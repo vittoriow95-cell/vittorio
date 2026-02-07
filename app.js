@@ -2156,10 +2156,12 @@ async function inviaStampa(datiStampa) {
     }
 
     const targets = [];
-    targets.push({ url: PRINT_AGENT_LOCAL_URL, timeout: PRINT_AGENT_LOCAL_TIMEOUT_MS, tipo: 'local' });
-
     const isRender = location.hostname.endsWith('onrender.com');
-    if (!isRender) {
+
+    if (isRender) {
+        targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS, tipo: 'server' });
+    } else {
+        targets.push({ url: PRINT_AGENT_LOCAL_URL, timeout: PRINT_AGENT_LOCAL_TIMEOUT_MS, tipo: 'local' });
         targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS, tipo: 'server' });
     }
 
@@ -2176,10 +2178,6 @@ async function inviaStampa(datiStampa) {
         } catch (error) {
             lastError = error;
         }
-    }
-
-    if (isRender) {
-        throw new Error('Print-agent locale non raggiungibile');
     }
 
     throw lastError || new Error('Stampa non raggiungibile');

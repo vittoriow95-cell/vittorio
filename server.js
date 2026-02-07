@@ -28,6 +28,7 @@ function salvaDatabaseFornitori(db) {
 const PORT = process.env.PORT || 5000;
 const PRINT_AGENT_URL = process.env.PRINT_AGENT_URL || '';
 const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || '';
+const PRINT_DIRECT_URL = process.env.PRINT_DIRECT_URL || 'https://print.miohaccp.it/stampa';
 const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
 const FOTO_LOTTI_DIR = path.join(__dirname, 'foto-lotti');
@@ -132,7 +133,7 @@ const server = http.createServer((req, res) => {
     // CORS headers CORRETTI
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-print-token');
     res.setHeader('Access-Control-Max-Age', '86400');
     
     if (req.method === 'OPTIONS') {
@@ -238,16 +239,31 @@ const server = http.createServer((req, res) => {
         req.on('data', chunk => body += chunk);
         req.on('end', async () => {
             const dati = JSON.parse(body);
+            const tokenHeader = req.headers['x-print-token'] || '';
+            const isRenderHost = (req.headers.host || '').includes('onrender.com');
 
             if (PRINT_AGENT_URL) {
                 try {
-                    const risposta = await postJson(PRINT_AGENT_URL, dati, PRINT_AGENT_TOKEN);
+                    const risposta = await postJson(PRINT_AGENT_URL, dati, PRINT_AGENT_TOKEN || tokenHeader);
                     res.writeHead(risposta.status, { 'Content-Type': 'application/json' });
                     res.end(risposta.body || JSON.stringify({ success: false, message: 'Nessuna risposta agente' }));
                 } catch (err) {
                     console.error('❌ Errore inoltro stampa:', err.message);
                     res.writeHead(502, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ success: false, message: 'Errore inoltro stampa', error: err.message }));
+                }
+                return;
+            }
+
+            if (PRINT_DIRECT_URL && isRenderHost) {
+                try {
+                    const risposta = await postJson(PRINT_DIRECT_URL, dati, tokenHeader);
+                    res.writeHead(risposta.status, { 'Content-Type': 'application/json' });
+                    res.end(risposta.body || JSON.stringify({ success: false, message: 'Nessuna risposta agente' }));
+                } catch (err) {
+                    console.error('❌ Errore inoltro stampa remota:', err.message);
+                    res.writeHead(502, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, message: 'Errore inoltro stampa remota', error: err.message }));
                 }
                 return;
             }
