@@ -1691,7 +1691,7 @@ function renderizzaListaIngredienti() {
 
     container.innerHTML = attivi.map((i) => {
         const descr = [i.nome, i.lotto, i.scadenza].filter(Boolean).join(' | ');
-        const foto = i.fotoUrl ? `<img src="${i.fotoUrl}" style="height:40px; border-radius:6px; border:1px solid #333; margin-left:8px;">` : '';
+        const foto = i.fotoUrl ? `<img src="${i.fotoUrl}" onerror="gestisciFotoMancanteIngrediente('${i.id}')" style="height:40px; border-radius:6px; border:1px solid #333; margin-left:8px;">` : '';
         return `
             <div style="background:#1f1f1f; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">
                 <div style="flex:1; min-width:0;">
@@ -1704,6 +1704,14 @@ function renderizzaListaIngredienti() {
             </div>
         `;
     }).join('');
+}
+
+function gestisciFotoMancanteIngrediente(id) {
+    const idx = databaseIngredienti.findIndex(i => String(i.id) === String(id));
+    if (idx === -1) return;
+    if (!databaseIngredienti[idx].fotoUrl) return;
+    databaseIngredienti[idx].fotoUrl = '';
+    localStorage.setItem('haccp_ingredienti', JSON.stringify(databaseIngredienti));
 }
 
 function archiviaIngrediente(id) {
