@@ -2,10 +2,11 @@
 setlocal
 
 :: Avvio automatico server + print-agent (senza interazione)
+set "NODE_EXE=C:\Program Files\nodejs\node.exe"
 
-powershell -Command "$s = Test-NetConnection -ComputerName localhost -Port 5000 -InformationLevel Quiet -WarningAction SilentlyContinue; if (-not $s) { Start-Process -WindowStyle Hidden -FilePath 'node' -ArgumentList 'server.js' }" >nul 2>&1
+powershell -Command "$s = Test-NetConnection -ComputerName localhost -Port 5000 -InformationLevel Quiet -WarningAction SilentlyContinue; if (-not $s) { Start-Process -WindowStyle Hidden -FilePath '%NODE_EXE%' -ArgumentList 'server.js' }" >nul 2>&1
 
-powershell -Command "$p = Test-NetConnection -ComputerName localhost -Port 7002 -InformationLevel Quiet -WarningAction SilentlyContinue; if (-not $p) { Start-Process -WindowStyle Hidden -FilePath 'node' -ArgumentList 'print-agent.js' }" >nul 2>&1
+powershell -Command "$p = Test-NetConnection -ComputerName localhost -Port 7002 -InformationLevel Quiet -WarningAction SilentlyContinue; if (-not $p) { Start-Process -WindowStyle Hidden -FilePath '%NODE_EXE%' -ArgumentList 'print-agent.js' }" >nul 2>&1
 
 :: Avvio tunnel cloudflared per stampa remota
 start "" /B "%~dp0AVVIA_TUNNEL.bat"
