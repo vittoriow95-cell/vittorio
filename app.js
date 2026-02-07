@@ -928,23 +928,21 @@ function chiudiModalAssociaProdotto() {
 }
 
 function renderizzaListaProdottiAssocia() {
-    const container = document.getElementById('lista-prodotti-associa');
-    if (!container) return;
+    const select = document.getElementById('select-prodotto-associa');
+    if (!select) return;
 
     prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || prodottiAdmin || [];
     elencoNomiProdotti = JSON.parse(localStorage.getItem('haccp_elenco_nomi')) || elencoNomiProdotti || [];
 
     const lista = prodottiAdmin.length > 0 ? prodottiAdmin : elencoNomiProdotti.map(n => ({ nome: n, giorniScadenza: 3 }));
     if (!lista || lista.length === 0) {
-        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun prodotto disponibile</p>';
+        select.innerHTML = '<option value="">Nessun prodotto disponibile</option>';
         return;
     }
 
-    container.innerHTML = lista.map((p) => {
-        const attivo = p.nome === prodottoAssociatoTemp ? 'background:#30D158; color:#000;' : 'background:#222; color:#fff;';
-        return `
-            <button type="button" onclick="selezionaProdottoAssocia('${p.nome}')" style="width:100%; margin-bottom:6px; padding:8px; ${attivo}">${p.nome}</button>
-        `;
+    select.innerHTML = '<option value="">-- Seleziona prodotto --</option>' + lista.map((p) => {
+        const selected = p.nome === prodottoAssociatoTemp ? 'selected' : '';
+        return `<option value="${p.nome}" ${selected}>${p.nome}</option>`;
     }).join('');
 }
 

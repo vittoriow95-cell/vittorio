@@ -1067,7 +1067,8 @@
 <div id="modal-associa-prodotto" class="overlay-lotto" style="display:none;">
     <div class="card-centrale" style="max-width: 600px;">
         <h3 style="margin-bottom:12px;">ASSOCIA PRODOTTO</h3>
-        <div id="lista-prodotti-associa"></div>
+        <label class="label-oro" for="select-prodotto-associa" style="margin-bottom:6px;">PRODOTTO</label>
+        <select id="select-prodotto-associa" onchange="selezionaProdottoAssocia(this.value)" style="width:100%; padding:10px 12px; margin-bottom:10px;"></select>
 
         <label class="label-oro" for="scadenza-prodotto" style="margin-top:10px;">SCADENZA (opzionale)</label>
         <input type="date" id="scadenza-prodotto" style="margin-bottom:10px;">
