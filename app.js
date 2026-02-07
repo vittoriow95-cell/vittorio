@@ -151,52 +151,58 @@ function verificaTemperatureCritiche() {
    =========================================================== */
 
 function logicaLogin() {
-    const inputElement = document.getElementById("input-pin");
-    const pinInserito = inputElement.value;
+    renderizzaLoginUtenti();
+}
 
-    // --- STRADA A: CONTROLLO SE È L'ADMIN ---
-    if (pinInserito === "9999") {
-        vaiA("sez-admin"); 
-        inputElement.value = ""; 
-        return; 
+function entraAdminDirect() {
+    vaiA("sez-admin");
+}
+
+function entraOperatoreDaLista(index) {
+    const utenteTrovato = databaseUtenti[index];
+    if (!utenteTrovato) return;
+
+    console.log("Accesso Utente: " + utenteTrovato.nome);
+    sessionStorage.setItem('nomeUtenteLoggato', utenteTrovato.nome);
+
+    const etichettaNome = document.getElementById("nome-operatore");
+    if (etichettaNome) {
+        etichettaNome.innerText = utenteTrovato.nome;
     }
 
-    // --- STRADA B: CONTROLLO SE È UN UTENTE REGISTRATO ---
-    const utenteTrovato = databaseUtenti.find(u => u.pin === pinInserito);
+    const btnExtra = document.getElementById("extra-resp");
+    const labelRuolo = document.getElementById("ruolo-operatore");
 
-    if (utenteTrovato) {
-        console.log("Accesso Utente: " + utenteTrovato.nome);
-        
-        // Salva il nome in sessione per usarlo ovunque
-        sessionStorage.setItem('nomeUtenteLoggato', utenteTrovato.nome);
-        
-        const etichettaNome = document.getElementById("nome-operatore");
-        if (etichettaNome) {
-            etichettaNome.innerText = utenteTrovato.nome;
-        }
+    if (utenteTrovato.ruolo === "Responsabile") {
+        if (btnExtra) btnExtra.style.display = "flex";
+        if (labelRuolo) labelRuolo.innerText = "⭐ Responsabile Autocontrollo";
+    } else {
+        if (btnExtra) btnExtra.style.display = "none";
+        if (labelRuolo) labelRuolo.innerText = "Operatore Incaricato";
+    }
 
-        const btnExtra = document.getElementById("extra-resp");
-        const labelRuolo = document.getElementById("ruolo-operatore");
+    aggiornaAssistente(utenteTrovato.nome);
+    vaiA("sez-operatore");
+}
 
-        if (utenteTrovato.ruolo === "Responsabile") {
-            if (btnExtra) btnExtra.style.display = "flex"; 
-            if (labelRuolo) labelRuolo.innerText = "⭐ Responsabile Autocontrollo";
-        } else {
-            if (btnExtra) btnExtra.style.display = "none"; 
-            if (labelRuolo) labelRuolo.innerText = "Operatore Incaricato";
-        }
+function renderizzaLoginUtenti() {
+    const container = document.getElementById("lista-utenti-login");
+    if (!container) return;
 
-        // Attiviamo l'Assistente
-        aggiornaAssistente(utenteTrovato.nome);
-        
-        vaiA("sez-operatore");
-        inputElement.value = "";
+    if (!databaseUtenti || databaseUtenti.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center; width:100%;">Nessun utente. Aggiungilo dalle impostazioni Admin.</p>';
         return;
     }
 
-    // Se il PIN è sbagliato
-    alert("PIN errato!");
-    inputElement.value = "";
+    container.innerHTML = databaseUtenti.map((u, i) => {
+        const badge = u.ruolo === "Responsabile" ? "⭐" : "";
+        return `
+            <button type="button" onclick="entraOperatoreDaLista(${i})" style="padding:12px; font-size:14px; background:#2b2b2b; border:1px solid #333; border-radius:10px; color:#fff; cursor:pointer;">
+                ${badge} ${u.nome}
+            </button>
+        `;
+    }).join('');
+}
 }
 
 function logout() {
@@ -327,12 +333,11 @@ function vaiA(idSezione) {
 
 function aggiungiUtente() {
     const nome = document.getElementById("nuovo-nome-utente").value.trim();
-    const pin = document.getElementById("nuovo-pin-utente").value.trim();
     
     // Recupera il ruolo selezionato (Operatore o Responsabile)
     const ruolo = document.querySelector('input[name="ruolo-utente"]:checked').value;
 
-    if (nome === "" || pin === "") {
+    if (nome === "") {
         alert("Inserisci tutti i dati!");
         return;
     }
@@ -340,7 +345,6 @@ function aggiungiUtente() {
     // Creiamo l'oggetto utente COMPLETO
     const nuovoUtente = { 
         nome: nome, 
-        pin: pin, 
         ruolo: ruolo 
     };
 
@@ -349,7 +353,6 @@ function aggiungiUtente() {
 
     // Pulizia campi
     document.getElementById("nuovo-nome-utente").value = "";
-    document.getElementById("nuovo-pin-utente").value = "";
     
     aggiornaListaUtenti();
     alert("Utente registrato come: " + ruolo);
@@ -373,6 +376,8 @@ function aggiornaListaUtenti() {
             </div>
         `;
     });
+
+    renderizzaLoginUtenti();
 }
 
 function eliminaUtente(indice) {
@@ -5674,4 +5679,5 @@ window.addEventListener('DOMContentLoaded', () => {
   aggiornaListaUtenti();
   aggiornaListaFrigo();
   richieidiPermessiNotifiche();
+    renderizzaLoginUtenti();
 });

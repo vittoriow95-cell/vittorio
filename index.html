@@ -43,11 +43,12 @@
 <!-- LOGIN -->
 <section id="sez-login" class="schermata">
     <div class="card-centrale">
-        <h1>HACCP SYSTEM</h1>
-        <p>Accesso Protetto</p>
-        <label for="input-pin" style="position: absolute; left: -9999px;">PIN di accesso</label>
-        <input type="password" id="input-pin" placeholder="INSERISCI PIN">
-        <button onclick="logicaLogin()">ACCEDI</button>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;">
+            <h1 style="margin:0;">HACCP SYSTEM</h1>
+            <button type="button" onclick="entraAdminDirect()" title="Admin" style="background:#1f1f1f; border:1px solid #333; border-radius:8px; width:38px; height:38px; display:flex; align-items:center; justify-content:center; font-size:18px;">⚙️</button>
+        </div>
+        <p>Seleziona operatore</p>
+        <div id="lista-utenti-login" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:10px;"></div>
     </div>
 </section>
 
@@ -62,9 +63,6 @@
         <p>Registra Nuovo Collaboratore</p>
         <label for="nuovo-nome-utente" style="position: absolute; left: -9999px;">Nome e Cognome</label>
         <input type="text" id="nuovo-nome-utente" placeholder="Nome e Cognome">
-        <label for="nuovo-pin-utente" style="position: absolute; left: -9999px;">PIN (4 cifre)</label>
-        <input type="tel" id="nuovo-pin-utente" placeholder="PIN (4 cifre)" maxlength="4" inputmode="numeric">
-        
         <div style="margin: 15px 0; text-align: left; color: white; background: #333; padding: 10px; border-radius: 5px;">
             <p style="font-size: 0.8rem; margin-bottom: 5px; color: gold;">Ruolo Aziendale:</p>
             <label><input type="radio" name="ruolo-utente" value="Operatore" checked> Operatore</label><br>
