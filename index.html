@@ -817,22 +817,11 @@
     <div style="padding: 0 20px 20px; max-width: 900px; margin: 0 auto;">
         <div style="background:#1a1a1a; border-radius:16px; padding:16px; border:1px solid #2a2a2a;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-                <h3 style="margin:0;">📝 PRESA ORDINE</h3>
-                <button type="button" onclick="toggleOrdineData()" style="padding:6px 10px; font-size:12px; background:#2a2a2a;">📅 DATA/ORA</button>
+                <h3 style="margin:0;">📌 PRENOTAZIONI DI OGGI</h3>
+                <div style="font-size:11px; color:#aaa;">Dashboard</div>
             </div>
-            <input type="text" id="ordine-nome" placeholder="Nome" style="width:100%; margin-bottom:8px;">
-            <textarea id="ordine-testo" placeholder="Ordine" style="width:100%; height:70px; margin-bottom:8px;"></textarea>
-            <div id="ordine-data-box" style="display:none; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-                <input type="date" id="ordine-data" style="padding:8px 10px;">
-                <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
-                    <input type="checkbox" id="ordine-ora-toggle" onchange="toggleOraOrdine()"> Ora
-                </label>
-                <input type="time" id="ordine-ora" style="padding:8px 10px;" disabled>
-            </div>
-            <button type="button" onclick="salvaOrdine()" style="width:100%; padding:12px; background:#30D158; font-weight:700;">SALVA ORDINE</button>
+            <div id="lista-ordini-home"></div>
         </div>
-
-        <div id="lista-ordini-dashboard" style="margin-top:12px;"></div>
     </div>
 
     <!-- Dashboard Stats -->
@@ -855,6 +844,11 @@
             <span class="label">TRACCIA-<br>BILITA</span>
         </div>
 
+        <div class="icona-quadrata" onclick="vaiA('sez-op-ordini')" style="border-color: #30D158;">
+            <span class="emoji">📝</span>
+            <span class="label" style="color: #30D158;">ORDINI</span>
+        </div>
+
         <div class="icona-quadrata" onclick="vaiA('sez-op-etichetta')" style="border-color: #9C27B0;">
             <span class="emoji">🖨️</span>
             <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
@@ -873,6 +867,38 @@
         <button type="button" onclick="apriGeneratoreReport()" style="padding:10px 16px; border-radius:999px; background:#1f2a36; border:1px solid #2c3a49; color:#fff; font-size:12px;">
             📄 I MIEI DOCUMENTI
         </button>
+    </div>
+</section>
+
+<!-- OPERATORE - PRESA ORDINI -->
+<section id="sez-op-ordini" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h2>📝 PRESA ORDINE</h2>
+    </div>
+
+    <div style="padding: 20px; max-width: 900px; margin: 0 auto;">
+        <div style="background:#1a1a1a; border-radius:16px; padding:16px; border:1px solid #2a2a2a; margin-bottom:12px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                <h3 style="margin:0;">📝 PRESA ORDINE</h3>
+                <button type="button" onclick="toggleOrdineData()" style="padding:6px 10px; font-size:12px; background:#2a2a2a;">📅 DATA/ORA</button>
+            </div>
+            <input type="text" id="ordine-nome" placeholder="Nome" style="width:100%; margin-bottom:8px;">
+            <textarea id="ordine-testo" placeholder="Ordine" style="width:100%; height:70px; margin-bottom:8px;"></textarea>
+            <div id="ordine-data-box" style="display:none; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
+                <input type="date" id="ordine-data" style="padding:8px 10px;">
+                <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                    <input type="checkbox" id="ordine-ora-toggle" onchange="toggleOraOrdine()"> Ora
+                </label>
+                <input type="time" id="ordine-ora" style="padding:8px 10px;" disabled>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="btn-salva-ordine" onclick="salvaOrdine()" style="flex:1; padding:12px; background:#30D158; font-weight:700;">SALVA ORDINE</button>
+                <button type="button" id="btn-annulla-modifica" onclick="annullaModificaOrdine()" style="padding:12px; background:#444; display:none;">ANNULLA</button>
+            </div>
+        </div>
+
+        <div id="lista-ordini-dashboard"></div>
     </div>
 </section>
 

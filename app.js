@@ -318,6 +318,7 @@ function vaiA(idSezione) {
     if (idSezione === "sez-op-ccp") renderizzaCCP();
     if (idSezione === "sez-op-formazione") renderizzaFormazione();
     if (idSezione === "sez-op-inventario") renderizzaInventario();
+    if (idSezione === "sez-op-ordini") renderizzaOrdiniDashboard();
     if (idSezione === "sez-operatore") renderizzaDashboard();
     
     // 7. Carica sezioni admin avanzate
@@ -5340,7 +5341,7 @@ function renderizzaDashboard() {
     
     if (!stats || !grafici) return;
 
-    renderizzaOrdiniDashboard();
+    renderizzaOrdiniHome();
     
     // Statistiche
     const lottiTotali = databaseLotti.length;
@@ -5415,6 +5416,8 @@ function getOrdiniSalvati() {
     return JSON.parse(localStorage.getItem('haccp_ordini') || '[]');
 }
 
+let ordineInModificaId = null;
+
 function salvaOrdine() {
     const nomeInput = document.getElementById('ordine-nome');
     const ordineInput = document.getElementById('ordine-testo');
@@ -5434,26 +5437,100 @@ function salvaOrdine() {
     }
 
     const ordini = getOrdiniSalvati();
-    ordini.unshift({
-        id: Date.now().toString(),
-        nome: nome,
-        ordine: ordine,
-        data: data,
-        ora: ora,
-        creatoIl: new Date().toISOString()
-    });
+    const adessoIso = new Date().toISOString();
+
+    if (ordineInModificaId) {
+        const idx = ordini.findIndex(o => o.id === ordineInModificaId);
+        if (idx !== -1) {
+            ordini[idx] = {
+                ...ordini[idx],
+                nome,
+                ordine,
+                data,
+                ora,
+                aggiornatoIl: adessoIso
+            };
+        }
+    } else {
+        ordini.unshift({
+            id: Date.now().toString(),
+            nome: nome,
+            ordine: ordine,
+            data: data,
+            ora: ora,
+            creatoIl: adessoIso
+        });
+    }
 
     localStorage.setItem('haccp_ordini', JSON.stringify(ordini));
 
+    resetFormOrdine();
+    mostraNotifica(ordineInModificaId ? '✅ Ordine aggiornato' : '✅ Ordine salvato', 'success');
+    ordineInModificaId = null;
+    renderizzaOrdiniDashboard();
+    renderizzaOrdiniHome();
+}
+
+function resetFormOrdine() {
+    const nomeInput = document.getElementById('ordine-nome');
+    const ordineInput = document.getElementById('ordine-testo');
+    const dataInput = document.getElementById('ordine-data');
+    const oraToggle = document.getElementById('ordine-ora-toggle');
+    const oraInput = document.getElementById('ordine-ora');
+    const btnSalva = document.getElementById('btn-salva-ordine');
+    const btnAnnulla = document.getElementById('btn-annulla-modifica');
+
     if (nomeInput) nomeInput.value = '';
-    ordineInput.value = '';
+    if (ordineInput) ordineInput.value = '';
     if (dataInput) dataInput.value = '';
     if (oraInput) oraInput.value = '';
     if (oraToggle) oraToggle.checked = false;
     toggleOraOrdine();
 
-    mostraNotifica('✅ Ordine salvato', 'success');
+    if (btnSalva) btnSalva.textContent = 'SALVA ORDINE';
+    if (btnAnnulla) btnAnnulla.style.display = 'none';
+}
+
+function annullaModificaOrdine() {
+    ordineInModificaId = null;
+    resetFormOrdine();
+}
+
+function avviaModificaOrdine(id) {
+    const ordini = getOrdiniSalvati();
+    const ordine = ordini.find(o => o.id === id);
+    if (!ordine) return;
+
+    ordineInModificaId = id;
+    const nomeInput = document.getElementById('ordine-nome');
+    const ordineInput = document.getElementById('ordine-testo');
+    const dataInput = document.getElementById('ordine-data');
+    const oraToggle = document.getElementById('ordine-ora-toggle');
+    const oraInput = document.getElementById('ordine-ora');
+    const btnSalva = document.getElementById('btn-salva-ordine');
+    const btnAnnulla = document.getElementById('btn-annulla-modifica');
+
+    if (nomeInput) nomeInput.value = ordine.nome || '';
+    if (ordineInput) ordineInput.value = ordine.ordine || '';
+    if (dataInput) dataInput.value = ordine.data || '';
+    if (oraInput) oraInput.value = ordine.ora || '';
+    if (oraToggle) oraToggle.checked = Boolean(ordine.ora);
+    toggleOraOrdine();
+
+    if (btnSalva) btnSalva.textContent = 'AGGIORNA ORDINE';
+    if (btnAnnulla) btnAnnulla.style.display = 'inline-flex';
+}
+
+function annullaOrdine(id) {
+    const ordini = getOrdiniSalvati();
+    const next = ordini.filter(o => o.id !== id);
+    localStorage.setItem('haccp_ordini', JSON.stringify(next));
+    if (ordineInModificaId === id) {
+        ordineInModificaId = null;
+        resetFormOrdine();
+    }
     renderizzaOrdiniDashboard();
+    renderizzaOrdiniHome();
 }
 
 function formattaDataOrdine(dataStr) {
@@ -5464,16 +5541,34 @@ function formattaDataOrdine(dataStr) {
 }
 
 function renderizzaOrdiniDashboard() {
-    const container = document.getElementById('lista-ordini-dashboard');
+    renderizzaOrdiniLista('lista-ordini-dashboard', { soloOggi: false, mostraAzioni: true });
+}
+
+function renderizzaOrdiniHome() {
+    renderizzaOrdiniLista('lista-ordini-home', { soloOggi: true });
+}
+
+function renderizzaOrdiniLista(containerId, opzioni) {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
     const ordini = getOrdiniSalvati();
-    if (!ordini.length) {
-        container.innerHTML = '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessun ordine salvato</div>';
+    const oggi = new Date().toISOString().slice(0, 10);
+    const filtroOggi = opzioni && opzioni.soloOggi;
+    const mostraAzioni = opzioni && opzioni.mostraAzioni;
+
+    const filtrati = filtroOggi
+        ? ordini.filter(o => o.data === oggi)
+        : ordini;
+
+    if (!filtrati.length) {
+        container.innerHTML = filtroOggi
+            ? '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessuna prenotazione per oggi</div>'
+            : '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessun ordine salvato</div>';
         return;
     }
 
-    const ordinati = [...ordini].sort((a, b) => {
+    const ordinati = [...filtrati].sort((a, b) => {
         const aKey = `${a.data || '9999-12-31'} ${a.ora || '23:59'}`;
         const bKey = `${b.data || '9999-12-31'} ${b.ora || '23:59'}`;
         return aKey.localeCompare(bKey);
@@ -5490,6 +5585,12 @@ function renderizzaOrdiniDashboard() {
                     <div style="color:#aaa; font-size:11px;">${escapeHtml(when)}</div>
                 </div>
                 <div style="color:#ddd; font-size:12px; margin-top:6px; white-space:pre-wrap;">${escapeHtml(o.ordine || '')}</div>
+                ${mostraAzioni ? `
+                <div style="display:flex; gap:8px; margin-top:8px;">
+                    <button type="button" onclick="avviaModificaOrdine('${o.id}')" style="padding:6px 10px; font-size:11px;">Modifica</button>
+                    <button type="button" onclick="annullaOrdine('${o.id}')" style="padding:6px 10px; font-size:11px; background:#444;">Annulla</button>
+                </div>
+                ` : ''}
             </div>
         `;
     }).join('');
