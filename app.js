@@ -250,6 +250,10 @@ function vaiA(idSezione) {
     const tutteLeSchermate = document.querySelectorAll('.schermata');
     tutteLeSchermate.forEach(s => s.style.display = "none");
 
+    if (idSezione !== "sez-op-lotti") {
+        stopCameraTracciabilita();
+    }
+
     // 2. Cerchiamo la sezione da aprire
     const sezioneDaAprire = document.getElementById(idSezione);
     
@@ -279,9 +283,6 @@ function vaiA(idSezione) {
     // 4. Logica speciale per tracciabilita
     if (idSezione === "sez-op-lotti") {
         inizializzaTracciabilitaCamera();
-        setTimeout(() => {
-            apriCameraIngredienti();
-        }, 200);
     }
 
     if (idSezione === "sez-op-lotti-archivio") {
@@ -801,6 +802,7 @@ let lottoInStampa = null;
 let lottoDettaglioCorrente = null;
 let dataArchivioTemperatura = null;
 let lottiArchivioCorrenti = [];
+let cameraIngredientiStream = null;
 
 function inizializzaTracciabilitaCamera() {
     fotoIngredientiTemp = [];
@@ -808,9 +810,49 @@ function inizializzaTracciabilitaCamera() {
     scadenzaManualeTemp = '';
     aggiornaProdottoAssociatoBox();
     renderizzaFotoIngredientiTemp();
-    renderizzaListaProdottiAssocia();
-    const input = document.getElementById('scadenza-prodotto');
-    if (input) input.value = scadenzaManualeTemp || '';
+    startCameraTracciabilita();
+}
+
+function startCameraTracciabilita() {
+    const video = document.getElementById('camera-ingredienti');
+    if (!video || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    if (cameraIngredientiStream) return;
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+        .then((stream) => {
+            cameraIngredientiStream = stream;
+            video.srcObject = stream;
+            video.play();
+        })
+        .catch(() => {
+            // Se non disponibile, l'utente puo' usare il caricamento file.
+        });
+}
+
+function stopCameraTracciabilita() {
+    if (!cameraIngredientiStream) return;
+    cameraIngredientiStream.getTracks().forEach((t) => t.stop());
+    cameraIngredientiStream = null;
+    const video = document.getElementById('camera-ingredienti');
+    if (video) video.srcObject = null;
+}
+
+function scattaFotoIngredienti() {
+    const video = document.getElementById('camera-ingredienti');
+    const canvas = document.getElementById('camera-ingredienti-canvas');
+    if (!video || !canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(video, 0, 0, width, height);
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    fotoIngredientiTemp.push({ dataUrl, url: '' });
+    renderizzaFotoIngredientiTemp();
 }
 
 function apriCameraIngredienti() {

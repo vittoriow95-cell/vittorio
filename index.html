@@ -946,8 +946,16 @@
     </div>
 
     <div style="padding: 20px; max-width: 1000px; margin: auto;">
-        <div style="background:#1a1a1a; padding:15px; border-radius:10px; border:1px dashed #333; text-align:center;" onclick="apriCameraIngredienti()">
-            <div style="color:#aaa; font-size:12px;">ANTEPRIMA FOTOCAMERA (tocca per scattare)</div>
+        <div style="background:#1a1a1a; padding:12px; border-radius:10px; border:1px dashed #333;">
+            <div style="color:#aaa; font-size:12px; margin-bottom:6px;">FOTOCAMERA</div>
+            <div style="background:#000; border-radius:8px; overflow:hidden; position:relative;">
+                <video id="camera-ingredienti" playsinline autoplay muted style="width:100%; height:220px; object-fit:cover; display:block;"></video>
+                <canvas id="camera-ingredienti-canvas" width="1280" height="720" style="display:none;"></canvas>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <button type="button" onclick="scattaFotoIngredienti()" style="flex:1; padding:8px 12px; font-size:12px; background:#30D158;">SCATTA FOTO</button>
+                <button type="button" onclick="apriCameraIngredienti()" style="flex:1; padding:8px 12px; font-size:12px; background:#2196F3;">CARICA DA FILE</button>
+            </div>
             <input type="file" id="input-foto-ingredienti" accept="image/*" capture="environment" multiple style="display:none;" onchange="gestisciFotoIngredientiCamera(this)">
         </div>
 
