@@ -926,6 +926,9 @@ function renderizzaListaProdottiAssocia() {
     const container = document.getElementById('lista-prodotti-associa');
     if (!container) return;
 
+    prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || prodottiAdmin || [];
+    elencoNomiProdotti = JSON.parse(localStorage.getItem('haccp_elenco_nomi')) || elencoNomiProdotti || [];
+
     const lista = prodottiAdmin.length > 0 ? prodottiAdmin : elencoNomiProdotti.map(n => ({ nome: n, giorniScadenza: 3 }));
     if (!lista || lista.length === 0) {
         container.innerHTML = '<p style="color:#888; text-align:center;">Nessun prodotto disponibile</p>';

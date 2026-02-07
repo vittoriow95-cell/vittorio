@@ -347,6 +347,7 @@ async function caricaDatiDaCloud() {
             if (typeof renderizzaLotti === 'function') renderizzaLotti();
             if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
             if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
+            if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
             
             mostraNotifica('📥 Dati caricati dal cloud', 'success');
         } else if (risultato.nuovoUtente) {
