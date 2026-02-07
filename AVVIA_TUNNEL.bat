@@ -10,6 +10,6 @@ if not exist "%CLOUDFLARED_EXE%" (
     exit /b 1
 )
 
-start "" /B cmd /c ""%CLOUDFLARED_EXE%" tunnel --url http://localhost:7002 --no-autoupdate 1> "%TUNNEL_OUT%" 2> "%TUNNEL_ERR%""
+start "" /B cmd /c "\"%CLOUDFLARED_EXE%\" tunnel --url http://localhost:7002 --no-autoupdate 1> \"%TUNNEL_OUT%\" 2> \"%TUNNEL_ERR%\""
 
 endlocal

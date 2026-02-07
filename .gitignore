@@ -1,6 +1,7 @@
 node_modules/
 .DS_Store
 .env
+R2_ENV.bat
 *.log
 cloudflared.exe
 tesseract.min.js

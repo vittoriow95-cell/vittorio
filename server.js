@@ -7,6 +7,7 @@ const { simpleParser } = require('mailparser');
 const xml2js = require('xml2js');
 const pdf = require('pdf-parse');
 const { createWorker } = require('tesseract.js');
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
 const database = require('./database');
 
 // Database fornitori per mappatura intelligente
@@ -28,10 +29,28 @@ function salvaDatabaseFornitori(db) {
 const PORT = process.env.PORT || 5000;
 const PRINT_AGENT_URL = process.env.PRINT_AGENT_URL || '';
 const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || '';
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_BUCKET = process.env.R2_BUCKET || '';
+const R2_PUBLIC_BASE_URL = process.env.R2_PUBLIC_BASE_URL || '';
 const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
 const FOTO_LOTTI_DIR = path.join(__dirname, 'foto-lotti');
 const FOTO_INGREDIENTI_DIR = path.join(__dirname, 'foto-ingredienti');
+
+const R2_ENABLED = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET);
+const R2_ENDPOINT = R2_ACCOUNT_ID ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '';
+const r2Client = R2_ENABLED
+    ? new S3Client({
+        region: 'auto',
+        endpoint: R2_ENDPOINT,
+        credentials: {
+            accessKeyId: R2_ACCESS_KEY_ID,
+            secretAccessKey: R2_SECRET_ACCESS_KEY
+        }
+    })
+    : null;
 
 function ensureDir(dirPath) {
     if (!fs.existsSync(dirPath)) {
@@ -41,6 +60,25 @@ function ensureDir(dirPath) {
 
 ensureDir(FOTO_LOTTI_DIR);
 ensureDir(FOTO_INGREDIENTI_DIR);
+
+function buildR2PublicUrl(key) {
+    if (!R2_PUBLIC_BASE_URL) return '';
+    const base = R2_PUBLIC_BASE_URL.replace(/\/+$/, '');
+    return `${base}/${key}`;
+}
+
+async function uploadFotoToR2({ buffer, mime, key }) {
+    const command = new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: mime,
+        CacheControl: 'public, max-age=31536000'
+    });
+
+    await r2Client.send(command);
+    return buildR2PublicUrl(key);
+}
 
 function postJson(urlStr, data, token) {
     return new Promise((resolve, reject) => {
@@ -730,7 +768,7 @@ const server = http.createServer((req, res) => {
     else if (req.url === '/api/upload-foto' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
-        req.on('end', () => {
+        req.on('end', async () => {
             try {
                 const { tipo, dataUrl } = JSON.parse(body || '{}');
 
@@ -759,6 +797,23 @@ const server = http.createServer((req, res) => {
 
                 const ext = mime.split('/')[1] || 'png';
                 const nomeFile = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+                const tipoFolder = tipo === 'ingrediente' ? 'ingredienti' : 'lotti';
+
+                if (R2_ENABLED) {
+                    if (!R2_PUBLIC_BASE_URL) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ success: false, error: 'R2_PUBLIC_BASE_URL mancante' }));
+                        return;
+                    }
+
+                    const key = `${tipoFolder}/${nomeFile}`;
+                    const publicUrl = await uploadFotoToR2({ buffer, mime, key });
+
+                    res.writeHead(200, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: true, url: publicUrl }));
+                    return;
+                }
+
                 const dir = tipo === 'ingrediente' ? FOTO_INGREDIENTI_DIR : FOTO_LOTTI_DIR;
                 const urlBase = tipo === 'ingrediente' ? '/foto-ingredienti/' : '/foto-lotti/';
                 const filePath = path.join(dir, nomeFile);

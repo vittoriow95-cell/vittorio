@@ -279,6 +279,9 @@ function vaiA(idSezione) {
     // 4. Logica speciale per tracciabilita
     if (idSezione === "sez-op-lotti") {
         inizializzaTracciabilitaCamera();
+        setTimeout(() => {
+            apriCameraIngredienti();
+        }, 200);
     }
 
     if (idSezione === "sez-op-lotti-archivio") {
@@ -805,6 +808,9 @@ function inizializzaTracciabilitaCamera() {
     scadenzaManualeTemp = '';
     aggiornaProdottoAssociatoBox();
     renderizzaFotoIngredientiTemp();
+    renderizzaListaProdottiAssocia();
+    const input = document.getElementById('scadenza-prodotto');
+    if (input) input.value = scadenzaManualeTemp || '';
 }
 
 function apriCameraIngredienti() {
@@ -862,14 +868,12 @@ function apriModalAssociaProdotto() {
     const input = document.getElementById('scadenza-prodotto');
     if (input) {
         input.value = scadenzaManualeTemp || '';
+        input.focus();
     }
-    const modal = document.getElementById('modal-associa-prodotto');
-    if (modal) modal.style.display = 'flex';
 }
 
 function chiudiModalAssociaProdotto() {
-    const modal = document.getElementById('modal-associa-prodotto');
-    if (modal) modal.style.display = 'none';
+    // Modal disattivato: la UI e` sempre visibile in pagina.
 }
 
 function renderizzaListaProdottiAssocia() {
