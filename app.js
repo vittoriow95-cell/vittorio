@@ -203,7 +203,6 @@ function renderizzaLoginUtenti() {
         `;
     }).join('');
 }
-}
 
 function logout() {
     sessionStorage.clear();
