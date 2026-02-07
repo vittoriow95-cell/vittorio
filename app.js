@@ -12,6 +12,7 @@ let databaseLotti = JSON.parse(localStorage.getItem("haccp_lotti")) || [];
 let elencoNomiProdotti = JSON.parse(localStorage.getItem("haccp_elenco_nomi")) || [];
 let databaseIngredienti = JSON.parse(localStorage.getItem("haccp_ingredienti")) || [];
 let databaseFotoLotti = JSON.parse(localStorage.getItem("haccp_foto_lotti")) || [];
+let prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || [];
 
 // Controlli automatici all'avvio
 setTimeout(() => {
@@ -124,12 +125,22 @@ function verificaTemperatureCritiche() {
     return temperature.filter(t => {
         const data = new Date(t.data);
         if (data < ieri) return false;
-        
-        // Verifica se fuori range
-        const tempFrigo = parseFloat(t.temperaturaFrigo);
-        const tempFreezer = parseFloat(t.temperaturaFreezer);
-        
-        return (tempFrigo < 0 || tempFrigo > 4 || tempFreezer < -22 || tempFreezer > -18);
+
+        if (t.temperaturaFrigo !== undefined || t.temperaturaFreezer !== undefined) {
+            const tempFrigo = parseFloat(t.temperaturaFrigo);
+            const tempFreezer = parseFloat(t.temperaturaFreezer);
+            return (tempFrigo < 0 || tempFrigo > 4 || tempFreezer < -22 || tempFreezer > -18);
+        }
+
+        const valore = parseFloat(t.gradi);
+        if (isNaN(valore)) return false;
+
+        const frigo = databaseFrigo.find(f => f.nome === t.frigo);
+        const tipo = frigo ? frigo.tipo : 'Positivo';
+        if (tipo === 'Negativo') {
+            return valore < -22 || valore > -18;
+        }
+        return valore < 0 || valore > 4;
     }).length;
 }
 
@@ -256,16 +267,22 @@ function vaiA(idSezione) {
         btnBackFixed.style.display = (isOperatore && idSezione !== 'sez-operatore') ? 'flex' : 'none';
     }
 
-    // 3. Logica speciale per caricamento frigo
-    if (idSezione === "sez-op-temperature" || idSezione === "sez-registra-temp") {
-        console.log("Apertura sezione temperature: carico i frigoriferi...");
-        popolaMenuFrigo();
+    // 3. Logica speciale per temperature
+    if (idSezione === "sez-op-temperature") {
+        renderizzaTemperatureEntry();
+    }
+
+    if (idSezione === "sez-op-temp-archivio") {
+        renderizzaArchivioTemperature();
     }
     
-    // 4. Logica speciale per apertura lotti
+    // 4. Logica speciale per tracciabilita
     if (idSezione === "sez-op-lotti") {
-        dataVisualizzata = new Date(); // Reset a oggi
-        renderizzaLottiGiorno();
+        inizializzaTracciabilitaCamera();
+    }
+
+    if (idSezione === "sez-op-lotti-archivio") {
+        renderizzaArchivioLotti();
     }
 
     if (idSezione === "sez-op-ingredienti") {
@@ -294,6 +311,8 @@ function vaiA(idSezione) {
     // 7. Carica sezioni admin avanzate
     if (idSezione === "sez-admin-calendario") renderizzaCalendario();
     if (idSezione === "sez-admin-backup") aggiornaInfoBackup();
+
+    if (idSezione === "sez-admin-prodotti") renderizzaProdottiAdmin();
 }
 
 
@@ -414,6 +433,77 @@ function eliminaFrigo(indice) {
     }
 } 
 
+
+/* ===========================================================
+   5B. GESTIONE PRODOTTI (ADMIN)
+   =========================================================== */
+
+function aggiungiProdottoAdmin() {
+    const nomeEl = document.getElementById('admin-prodotto-nome');
+    const giorniEl = document.getElementById('admin-prodotto-giorni');
+    if (!nomeEl || !giorniEl) return;
+
+    const nome = nomeEl.value.trim();
+    const giorni = parseInt(giorniEl.value, 10);
+
+    if (!nome) {
+        alert('Inserisci il nome prodotto');
+        return;
+    }
+
+    const esiste = prodottiAdmin.some(p => p.nome.toLowerCase() === nome.toLowerCase());
+    if (esiste) {
+        alert('Prodotto gia presente');
+        return;
+    }
+
+    const nuovo = {
+        nome,
+        giorniScadenza: isNaN(giorni) ? 3 : Math.max(0, giorni)
+    };
+
+    prodottiAdmin.push(nuovo);
+    localStorage.setItem('haccp_prodotti_admin', JSON.stringify(prodottiAdmin));
+
+    if (!elencoNomiProdotti.includes(nome)) {
+        elencoNomiProdotti.push(nome);
+        localStorage.setItem('haccp_elenco_nomi', JSON.stringify(elencoNomiProdotti));
+    }
+
+    nomeEl.value = '';
+    giorniEl.value = '';
+    renderizzaProdottiAdmin();
+}
+
+function eliminaProdottoAdmin(index) {
+    prodottiAdmin.splice(index, 1);
+    localStorage.setItem('haccp_prodotti_admin', JSON.stringify(prodottiAdmin));
+    renderizzaProdottiAdmin();
+}
+
+function renderizzaProdottiAdmin() {
+    const container = document.getElementById('lista-prodotti-admin');
+    if (!container) return;
+
+    if (!prodottiAdmin || prodottiAdmin.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun prodotto salvato</p>';
+        return;
+    }
+
+    container.innerHTML = prodottiAdmin.map((p, i) => {
+        const giorni = Number.isFinite(parseInt(p.giorniScadenza, 10)) ? p.giorniScadenza : 3;
+        return `
+            <div style="background:#1f1f1f; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between;">
+                <div style="flex:1; min-width:0;">
+                    <div style="color:#fff; font-weight:600; font-size:13px;">${p.nome}</div>
+                    <div style="color:#aaa; font-size:11px;">Scadenza: ${giorni} gg</div>
+                </div>
+                <button type="button" onclick="eliminaProdottoAdmin(${i})" style="background:#f44336; padding:6px 10px; border:none; border-radius:6px; font-size:11px;">Elimina</button>
+            </div>
+        `;
+    }).join('');
+}
+
 function popolaMenuFrigo() {
     const select = document.getElementById("select-frigo");
     if (!select) return; 
@@ -441,48 +531,189 @@ function popolaMenuFrigo() {
    6. REGISTRAZIONE TEMPERATURE (OPERATORE)
    =========================================================== */
 
+function renderizzaTemperatureEntry() {
+    const container = document.getElementById('lista-temperature-frigo');
+    if (!container) return;
+
+    if (!databaseFrigo || databaseFrigo.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun frigo configurato</p>';
+        return;
+    }
+
+    container.innerHTML = databaseFrigo.map((f) => {
+        return `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+                <div style="color:#fff; font-weight:600; font-size:13px;">${f.nome}</div>
+                <input type="number" step="0.1" data-frigo-temp data-frigo-nome="${f.nome}" placeholder="°C" style="max-width:120px; text-align:center;">
+            </div>
+        `;
+    }).join('');
+}
+
 function salvaTemperatura() {
-    const selectFrigo = document.getElementById("select-frigo");
-    const inputTemp = document.getElementById("temp-rilevata");
+    salvaTemperatureGiornaliere();
+}
+
+function salvaTemperatureGiornaliere() {
+    const inputs = document.querySelectorAll('[data-frigo-temp]');
     const etichettaNome = document.getElementById("nome-operatore");
+    if (!inputs || inputs.length === 0 || !etichettaNome) return;
 
-    if (!selectFrigo || !inputTemp || !etichettaNome) {
-        console.error("Errore: Alcuni elementi HTML mancano!");
+    const oggi = new Date().toLocaleDateString('it-IT');
+    const operatore = etichettaNome.innerText || 'Operatore';
+    let salvato = false;
+
+    inputs.forEach((input) => {
+        const valore = input.value.trim();
+        const frigo = input.getAttribute('data-frigo-nome') || '';
+        if (!valore || !frigo) return;
+
+        const gradi = parseFloat(valore);
+        if (isNaN(gradi)) return;
+
+        let stato = "OK";
+        if (gradi > 5) {
+            stato = "⚠️ ALLARME";
+        }
+
+        databaseTemperature.push({
+            data: oggi,
+            frigo: frigo,
+            gradi: gradi.toString(),
+            utente: operatore,
+            stato: stato
+        });
+        salvato = true;
+    });
+
+    if (!salvato) {
+        alert('Inserisci almeno una temperatura');
         return;
     }
 
-    const frigo = selectFrigo.value;
-    const gradi = inputTemp.value;
-    const operatore = etichettaNome.innerText;
-
-    if (gradi === "") {
-        alert("Inserisci i gradi!");
-        return;
-    }
-
-    // Determiniamo lo stato (OK o ALLARME)
-    let stato = "OK";
-    if (parseFloat(gradi) > 5) {
-        stato = "⚠️ ALLARME";
-    }
-
-    const nuovoRecord = {
-        data: new Date().toLocaleString(),
-        frigo: frigo,
-        gradi: gradi,
-        utente: operatore,
-        stato: stato
-    };
-
-    databaseTemperature.push(nuovoRecord);
     localStorage.setItem("haccp_log", JSON.stringify(databaseTemperature));
-
     aggiornaAssistente(operatore);
-
-    alert("✅ Temperatura salvata correttamente!");
-    
-    inputTemp.value = "";
+    mostraNotifica('✅ Temperature salvate', 'success');
     vaiA("sez-operatore");
+}
+
+function renderizzaArchivioTemperature() {
+    const container = document.getElementById('lista-giorni-temperature');
+    if (!container) return;
+
+    const dateUniche = Array.from(new Set(databaseTemperature.map(t => t.data))).filter(Boolean);
+    dateUniche.sort((a, b) => new Date(b.split('/').reverse().join('-')) - new Date(a.split('/').reverse().join('-')));
+
+    if (dateUniche.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessuna temperatura registrata</p>';
+        return;
+    }
+
+    if (!dataArchivioTemperatura) {
+        dataArchivioTemperatura = dateUniche[0];
+    }
+
+    container.innerHTML = dateUniche.map(d => {
+        const attivo = d === dataArchivioTemperatura ? 'background:#30D158; color:#fff;' : 'background:#333; color:#fff;';
+        return `
+            <div style="display:flex; align-items:center; gap:6px; margin:4px 0;">
+                <button type="button" onclick="selezionaGiornoTemperature('${d}')" style="padding:6px 10px; ${attivo}">${d}</button>
+                <button type="button" onclick="scaricaTemperatureGiornoPDF('${d}')" style="padding:6px 10px; background:#2196F3;">PDF</button>
+            </div>
+        `;
+    }).join('');
+
+    renderizzaTemperatureGiorno();
+}
+
+function selezionaGiornoTemperature(dataStr) {
+    dataArchivioTemperatura = dataStr;
+    renderizzaArchivioTemperature();
+}
+
+function renderizzaTemperatureGiorno() {
+    const container = document.getElementById('lista-temperature-giorno');
+    if (!container || !dataArchivioTemperatura) return;
+
+    if (!databaseFrigo || databaseFrigo.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun frigo configurato</p>';
+        return;
+    }
+
+    const records = databaseTemperature.filter(t => t.data === dataArchivioTemperatura);
+    container.innerHTML = databaseFrigo.map((f) => {
+        const rec = records.find(r => r.frigo === f.nome);
+        const value = rec ? rec.gradi : '';
+        return `
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+                <div style="color:#fff; font-weight:600; font-size:13px;">${f.nome}</div>
+                <input type="number" step="0.1" data-frigo-archivio data-frigo-nome="${f.nome}" value="${value}" placeholder="°C" style="max-width:120px; text-align:center;">
+            </div>
+        `;
+    }).join('');
+}
+
+function salvaTemperatureArchivioGiorno() {
+    if (!dataArchivioTemperatura) return;
+    const inputs = document.querySelectorAll('[data-frigo-archivio]');
+    if (!inputs || inputs.length === 0) return;
+
+    const etichettaNome = document.getElementById("nome-operatore");
+    const operatore = etichettaNome ? etichettaNome.innerText : 'Operatore';
+
+    databaseTemperature = databaseTemperature.filter(t => t.data !== dataArchivioTemperatura);
+
+    inputs.forEach((input) => {
+        const valore = input.value.trim();
+        const frigo = input.getAttribute('data-frigo-nome') || '';
+        if (!valore || !frigo) return;
+        const gradi = parseFloat(valore);
+        if (isNaN(gradi)) return;
+
+        let stato = "OK";
+        if (gradi > 5) {
+            stato = "⚠️ ALLARME";
+        }
+
+        databaseTemperature.push({
+            data: dataArchivioTemperatura,
+            frigo: frigo,
+            gradi: gradi.toString(),
+            utente: operatore,
+            stato: stato
+        });
+    });
+
+    localStorage.setItem("haccp_log", JSON.stringify(databaseTemperature));
+    mostraNotifica('✅ Archivio temperature salvato', 'success');
+}
+
+function scaricaTemperatureGiornoPDF(dataStr) {
+    const dataRif = dataStr || dataArchivioTemperatura;
+    if (!dataRif) return;
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('PDF non disponibile');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(14);
+    doc.text(`Temperature - ${dataRif}`, 14, 16);
+
+    const records = databaseTemperature.filter(t => t.data === dataRif);
+    let y = 26;
+    records.forEach((r) => {
+        doc.setFontSize(11);
+        doc.text(`${r.frigo}: ${r.gradi} C`, 14, y);
+        y += 8;
+        if (y > 280) {
+            doc.addPage();
+            y = 16;
+        }
+    });
+
+    doc.save(`temperature_${dataRif.replace(/\//g, '-')}.pdf`);
 }
 
 
@@ -560,6 +791,220 @@ let ricetteProdotti = JSON.parse(localStorage.getItem('haccp_ricette')) || {};
 let modalSelezioneModo = 'ricetta';
 let ingredienteInSelezioneIndex = null;
 let prodottoCorrenteSelezionato = '';
+let fotoIngredientiTemp = [];
+let prodottoAssociatoTemp = '';
+let scadenzaManualeTemp = '';
+let lottoInStampa = null;
+let lottoDettaglioCorrente = null;
+let dataArchivioTemperatura = null;
+let lottiArchivioCorrenti = [];
+
+function inizializzaTracciabilitaCamera() {
+    fotoIngredientiTemp = [];
+    prodottoAssociatoTemp = '';
+    scadenzaManualeTemp = '';
+    aggiornaProdottoAssociatoBox();
+    renderizzaFotoIngredientiTemp();
+}
+
+function apriCameraIngredienti() {
+    const input = document.getElementById('input-foto-ingredienti');
+    if (input) input.click();
+}
+
+function gestisciFotoIngredientiCamera(input) {
+    if (!input.files || input.files.length === 0) return;
+    const files = Array.from(input.files);
+
+    files.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            fotoIngredientiTemp.push({
+                dataUrl,
+                url: ''
+            });
+            renderizzaFotoIngredientiTemp();
+        };
+        reader.readAsDataURL(file);
+    });
+
+    input.value = '';
+}
+
+function renderizzaFotoIngredientiTemp() {
+    const container = document.getElementById('lista-foto-ingredienti');
+    if (!container) return;
+
+    if (fotoIngredientiTemp.length === 0) {
+        container.innerHTML = '<div style="color:#888; font-size:12px;">Nessuna foto</div>';
+        return;
+    }
+
+    container.innerHTML = fotoIngredientiTemp.map((f, i) => {
+        const src = f.url || f.dataUrl;
+        return `
+            <div style="position:relative;">
+                <img src="${src}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; border:1px solid #333;">
+                <button type="button" onclick="rimuoviFotoIngrediente(${i})" style="position:absolute; top:4px; right:4px; background:#f44336; padding:2px 6px; border:none; border-radius:6px; font-size:10px;">X</button>
+            </div>
+        `;
+    }).join('');
+}
+
+function rimuoviFotoIngrediente(index) {
+    fotoIngredientiTemp.splice(index, 1);
+    renderizzaFotoIngredientiTemp();
+}
+
+function apriModalAssociaProdotto() {
+    renderizzaListaProdottiAssocia();
+    const input = document.getElementById('scadenza-prodotto');
+    if (input) {
+        input.value = scadenzaManualeTemp || '';
+    }
+    const modal = document.getElementById('modal-associa-prodotto');
+    if (modal) modal.style.display = 'flex';
+}
+
+function chiudiModalAssociaProdotto() {
+    const modal = document.getElementById('modal-associa-prodotto');
+    if (modal) modal.style.display = 'none';
+}
+
+function renderizzaListaProdottiAssocia() {
+    const container = document.getElementById('lista-prodotti-associa');
+    if (!container) return;
+
+    const lista = prodottiAdmin.length > 0 ? prodottiAdmin : elencoNomiProdotti.map(n => ({ nome: n, giorniScadenza: 3 }));
+    if (!lista || lista.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun prodotto disponibile</p>';
+        return;
+    }
+
+    container.innerHTML = lista.map((p) => {
+        const attivo = p.nome === prodottoAssociatoTemp ? 'background:#30D158; color:#000;' : 'background:#222; color:#fff;';
+        return `
+            <button type="button" onclick="selezionaProdottoAssocia('${p.nome}')" style="width:100%; margin-bottom:6px; padding:8px; ${attivo}">${p.nome}</button>
+        `;
+    }).join('');
+}
+
+function selezionaProdottoAssocia(nome) {
+    prodottoAssociatoTemp = nome;
+    const prod = prodottiAdmin.find(p => p.nome === nome);
+    if (prod && prod.giorniScadenza !== undefined && prod.giorniScadenza !== null) {
+        const giorni = parseInt(prod.giorniScadenza, 10);
+        if (!isNaN(giorni)) {
+            const d = new Date();
+            d.setDate(d.getDate() + giorni);
+            scadenzaManualeTemp = d.toISOString().slice(0, 10);
+        }
+    }
+    renderizzaListaProdottiAssocia();
+    const input = document.getElementById('scadenza-prodotto');
+    if (input) input.value = scadenzaManualeTemp || '';
+}
+
+function confermaAssociaProdotto() {
+    const input = document.getElementById('scadenza-prodotto');
+    if (input) scadenzaManualeTemp = input.value.trim();
+    if (!prodottoAssociatoTemp) {
+        alert('Seleziona un prodotto');
+        return;
+    }
+    aggiornaProdottoAssociatoBox();
+    chiudiModalAssociaProdotto();
+}
+
+function aggiornaProdottoAssociatoBox() {
+    const box = document.getElementById('prodotto-associato-box');
+    if (!box) return;
+    box.textContent = prodottoAssociatoTemp ? `Prodotto: ${prodottoAssociatoTemp}` : 'Prodotto: nessuno';
+}
+
+function convalidaTracciabilitaCamera() {
+    if (fotoIngredientiTemp.length === 0) {
+        alert('Scatta almeno una foto ingrediente');
+        return;
+    }
+    if (!prodottoAssociatoTemp) {
+        alert('Associa un prodotto');
+        return;
+    }
+
+    const oggi = new Date();
+    const dataBase = oggi.getFullYear().toString() +
+                     (oggi.getMonth() + 1).toString().padStart(2, '0') +
+                     oggi.getDate().toString().padStart(2, '0');
+
+    const lottiOggi = databaseLotti.filter(l => {
+        return l.lottoInterno && l.lottoInterno.startsWith(dataBase) &&
+               l.prodotto === prodottoAssociatoTemp;
+    });
+
+    const progressivo = (lottiOggi.length + 1).toString().padStart(3, '0');
+    const codiceLotto = `${dataBase}-${prodottoAssociatoTemp.substring(0, 3).toUpperCase()}${progressivo}`;
+
+    let dataScadenza = scadenzaManualeTemp;
+    if (!dataScadenza) {
+        const prod = prodottiAdmin.find(p => p.nome === prodottoAssociatoTemp);
+        const giorni = prod ? parseInt(prod.giorniScadenza, 10) : 3;
+        const d = new Date();
+        d.setDate(d.getDate() + (isNaN(giorni) ? 3 : giorni));
+        dataScadenza = d.toISOString().slice(0, 10);
+    }
+
+    Promise.all(
+        fotoIngredientiTemp.map(async (f) => {
+            if (f.url) return f.url;
+            try {
+                return await uploadFoto('ingrediente', f.dataUrl);
+            } catch (err) {
+                console.error('Upload foto ingrediente fallito:', err.message);
+                return f.dataUrl;
+            }
+        })
+    ).then((urls) => {
+        const fotoPrincipale = urls[0] || '';
+        const nuovoLotto = {
+            dataProduzione: oggi.toLocaleDateString('it-IT'),
+            prodotto: prodottoAssociatoTemp,
+            lottoInterno: codiceLotto,
+            lottoOrigine: codiceLotto,
+            scadenza: new Date(dataScadenza).toLocaleDateString('it-IT'),
+            operatore: sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore',
+            timestamp: new Date().toISOString(),
+            fotoLottoUrl: fotoPrincipale,
+            fotoIngredienti: urls
+        };
+
+        databaseLotti.push(nuovoLotto);
+        localStorage.setItem('haccp_lotti', JSON.stringify(databaseLotti));
+
+        if (fotoPrincipale) {
+            databaseFotoLotti.push({
+                id: Date.now().toString(),
+                prodotto: nuovoLotto.prodotto,
+                lotto: nuovoLotto.lottoInterno,
+                scadenza: nuovoLotto.scadenza,
+                fotoUrl: fotoPrincipale,
+                creatoIl: new Date().toISOString()
+            });
+            localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
+        }
+
+        lottoInStampa = nuovoLotto;
+        apriModalStampaCopie();
+
+        fotoIngredientiTemp = [];
+        prodottoAssociatoTemp = '';
+        scadenzaManualeTemp = '';
+        renderizzaFotoIngredientiTemp();
+        aggiornaProdottoAssociatoBox();
+        renderizzaArchivioLotti();
+    });
+}
 
 // Cambia giorno nel registro lotti (frecce avanti/indietro)
 function cambiaDataLotti(offset) {
@@ -1349,9 +1794,10 @@ function popolaSelectProdotti() {
     
     // PRODOTTI PREIMPOSTATI PER MACELLERIA
     const prodottiMacelleria = [];
+    const prodottiAdminNomi = prodottiAdmin.map(p => p.nome);
     
     // Unisci prodotti preimpostati + quelli salvati dall'utente
-    const tuttiProdotti = [...new Set([...prodottiMacelleria, ...elencoNomiProdotti])];
+    const tuttiProdotti = [...new Set([...prodottiMacelleria, ...prodottiAdminNomi, ...elencoNomiProdotti])];
     
     select.innerHTML = '<option value="">-- Seleziona Prodotto --</option>';
     
@@ -1512,6 +1958,171 @@ function confermaSalvataggioLotto() {
         alert('Errore: ' + error.message);
         return false;
     }
+}
+
+function apriModalStampaCopie() {
+    const modal = document.getElementById('modal-stampa-copie');
+    const input = document.getElementById('input-copie-stampa');
+    if (input) input.value = '1';
+    if (modal) modal.style.display = 'flex';
+}
+
+function chiudiModalStampaCopie() {
+    const modal = document.getElementById('modal-stampa-copie');
+    if (modal) modal.style.display = 'none';
+}
+
+function aggiornaCopieStampa(delta) {
+    const input = document.getElementById('input-copie-stampa');
+    if (!input) return;
+    const current = parseInt(input.value, 10) || 1;
+    let next = current + delta;
+    if (next < 1) next = 1;
+    if (next > 30) next = 30;
+    input.value = String(next);
+}
+
+function confermaStampaCopie() {
+    const input = document.getElementById('input-copie-stampa');
+    if (!input || !lottoInStampa) return;
+    let copie = parseInt(input.value, 10);
+    if (isNaN(copie) || copie < 1) copie = 1;
+    if (copie > 30) copie = 30;
+    stampaEtichettaLottoConCopie(lottoInStampa, copie);
+    lottoInStampa = null;
+    chiudiModalStampaCopie();
+}
+
+function stampaEtichettaLottoConCopie(lotto, copie) {
+    try {
+        const config = JSON.parse(localStorage.getItem('haccp_config_stampa')) || {
+            larghezza: 40,
+            altezza: 30,
+            mostraTitolo: true,
+            mostraProdotto: true,
+            mostraLotto: true,
+            mostraProduzione: true,
+            mostraScadenza: true,
+            sizeTitolo: 3,
+            sizeCampi: 2,
+            fontTitolo: '3',
+            fontCampi: '2'
+        };
+
+        const datiStampa = {
+            prodotto: String(lotto.prodotto || ''),
+            lottoOrigine: String(lotto.lottoOrigine || ''),
+            dataProduzione: String(lotto.dataProduzione || ''),
+            scadenza: String(lotto.scadenza || lotto.dataScadenza || ''),
+            copie: copie,
+            config: config
+        };
+
+        inviaStampa(datiStampa)
+        .then(data => {
+            if (!data.success) {
+                console.error('Errore stampa:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Errore connessione stampante:', error);
+            mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
+        });
+
+        setTimeout(() => {
+            mostraNotifica(`🖨️ ${copie} ${copie === 1 ? 'etichetta inviata' : 'etichette inviate'}!`, 'success');
+        }, 100);
+    } catch (error) {
+        console.error('Errore stampa:', error);
+    }
+}
+
+function renderizzaArchivioLotti() {
+    const container = document.getElementById('lista-lotti-archivio');
+    if (!container) return;
+
+    if (!databaseLotti || databaseLotti.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center;">Nessun lotto salvato</p>';
+        return;
+    }
+
+    const ordinati = [...databaseLotti].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
+    container.innerHTML = ordinati.map((l, index) => {
+        const foto = l.fotoLottoUrl ? `<img src="${l.fotoLottoUrl}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #333;">` : '';
+        const fotoCount = Array.isArray(l.fotoIngredienti) ? l.fotoIngredienti.length : 0;
+        return `
+            <div style="background:#1f1f1f; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    ${foto}
+                    <div>
+                        <div style="color:#fff; font-weight:600; font-size:13px;">${l.prodotto || 'Prodotto'}</div>
+                        <div style="color:#aaa; font-size:11px;">${l.dataProduzione || ''} | ${fotoCount} foto ingredienti</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" onclick="apriDettaglioLotto(${index})" style="padding:6px 10px; font-size:11px;">Dettaglio</button>
+                    <button type="button" onclick="apriModalStampaCopieDaArchivio(${index})" style="padding:6px 10px; font-size:11px; background:#30D158;">Stampa</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    lottiArchivioCorrenti = ordinati;
+}
+
+function apriModalStampaCopieDaArchivio(index) {
+    const lotto = lottiArchivioCorrenti[index];
+    if (!lotto) return;
+    lottoInStampa = lotto;
+    apriModalStampaCopie();
+}
+
+function apriDettaglioLotto(index) {
+    const lotto = lottiArchivioCorrenti[index];
+    if (!lotto) return;
+    lottoDettaglioCorrente = lotto;
+
+    const container = document.getElementById('dettaglio-lotto-contenuto');
+    if (container) {
+        const foto = lotto.fotoLottoUrl ? `<img src="${lotto.fotoLottoUrl}" style="width:100%; max-height:200px; object-fit:contain; border-radius:8px; border:1px solid #333;">` : '';
+        const fotoCount = Array.isArray(lotto.fotoIngredienti) ? lotto.fotoIngredienti.length : 0;
+        container.innerHTML = `
+            <div style="margin-bottom:8px;">${foto}</div>
+            <div style="color:#fff; font-weight:600;">${lotto.prodotto || ''}</div>
+            <div style="color:#aaa; font-size:12px;">Lotto: ${lotto.lottoInterno || ''}</div>
+            <div style="color:#aaa; font-size:12px;">Produzione: ${lotto.dataProduzione || ''}</div>
+            <div style="color:#aaa; font-size:12px;">Scadenza: ${lotto.scadenza || ''}</div>
+            <div style="color:#aaa; font-size:12px;">Foto ingredienti: ${fotoCount}</div>
+        `;
+    }
+
+    const modal = document.getElementById('modal-dettaglio-lotto');
+    if (modal) modal.style.display = 'flex';
+}
+
+function chiudiModalDettaglioLotto() {
+    const modal = document.getElementById('modal-dettaglio-lotto');
+    if (modal) modal.style.display = 'none';
+}
+
+function stampaLottoDaDettaglio() {
+    if (!lottoDettaglioCorrente) return;
+    lottoInStampa = lottoDettaglioCorrente;
+    chiudiModalDettaglioLotto();
+    apriModalStampaCopie();
+}
+
+function terminaLottoDaDettaglio() {
+    if (!lottoDettaglioCorrente) return;
+    terminaLotto(lottoDettaglioCorrente);
+    chiudiModalDettaglioLotto();
+    renderizzaArchivioLotti();
+}
+
+function cambiaLottoDaDettaglio() {
+    if (!lottoDettaglioCorrente) return;
+    cambiaLotto(lottoDettaglioCorrente);
+    chiudiModalDettaglioLotto();
 }
 
 

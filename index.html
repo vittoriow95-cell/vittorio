@@ -302,6 +302,11 @@
             <span class="label">FRIGORIFERI</span>
         </div>
 
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-prodotti')" style="border-color: #30D158;">
+            <span class="emoji">📦</span>
+            <span class="label" style="color: #30D158;">PRODOTTI</span>
+        </div>
+
         <div class="icona-quadrata" onclick="vaiA('sez-admin-pec')" style="border-color: #00D9FF;">
             <span class="emoji">📧</span>
             <span class="label" style="color: #00D9FF;">FATTURE<br>PEC</span>
@@ -344,6 +349,26 @@
     </div>
 
     <button onclick="logout()" class="btn-uscita">CHIUDI SESSIONE</button>
+</section>
+
+<!-- ADMIN - PRODOTTI -->
+<section id="sez-admin-prodotti" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>📦 PRODOTTI</h3>
+    </div>
+
+    <div class="card-centrale" style="max-width: 600px;">
+        <label class="label-oro" for="admin-prodotto-nome" style="margin-bottom:3px; font-size:0.85rem;">NOME PRODOTTO:</label>
+        <input type="text" id="admin-prodotto-nome" placeholder="Es: Hamburger" style="margin-bottom:6px;">
+
+        <label class="label-oro" for="admin-prodotto-giorni" style="margin-bottom:3px; font-size:0.85rem;">GIORNI SCADENZA:</label>
+        <input type="number" id="admin-prodotto-giorni" placeholder="Es: 3" min="0" style="margin-bottom:10px;">
+
+        <button type="button" onclick="aggiungiProdottoAdmin()" style="width:100%; padding:12px; background:#30D158;">✅ AGGIUNGI</button>
+    </div>
+
+    <div id="lista-prodotti-admin" class="elenco-dati"></div>
 </section>
 
 <!-- OPERATORE - SCADENZARIO -->
@@ -844,7 +869,7 @@
     </div>
 
     <div class="grid-icone" style="padding: 20px; max-width: 1200px; margin: 0 auto;">
-        <div class="icona-quadrata" onclick="vaiA('sez-op-temperature')">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-temp-archivio')">
             <span class="emoji">❄️</span>
             <span class="label">FRIGORIFERI</span>
         </div>
@@ -854,12 +879,12 @@
             <span class="label">CONTROLLO<br>PULIZIE</span>
         </div>
 
-        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti-archivio')">
             <span class="emoji">📦</span>
             <span class="label">TRACCIA-<br>BILITA</span>
         </div>
 
-        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')" style="border-color: #9C27B0;">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti-archivio')" style="border-color: #9C27B0;">
             <span class="emoji">🖨️</span>
             <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
         </div>
@@ -875,35 +900,78 @@
 <section id="sez-op-temperature" class="schermata" style="display:none">
     <div class="header-sottopagina">
         <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
-        <h3>REGISTRA GRADI</h3>
+        <h3>REGISTRA TEMPERATURE</h3>
     </div>
 
-    <div class="card-centrale">
-        <label for="select-frigo">Seleziona il frigorifero:</label>
-        <select id="select-frigo"></select>
-
-        <label for="temp-rilevata">Temperatura rilevata (°C):</label>
-        <input type="number" id="temp-rilevata" placeholder="Es. 3.5" step="0.1">
-        
-        <button onclick="salvaTemperatura()">REGISTRA ORA</button>
+    <div class="card-centrale" style="max-width: 700px;">
+        <div id="lista-temperature-frigo"></div>
+        <button type="button" onclick="salvaTemperatureGiornaliere()" style="width:100%; padding:12px; background:#30D158;">
+            ✅ SALVA
+        </button>
     </div>
 </section>
 
-<!-- OPERATORE - LOTTI -->
+<!-- OPERATORE - ARCHIVIO TEMPERATURE -->
+<section id="sez-op-temp-archivio" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h3>📅 ARCHIVIO TEMPERATURE</h3>
+    </div>
+
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        <div style="background:#1a1a1a; padding:15px; border-radius:8px; margin-bottom:15px;">
+            <p style="color:#888; font-size:0.9rem; margin:0;">Seleziona un giorno e controlla tutte le temperature</p>
+        </div>
+
+        <div id="lista-giorni-temperature" style="margin-bottom:15px;"></div>
+        <div id="lista-temperature-giorno"></div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+            <button type="button" onclick="salvaTemperatureArchivioGiorno()" style="padding:10px 14px; background:#30D158;">
+                ✅ SALVA
+            </button>
+            <button type="button" onclick="scaricaTemperatureGiornoPDF()" style="padding:10px 14px; background:#2196F3;">
+                📄 PDF
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- OPERATORE - TRACCIABILITA (CAMERA) -->
 <section id="sez-op-lotti" class="schermata" style="display:none">
     <div class="header-data">
         <button onclick="vaiA('sez-operatore')" class="btn-mini-back">⬅ MENU</button>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span onclick="cambiaDataLotti(-1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">◀</span>
-            <b id="data-visualizzata-lotti" style="color:gold;">31/01/2026</b>
-            <span onclick="cambiaDataLotti(1)" style="color: gold; font-size: 1.5rem; cursor: pointer;">▶</span>
-        </div>
+        <h3 style="color: var(--oro); margin: 0;">TRACCIABILITA</h3>
         <div style="width: 80px;"></div>
     </div>
 
-    <div id="lista-lotti-giorno" style="padding: 20px; max-width: 900px; margin: auto;"></div>
+    <div style="padding: 20px; max-width: 1000px; margin: auto;">
+        <div style="background:#1a1a1a; padding:15px; border-radius:10px; border:1px dashed #333; text-align:center;" onclick="apriCameraIngredienti()">
+            <div style="color:#aaa; font-size:12px;">ANTEPRIMA FOTOCAMERA (tocca per scattare)</div>
+            <input type="file" id="input-foto-ingredienti" accept="image/*" capture="environment" multiple style="display:none;" onchange="gestisciFotoIngredientiCamera(this)">
+        </div>
 
-    <button class="btn-floating" onclick="apriModalLotto()">+</button>
+        <div id="lista-foto-ingredienti" style="display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:10px;"></div>
+
+        <div style="position: relative; min-height: 80px; margin-top: 10px;">
+            <button type="button" onclick="apriModalAssociaProdotto()" style="position:absolute; left:50%; transform:translateX(-50%); padding:6px 12px; font-size:12px;">ASSOCIA PRODOTTO</button>
+            <button type="button" onclick="convalidaTracciabilitaCamera()" style="position:absolute; right:0; bottom:0; padding:6px 12px; font-size:12px; background:#2196F3;">CONVALIDA</button>
+        </div>
+
+        <div id="prodotto-associato-box" style="margin-top:12px; color:#aaa; font-size:12px;">Prodotto: nessuno</div>
+    </div>
+</section>
+
+<!-- OPERATORE - ARCHIVIO TRACCIABILITA -->
+<section id="sez-op-lotti-archivio" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h3>📦 ARCHIVIO TRACCIABILITA</h3>
+    </div>
+
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        <div id="lista-lotti-archivio"></div>
+    </div>
 </section>
 
 <!-- OPERATORE - INGREDIENTI -->
@@ -986,6 +1054,53 @@
 
         <button type="button" onclick="confermaSalvataggioLotto()" style="margin-bottom:4px; padding:10px 14px;">SALVA E STAMPA</button>
         <button type="button" onclick="chiudiModalLotto()" style="background:#444; padding:10px 14px;">ANNULLA</button>
+    </div>
+</div>
+
+<!-- MODAL ASSOCIA PRODOTTO -->
+<div id="modal-associa-prodotto" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="max-width: 600px;">
+        <h3 style="margin-bottom:12px;">ASSOCIA PRODOTTO</h3>
+        <div id="lista-prodotti-associa"></div>
+
+        <label class="label-oro" for="scadenza-prodotto" style="margin-top:10px;">SCADENZA (opzionale)</label>
+        <input type="date" id="scadenza-prodotto" style="margin-bottom:10px;">
+
+        <div style="display:flex; gap:10px;">
+            <button type="button" onclick="confermaAssociaProdotto()" style="flex:1; background:#30D158;">CONFERMA</button>
+            <button type="button" onclick="chiudiModalAssociaProdotto()" style="flex:1; background:#444;">ANNULLA</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL STAMPA COPIE -->
+<div id="modal-stampa-copie" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="max-width: 420px;">
+        <h3 style="margin-bottom:12px;">STAMPA</h3>
+        <label class="label-oro" for="input-copie-stampa">COPIE (1-30)</label>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+            <button type="button" onclick="aggiornaCopieStampa(-1)" style="padding:6px 10px;">-</button>
+            <input type="number" id="input-copie-stampa" min="1" max="30" value="1" style="width:90px; text-align:center;">
+            <button type="button" onclick="aggiornaCopieStampa(1)" style="padding:6px 10px;">+</button>
+        </div>
+        <div style="display:flex; gap:10px;">
+            <button type="button" onclick="confermaStampaCopie()" style="flex:1; background:#30D158;">STAMPA</button>
+            <button type="button" onclick="chiudiModalStampaCopie()" style="flex:1; background:#444;">ANNULLA</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DETTAGLIO LOTTO -->
+<div id="modal-dettaglio-lotto" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="max-width: 600px;">
+        <h3 style="margin-bottom:12px;">DETTAGLIO LOTTO</h3>
+        <div id="dettaglio-lotto-contenuto" style="margin-bottom:12px;"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" onclick="stampaLottoDaDettaglio()" style="background:#30D158;">STAMPA</button>
+            <button type="button" onclick="terminaLottoDaDettaglio()" style="background:#FF9F0A;">TERMINA</button>
+            <button type="button" onclick="cambiaLottoDaDettaglio()" style="background:#2196F3;">CAMBIA LOTTO</button>
+            <button type="button" onclick="chiudiModalDettaglioLotto()" style="background:#444;">CHIUDI</button>
+        </div>
     </div>
 </div>
 
