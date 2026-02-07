@@ -268,6 +268,7 @@ async function salvaDatiSuCloud() {
             allergeni: localStorage.getItem('haccp_allergeni'),
             formazione: localStorage.getItem('haccp_formazione'),
             inventario: localStorage.getItem('haccp_inventario'),
+            prodottiAdmin: localStorage.getItem('haccp_prodotti_admin'),
             elencoNomi: localStorage.getItem('haccp_elenco_nomi'),
             ccp: localStorage.getItem('haccp_ccp'),
             configStampa: localStorage.getItem('haccp_config_stampa'),
@@ -323,6 +324,7 @@ async function caricaDatiDaCloud() {
                 allergeni: 'haccp_allergeni',
                 formazione: 'haccp_formazione',
                 inventario: 'haccp_inventario',
+                prodottiAdmin: 'haccp_prodotti_admin',
                 elencoNomi: 'haccp_elenco_nomi',
                 ccp: 'haccp_ccp',
                 configStampa: 'haccp_config_stampa',
@@ -347,6 +349,7 @@ async function caricaDatiDaCloud() {
             if (typeof renderizzaLotti === 'function') renderizzaLotti();
             if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
             if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
+            if (typeof renderizzaProdottiAdmin === 'function') renderizzaProdottiAdmin();
             if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
             
             mostraNotifica('📥 Dati caricati dal cloud', 'success');

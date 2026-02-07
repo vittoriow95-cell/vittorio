@@ -493,6 +493,8 @@ function renderizzaProdottiAdmin() {
     const container = document.getElementById('lista-prodotti-admin');
     if (!container) return;
 
+    prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || prodottiAdmin || [];
+
     if (!prodottiAdmin || prodottiAdmin.length === 0) {
         container.innerHTML = '<p style="color:#888; text-align:center;">Nessun prodotto salvato</p>';
         return;
@@ -916,10 +918,13 @@ function apriModalAssociaProdotto() {
         input.value = scadenzaManualeTemp || '';
         input.focus();
     }
+    const modal = document.getElementById('modal-associa-prodotto');
+    if (modal) modal.style.display = 'flex';
 }
 
 function chiudiModalAssociaProdotto() {
-    // Modal disattivato: la UI e` sempre visibile in pagina.
+    const modal = document.getElementById('modal-associa-prodotto');
+    if (modal) modal.style.display = 'none';
 }
 
 function renderizzaListaProdottiAssocia() {
