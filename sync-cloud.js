@@ -5,7 +5,7 @@
 let utenteLoggato = null;
 let sincroinCorso = false;
 const AUTO_CLOUD_USERNAME_KEY = 'haccp_cloud_username';
-const AUTO_CLOUD_DEFAULT = 'azienda';
+const AUTO_CLOUD_DEFAULT = 'il rifugio della volpe';
 
 // Controlla se utente è loggato
 function isLoggato() {
