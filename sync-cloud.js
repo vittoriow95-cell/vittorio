@@ -12,6 +12,14 @@ const SEDE_MAP = {
     braceria: 'braceria volpe'
 };
 
+function mostraNotificaSafe(testo, tipo) {
+    if (typeof mostraNotifica === 'function') {
+        mostraNotifica(testo, tipo);
+        return;
+    }
+    console.log(`[${tipo || 'info'}] ${testo}`);
+}
+
 // Controlla se utente è loggato
 function isLoggato() {
     if (!utenteLoggato) {
@@ -68,7 +76,7 @@ function aggiornaBarraCloudUser() {
 
 // Logout
 function effettuaLogout() {
-    mostraNotifica('☁️ Accesso cloud automatico attivo', 'info');
+    mostraNotificaSafe('☁️ Accesso cloud automatico attivo', 'info');
 }
 
 // Mostra schermata login/registrazione
@@ -157,7 +165,7 @@ async function effettuaLogin() {
             // Carica dati dal cloud
             await caricaDatiDaCloud();
             
-            mostraNotifica('✅ Benvenuto, ' + username + '!', 'success');
+            mostraNotificaSafe('✅ Benvenuto, ' + username + '!', 'success');
         } else {
             errorDiv.textContent = data.error || 'Login fallito';
             errorDiv.style.display = 'block';
@@ -233,7 +241,7 @@ async function effettuaRegistrazione() {
         const data = await response.json();
         
         if (data.success) {
-            mostraNotifica('✅ Account creato! Ora effettua il login', 'success');
+            mostraNotificaSafe('✅ Account creato! Ora effettua il login', 'success');
             document.getElementById('login-overlay').remove();
             mostraLogin();
         } else {
@@ -275,6 +283,7 @@ async function salvaDatiSuCloud() {
             configPec: localStorage.getItem('haccp_pec_accounts'),
             ingredienti: localStorage.getItem('haccp_ingredienti'),
             fotoLotti: localStorage.getItem('haccp_foto_lotti'),
+            ordini: localStorage.getItem('haccp_ordini'),
             ultimoSync: new Date().toISOString()
         };
         
@@ -330,7 +339,8 @@ async function caricaDatiDaCloud() {
                 configStampa: 'haccp_config_stampa',
                 configPec: 'haccp_pec_accounts',
                 ingredienti: 'haccp_ingredienti',
-                fotoLotti: 'haccp_foto_lotti'
+                fotoLotti: 'haccp_foto_lotti',
+                ordini: 'haccp_ordini'
             };
 
             // Ripristina TUTTI i dati
@@ -352,7 +362,7 @@ async function caricaDatiDaCloud() {
             if (typeof renderizzaProdottiAdmin === 'function') renderizzaProdottiAdmin();
             if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
             
-            mostraNotifica('📥 Dati caricati dal cloud', 'success');
+            mostraNotificaSafe('📥 Dati caricati dal cloud', 'success');
         } else if (risultato.nuovoUtente) {
             console.log('ℹ️ Nuovo utente - nessun dato da caricare');
         }

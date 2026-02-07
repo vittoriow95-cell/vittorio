@@ -5339,6 +5339,8 @@ function renderizzaDashboard() {
     const grafici = document.getElementById('dashboard-grafici');
     
     if (!stats || !grafici) return;
+
+    renderizzaOrdiniDashboard();
     
     // Statistiche
     const lottiTotali = databaseLotti.length;
@@ -5392,6 +5394,105 @@ function renderizzaDashboard() {
             </div>
         </div>
     `;
+}
+
+function toggleOrdineData() {
+    const box = document.getElementById('ordine-data-box');
+    if (!box) return;
+    const isHidden = box.style.display === 'none' || !box.style.display;
+    box.style.display = isHidden ? 'flex' : 'none';
+}
+
+function toggleOraOrdine() {
+    const toggle = document.getElementById('ordine-ora-toggle');
+    const oraInput = document.getElementById('ordine-ora');
+    if (!toggle || !oraInput) return;
+    oraInput.disabled = !toggle.checked;
+    if (!toggle.checked) oraInput.value = '';
+}
+
+function getOrdiniSalvati() {
+    return JSON.parse(localStorage.getItem('haccp_ordini') || '[]');
+}
+
+function salvaOrdine() {
+    const nomeInput = document.getElementById('ordine-nome');
+    const ordineInput = document.getElementById('ordine-testo');
+    const dataInput = document.getElementById('ordine-data');
+    const oraToggle = document.getElementById('ordine-ora-toggle');
+    const oraInput = document.getElementById('ordine-ora');
+
+    if (!ordineInput) return;
+    const nome = nomeInput ? nomeInput.value.trim() : '';
+    const ordine = ordineInput.value.trim();
+    const data = dataInput ? dataInput.value : '';
+    const ora = oraToggle && oraToggle.checked && oraInput ? oraInput.value : '';
+
+    if (!ordine) {
+        alert('Inserisci l\'ordine');
+        return;
+    }
+
+    const ordini = getOrdiniSalvati();
+    ordini.unshift({
+        id: Date.now().toString(),
+        nome: nome,
+        ordine: ordine,
+        data: data,
+        ora: ora,
+        creatoIl: new Date().toISOString()
+    });
+
+    localStorage.setItem('haccp_ordini', JSON.stringify(ordini));
+
+    if (nomeInput) nomeInput.value = '';
+    ordineInput.value = '';
+    if (dataInput) dataInput.value = '';
+    if (oraInput) oraInput.value = '';
+    if (oraToggle) oraToggle.checked = false;
+    toggleOraOrdine();
+
+    mostraNotifica('✅ Ordine salvato', 'success');
+    renderizzaOrdiniDashboard();
+}
+
+function formattaDataOrdine(dataStr) {
+    if (!dataStr) return '';
+    const parts = dataStr.split('-');
+    if (parts.length !== 3) return dataStr;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function renderizzaOrdiniDashboard() {
+    const container = document.getElementById('lista-ordini-dashboard');
+    if (!container) return;
+
+    const ordini = getOrdiniSalvati();
+    if (!ordini.length) {
+        container.innerHTML = '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessun ordine salvato</div>';
+        return;
+    }
+
+    const ordinati = [...ordini].sort((a, b) => {
+        const aKey = `${a.data || '9999-12-31'} ${a.ora || '23:59'}`;
+        const bKey = `${b.data || '9999-12-31'} ${b.ora || '23:59'}`;
+        return aKey.localeCompare(bKey);
+    });
+
+    container.innerHTML = ordinati.map((o) => {
+        const dataLabel = formattaDataOrdine(o.data);
+        const oraLabel = o.ora ? ` ${o.ora}` : '';
+        const when = dataLabel ? `${dataLabel}${oraLabel}` : 'Data non impostata';
+        return `
+            <div style="background:#1f1f1f; border:1px solid #2a2a2a; border-radius:12px; padding:10px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; gap:8px;">
+                    <div style="color:#fff; font-weight:700; font-size:13px;">${escapeHtml(o.nome || 'Ordine')}</div>
+                    <div style="color:#aaa; font-size:11px;">${escapeHtml(when)}</div>
+                </div>
+                <div style="color:#ddd; font-size:12px; margin-top:6px; white-space:pre-wrap;">${escapeHtml(o.ordine || '')}</div>
+            </div>
+        `;
+    }).join('');
 }
 
 
