@@ -2139,22 +2139,9 @@ function cambiaLottoDaDettaglio() {
    10. STAMPA ETICHETTE LOTTI
    =========================================================== */
 
-const PRINT_AGENT_LOCAL_URL = 'http://localhost:7002/stampa';
-const PRINT_AGENT_LOCAL_TIMEOUT_MS = 2000;
 const PRINT_DIRECT_URL = 'https://print.miohaccp.it/stampa';
 const PRINT_DIRECT_TIMEOUT_MS = 2500;
 const PRINT_FALLBACK_TIMEOUT_MS = 7000;
-
-async function parseStampaResponse(response) {
-    const contentType = response.headers.get('content-type') || '';
-    if (!response.ok) {
-        throw new Error(`Risposta stampa non valida (${response.status})`);
-    }
-    if (!contentType.includes('application/json')) {
-        throw new Error('Risposta stampa non valida (JSON mancante)');
-    }
-    return await response.json();
-}
 
 async function inviaStampa(datiStampa) {
     const token = localStorage.getItem('haccp_print_token') || '';
@@ -2164,14 +2151,10 @@ async function inviaStampa(datiStampa) {
     }
 
     const targets = [];
-    const isRender = location.hostname.endsWith('onrender.com');
-
-    if (isRender) {
-        targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS, tipo: 'server' });
-    } else {
-        targets.push({ url: PRINT_AGENT_LOCAL_URL, timeout: PRINT_AGENT_LOCAL_TIMEOUT_MS, tipo: 'local' });
-        targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS, tipo: 'server' });
+    if (PRINT_DIRECT_URL && location.hostname.endsWith('onrender.com')) {
+        targets.push({ url: PRINT_DIRECT_URL, timeout: PRINT_DIRECT_TIMEOUT_MS });
     }
+    targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS });
 
     let lastError = null;
     for (const target of targets) {
@@ -2182,7 +2165,7 @@ async function inviaStampa(datiStampa) {
                 body: JSON.stringify(datiStampa),
                 signal: AbortSignal.timeout(target.timeout)
             });
-            return await parseStampaResponse(response);
+            return await response.json();
         } catch (error) {
             lastError = error;
         }
