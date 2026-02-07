@@ -82,7 +82,6 @@ Imposta queste variabili sul server cloud:
 
 ### ✅ Test agente stampa
 ```bash
-npm run test-agent
 ```
 
 Se il test risponde `ok: true`, l’agente è pronto.
