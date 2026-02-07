@@ -317,7 +317,6 @@ function vaiA(idSezione) {
     if (idSezione === "sez-op-allergeni") renderizzaAllergeni();
     if (idSezione === "sez-op-ccp") renderizzaCCP();
     if (idSezione === "sez-op-formazione") renderizzaFormazione();
-                            <button type="button" onclick="eliminaLottoArchivio(${index})" title="Elimina" style="width:26px; height:26px; border-radius:50%; background:#f44336; padding:0; font-size:14px; line-height:1;">✕</button>
     if (idSezione === "sez-op-inventario") renderizzaInventario();
     if (idSezione === "sez-operatore") renderizzaDashboard();
     
@@ -327,42 +326,6 @@ function vaiA(idSezione) {
 
     if (idSezione === "sez-admin-prodotti") renderizzaProdottiAdmin();
 }
-
-        function eliminaLottoArchivio(index) {
-            const lotto = lottiArchivioCorrenti[index];
-            if (!lotto) return;
-            if (!confirm(`Eliminare il lotto "${lotto.prodotto}"?
-
-
-                return;
-            }
-
-            const lottoIndex = databaseLotti.findIndex(l =>
-                l.lottoInterno === lotto.lottoInterno &&
-                l.dataProduzione === lotto.dataProduzione
-            );
-
-            if (lottoIndex === -1) {
-                mostraNotifica('⚠️ Lotto non trovato', 'warning');
-                return;
-            }
-
-            databaseLotti.splice(lottoIndex, 1);
-            localStorage.setItem('haccp_lotti', JSON.stringify(databaseLotti));
-
-            if (Array.isArray(databaseFotoLotti) && databaseFotoLotti.length > 0) {
-                databaseFotoLotti = databaseFotoLotti.filter(f => f.lotto !== lotto.lottoInterno);
-                localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
-            }
-
-            if (lottoDettaglioCorrente && lottoDettaglioCorrente.lottoInterno === lotto.lottoInterno) {
-                lottoDettaglioCorrente = null;
-                chiudiModalDettaglioLotto();
-            }
-
-            renderizzaArchivioLotti();
-            mostraNotifica('🗑️ Lotto eliminato', 'success');
-        }
 
 /* ===========================================================
    4. GESTIONE UTENTI (ADMIN)
@@ -2353,7 +2316,8 @@ function renderizzaArchivioLotti() {
                         <div style="color:#aaa; font-size:11px;">${l.dataProduzione || ''} | ${fotoCount} foto ingredienti</div>
                     </div>
                 </div>
-                <div style="display:flex; gap:6px;">
+                <div style="display:flex; gap:6px; align-items:center;">
+                    <button type="button" onclick="eliminaLottoArchivio(${index})" title="Elimina" style="width:26px; height:26px; border-radius:50%; background:#f44336; padding:0; font-size:14px; line-height:1;">✕</button>
                     <button type="button" onclick="apriDettaglioLotto(${index})" style="padding:6px 10px; font-size:11px;">Dettaglio</button>
                     <button type="button" onclick="apriModalStampaCopieDaArchivio(${index})" style="padding:6px 10px; font-size:11px; background:#30D158;">Stampa</button>
                 </div>
@@ -2362,6 +2326,42 @@ function renderizzaArchivioLotti() {
     }).join('');
 
     lottiArchivioCorrenti = ordinati;
+}
+
+function eliminaLottoArchivio(index) {
+    const lotto = lottiArchivioCorrenti[index];
+    if (!lotto) return;
+    if (!confirm(`Eliminare il lotto "${lotto.prodotto}"?
+
+Questa operazione non puo' essere annullata.`)) {
+        return;
+    }
+
+    const lottoIndex = databaseLotti.findIndex(l =>
+        l.lottoInterno === lotto.lottoInterno &&
+        l.dataProduzione === lotto.dataProduzione
+    );
+
+    if (lottoIndex === -1) {
+        mostraNotifica('⚠️ Lotto non trovato', 'warning');
+        return;
+    }
+
+    databaseLotti.splice(lottoIndex, 1);
+    localStorage.setItem('haccp_lotti', JSON.stringify(databaseLotti));
+
+    if (Array.isArray(databaseFotoLotti) && databaseFotoLotti.length > 0) {
+        databaseFotoLotti = databaseFotoLotti.filter(f => f.lotto !== lotto.lottoInterno);
+        localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
+    }
+
+    if (lottoDettaglioCorrente && lottoDettaglioCorrente.lottoInterno === lotto.lottoInterno) {
+        lottoDettaglioCorrente = null;
+        chiudiModalDettaglioLotto();
+    }
+
+    renderizzaArchivioLotti();
+    mostraNotifica('🗑️ Lotto eliminato', 'success');
 }
 
 function apriModalStampaCopieDaArchivio(index) {
