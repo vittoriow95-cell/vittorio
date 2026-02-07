@@ -943,7 +943,7 @@
         <div style="width: 80px;"></div>
     </div>
 
-    <div style="padding: 20px; max-width: 1000px; margin: auto;">
+    <div style="padding: 20px; max-width: 1000px; margin: auto; position:relative;">
         <div style="background:#1a1a1a; padding:12px; border-radius:10px; border:1px dashed #333;">
             <div style="color:#aaa; font-size:12px; margin-bottom:6px;">FOTOCAMERA</div>
             <div style="background:#000; border-radius:10px; overflow:hidden; position:relative; aspect-ratio:1 / 1; width:100%; max-width:480px; max-height:480px; margin:0 auto;">
@@ -963,8 +963,9 @@
             <select id="select-prodotto-associa" onchange="selezionaProdottoAssocia(this.value)" style="width:240px; padding:6px 14px; font-size:12px; background:#2196F3; color:#fff; border:1px solid #1b6fbf; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.35); appearance:auto;">
                 <option value="">ASSOCIA PRODOTTO</option>
             </select>
-            <button type="button" onclick="convalidaTracciabilitaCamera()" style="padding:6px 12px; font-size:12px; background:#2196F3;">CONVALIDA</button>
         </div>
+
+        <button type="button" onclick="convalidaTracciabilitaCamera()" style="position:absolute; right:20px; bottom:20px; padding:6px 12px; font-size:12px; background:#2196F3;">CONVALIDA</button>
 
         <div id="prodotto-associato-box" style="margin-top:12px; color:#aaa; font-size:12px;">Prodotto: nessuno</div>
     </div>
