@@ -29,6 +29,7 @@ const PORT = process.env.PORT || 5000;
 const PRINT_AGENT_URL = process.env.PRINT_AGENT_URL || '';
 const PRINT_AGENT_TOKEN = process.env.PRINT_AGENT_TOKEN || '';
 const PRINT_DIRECT_URL = process.env.PRINT_DIRECT_URL || 'https://print.miohaccp.it/stampa';
+const IS_RENDER = !!process.env.RENDER || !!process.env.RENDER_SERVICE_ID;
 const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
 const FOTO_LOTTI_DIR = path.join(__dirname, 'foto-lotti');
@@ -240,7 +241,6 @@ const server = http.createServer((req, res) => {
         req.on('end', async () => {
             const dati = JSON.parse(body);
             const tokenHeader = req.headers['x-print-token'] || '';
-            const isRenderHost = (req.headers.host || '').includes('onrender.com');
 
             if (PRINT_AGENT_URL) {
                 try {
@@ -255,7 +255,7 @@ const server = http.createServer((req, res) => {
                 return;
             }
 
-            if (PRINT_DIRECT_URL && isRenderHost) {
+            if (PRINT_DIRECT_URL && IS_RENDER) {
                 try {
                     const risposta = await postJson(PRINT_DIRECT_URL, dati, tokenHeader);
                     res.writeHead(risposta.status, { 'Content-Type': 'application/json' });
