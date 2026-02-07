@@ -18,3 +18,4 @@ poppler/
 *.prn
 foto-lotti/
 foto-ingredienti/
+dist/
