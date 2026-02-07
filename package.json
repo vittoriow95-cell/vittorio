@@ -2,9 +2,11 @@
   "name": "haccp-app",
   "version": "1.0.0",
   "private": true,
-  "main": "server.js",
+  "main": "electron-main.js",
   "scripts": {
     "start": "node server.js",
+    "electron": "electron .",
+    "dist": "electron-builder --win --mac",
     "agent": "node print-agent.js",
     "test-agent": "node tools/test-agent.js"
   },
@@ -18,5 +20,27 @@
     "pdfkit": "^0.17.2",
     "tesseract.js": "^7.0.0",
     "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.haccp.system",
+    "productName": "HACCP System",
+    "files": [
+      "**/*",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    }
   }
 }
