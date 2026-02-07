@@ -7,33 +7,20 @@
 npm install
 ```
 
-### 2. Avvio server
-**Metodo 1 - Doppio click su:**
+### 2. Avvio app automatico
+**Doppio click su:**
 ```
-AVVIA_SERVER.bat
-```
-
-**Metodo 2 - Da terminale:**
-```bash
-node server.js
+AVVIA_AUTOMATICO.bat
 ```
 
-### 3. Apri browser
-Vai su: **http://localhost:5000**
+Aprira' automaticamente **http://localhost:5000**
 
 ---
 
 ## 🔧 Risoluzione Problemi
 
-### ❌ Errore "Porta già in uso"
-**Soluzione:** Doppio click su `PULISCI_PORTE.bat`
-
-Questo script:
-- Chiude tutti i processi Node.js zombie
-- Libera le porte 3000, 3001, 5000, 8080
-- Verifica che tutto sia pulito
-
-Poi riavvia con `AVVIA_SERVER.bat`
+### ❌ App non si avvia
+**Soluzione:** Riavvia il PC e apri `AVVIA_AUTOMATICO.bat`
 
 ---
 
@@ -219,17 +206,14 @@ Il sistema riconosce automaticamente email da:
 
 ### Errori Comuni
 
-**Server non si avvia**
-→ Esegui `PULISCI_PORTE.bat`
+**App non si avvia**
+→ Riavvia il PC e apri `AVVIA_AUTOMATICO.bat`
 
 **Stampante non stampa**
 → Verifica COM3 e che sia accesa
 
 **PEC non scarica email**
 → Verifica credenziali e connessione internet
-
-**Popup "Server non disponibile"**
-→ Riavvia con `AVVIA_SERVER.bat`
 
 ---
 
@@ -239,8 +223,7 @@ Il sistema riconosce automaticamente email da:
 - `app.js` - Logica applicazione
 - `index.html` - Interfaccia
 - `style.css` - Stile Apple moderno
-- `AVVIA_SERVER.bat` - Avvio rapido
-- `PULISCI_PORTE.bat` - Risoluzione problemi porte
+- `AVVIA_AUTOMATICO.bat` - Avvio automatico (server + print-agent + tunnel)
 - `stampa_com3.bat` - Driver stampa TSPL
 
 ---
