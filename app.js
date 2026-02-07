@@ -584,6 +584,8 @@ function salvaTemperatureGiornaliere() {
         const gradi = parseFloat(valore);
         if (isNaN(gradi)) return;
 
+        const ora = getOraAttuale();
+
         let stato = "OK";
         if (gradi > 5) {
             stato = "⚠️ ALLARME";
@@ -591,6 +593,7 @@ function salvaTemperatureGiornaliere() {
 
         databaseTemperature.push({
             data: oggi,
+            ora: ora,
             frigo: frigo,
             gradi: gradi.toString(),
             utente: operatore,
@@ -654,16 +657,60 @@ function renderizzaTemperatureGiorno() {
     }
 
     const records = databaseTemperature.filter(t => t.data === dataArchivioTemperatura);
-    container.innerHTML = databaseFrigo.map((f) => {
+    const dataObj = parseDataIt(dataArchivioTemperatura);
+    const giorno = dataObj ? dataObj.getDate() : '';
+    const mese = dataObj ? dataObj.toLocaleDateString('it-IT', { month: 'short' }).toUpperCase() : '';
+    const anno = dataObj ? dataObj.getFullYear() : '';
+
+    const righe = databaseFrigo.map((f, i) => {
         const rec = records.find(r => r.frigo === f.nome);
         const value = rec ? rec.gradi : '';
+        const ora = rec ? (rec.ora || '') : '';
+        const stato = rec ? (rec.stato || '') : '';
         return `
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-                <div style="color:#fff; font-weight:600; font-size:13px;">${f.nome}</div>
-                <input type="number" step="0.1" data-frigo-archivio data-frigo-nome="${f.nome}" value="${value}" placeholder="°C" style="max-width:120px; text-align:center;">
-            </div>
+            <tr>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
+                <td style="border:1px solid #000; padding:6px;">${escapeHtml(f.nome)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">
+                    <input type="number" step="0.1" data-frigo-archivio data-frigo-nome="${escapeHtml(f.nome)}" value="${escapeHtml(value)}" placeholder="°C" style="width:90px; text-align:center; border:1px solid #000; padding:4px;">
+                </td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">
+                    <input type="text" data-frigo-ora-archivio data-frigo-nome="${escapeHtml(f.nome)}" value="${escapeHtml(ora)}" placeholder="--:--" style="width:70px; text-align:center; border:1px solid #000; padding:4px;">
+                </td>
+                <td style="border:1px solid #000; padding:6px; text-align:center; font-weight:700;">${escapeHtml(stato)}</td>
+            </tr>
         `;
     }).join('');
+
+    container.innerHTML = `
+        <div style="background:#fff; color:#000; border-radius:10px; padding:14px; border:1px solid #ccc;">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+                <div style="font-weight:700;">REGISTRO TEMPERATURE FRIGORIFERI</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:70px; border:1px solid #000; text-align:center; border-radius:8px; overflow:hidden;">
+                        <div style="background:#000; color:#fff; font-size:11px; padding:2px 0;">${mese}</div>
+                        <div style="font-size:20px; font-weight:700; padding:6px 0;">${giorno}</div>
+                        <div style="font-size:10px; padding-bottom:4px;">${anno}</div>
+                    </div>
+                </div>
+            </div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead>
+                    <tr>
+                        <th style="border:1px solid #000; padding:6px; text-align:center; width:28px;">#</th>
+                        <th style="border:1px solid #000; padding:6px; text-align:left;">Frigorifero</th>
+                        <th style="border:1px solid #000; padding:6px; text-align:center; width:90px;">Temp (C)</th>
+                        <th style="border:1px solid #000; padding:6px; text-align:center; width:70px;">Ora</th>
+                        <th style="border:1px solid #000; padding:6px; text-align:center; width:90px;">Stato</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${righe}
+                </tbody>
+            </table>
+            <div style="margin-top:12px; font-size:11px;">Firma responsabile: ________________________________</div>
+        </div>
+    `;
 }
 
 function salvaTemperatureArchivioGiorno() {
@@ -683,6 +730,9 @@ function salvaTemperatureArchivioGiorno() {
         const gradi = parseFloat(valore);
         if (isNaN(gradi)) return;
 
+        const oraInput = document.querySelector(`[data-frigo-ora-archivio][data-frigo-nome="${escapeAttrSelector(frigo)}"]`);
+        const ora = oraInput ? String(oraInput.value || '').trim() : '';
+
         let stato = "OK";
         if (gradi > 5) {
             stato = "⚠️ ALLARME";
@@ -690,6 +740,7 @@ function salvaTemperatureArchivioGiorno() {
 
         databaseTemperature.push({
             data: dataArchivioTemperatura,
+            ora: ora,
             frigo: frigo,
             gradi: gradi.toString(),
             utente: operatore,
@@ -718,7 +769,8 @@ function scaricaTemperatureGiornoPDF(dataStr) {
     let y = 26;
     records.forEach((r) => {
         doc.setFontSize(11);
-        doc.text(`${r.frigo}: ${r.gradi} C`, 14, y);
+        const ora = r.ora ? ` (${r.ora})` : '';
+        doc.text(`${r.frigo}: ${r.gradi} C${ora}`, 14, y);
         y += 8;
         if (y > 280) {
             doc.addPage();
@@ -727,6 +779,153 @@ function scaricaTemperatureGiornoPDF(dataStr) {
     });
 
     doc.save(`temperature_${dataRif.replace(/\//g, '-')}.pdf`);
+}
+
+function getOraAttuale() {
+    return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+function parseDataIt(dataStr) {
+    if (!dataStr || typeof dataStr !== 'string') return null;
+    const parts = dataStr.split('/');
+    if (parts.length !== 3) return null;
+    const giorno = parseInt(parts[0], 10);
+    const mese = parseInt(parts[1], 10) - 1;
+    const anno = parseInt(parts[2], 10);
+    if (isNaN(giorno) || isNaN(mese) || isNaN(anno)) return null;
+    return new Date(anno, mese, giorno);
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function escapeAttrSelector(value) {
+    return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function stampaTemperatureArchivioSistema() {
+    if (!dataArchivioTemperatura) {
+        alert('Seleziona un giorno');
+        return;
+    }
+
+    const etichettaNome = document.getElementById("nome-operatore");
+    const operatore = etichettaNome ? etichettaNome.innerText || 'Operatore' : 'Operatore';
+
+    if (!databaseFrigo || databaseFrigo.length === 0) {
+        alert('Nessun frigo configurato');
+        return;
+    }
+
+    const dataObj = parseDataIt(dataArchivioTemperatura);
+    const giorno = dataObj ? dataObj.getDate() : '';
+    const mese = dataObj ? dataObj.toLocaleDateString('it-IT', { month: 'short' }).toUpperCase() : '';
+    const anno = dataObj ? dataObj.getFullYear() : '';
+
+    const righe = databaseFrigo.map((f, i) => {
+        const input = document.querySelector(`[data-frigo-archivio][data-frigo-nome="${escapeAttrSelector(f.nome)}"]`);
+        const oraInput = document.querySelector(`[data-frigo-ora-archivio][data-frigo-nome="${escapeAttrSelector(f.nome)}"]`);
+        let gradi = input && input.value ? input.value.trim() : '';
+        let ora = oraInput && oraInput.value ? oraInput.value.trim() : '';
+        let stato = '';
+
+        if (!gradi) {
+            const ultimo = databaseTemperature.slice().reverse().find(r => r.data === dataArchivioTemperatura && r.frigo === f.nome);
+            if (ultimo) {
+                gradi = ultimo.gradi || '';
+                ora = ultimo.ora || '';
+                stato = ultimo.stato || '';
+            }
+        } else {
+            const valNum = parseFloat(gradi);
+            if (!isNaN(valNum)) {
+                stato = valNum > 5 ? 'ALLARME' : 'OK';
+            }
+        }
+
+        return `
+            <tr>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${i + 1}</td>
+                <td style="border:1px solid #000; padding:6px;">${escapeHtml(f.nome)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${escapeHtml(gradi)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${escapeHtml(ora)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center; font-weight:700;">${escapeHtml(stato)}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const html = `
+        <!doctype html>
+        <html lang="it">
+        <head>
+            <meta charset="UTF-8" />
+            <title>Registro Temperature</title>
+            <style>
+                body { font-family: Arial, sans-serif; background: #fff; color: #000; margin: 0; }
+                .sheet { max-width: 900px; margin: 20px auto; border: 1px solid #000; padding: 16px; }
+                .header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+                .title { font-weight: 700; }
+                .calendar { width: 70px; border: 1px solid #000; text-align: center; border-radius: 8px; overflow: hidden; }
+                .calendar .month { background: #000; color: #fff; font-size: 11px; padding: 2px 0; }
+                .calendar .day { font-size: 20px; font-weight: 700; padding: 6px 0; }
+                .calendar .year { font-size: 10px; padding-bottom: 4px; }
+                .meta { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 12px; gap: 8px; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                th, td { border: 1px solid #000; padding: 6px; }
+                th { text-align: left; }
+                .note { margin-top: 12px; font-size: 11px; }
+            </style>
+        </head>
+        <body>
+            <div class="sheet">
+                <div class="header">
+                    <div class="title">REGISTRO TEMPERATURE FRIGORIFERI</div>
+                    <div class="calendar">
+                        <div class="month">${escapeHtml(mese)}</div>
+                        <div class="day">${escapeHtml(giorno)}</div>
+                        <div class="year">${escapeHtml(anno)}</div>
+                    </div>
+                </div>
+                <div class="meta">
+                    <div>Data: ${escapeHtml(dataArchivioTemperatura)}</div>
+                    <div>Operatore: ${escapeHtml(operatore)}</div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:28px; text-align:center;">#</th>
+                            <th>Frigorifero</th>
+                            <th style="width:90px; text-align:center;">Temp (C)</th>
+                            <th style="width:70px; text-align:center;">Ora</th>
+                            <th style="width:90px; text-align:center;">Stato</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${righe}
+                    </tbody>
+                </table>
+                <div class="note">Firma responsabile: ________________________________</div>
+            </div>
+        </body>
+        </html>
+    `;
+
+    const win = window.open('', 'STAMPA_TEMPERATURE', 'width=900,height=700');
+    if (!win) {
+        alert('Impossibile aprire la stampa. Verifica i popup del browser.');
+        return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    win.print();
 }
 
 
@@ -2337,15 +2536,15 @@ function leggiCampoEtichettaPersonalizzata(id, fallback) {
 }
 
 function aggiornaAnteprimaEtichettaPersonalizzata() {
-    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', 'Etichetta');
-    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', 'Prodotto');
-    const valore = leggiCampoEtichettaPersonalizzata('custom-etichetta-valore', 'Valore');
+    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', '');
+    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', '');
+    const valore = leggiCampoEtichettaPersonalizzata('custom-etichetta-valore', '');
 
     const previewTitolo = document.getElementById('custom-preview-title');
     const previewEtichetta = document.getElementById('custom-preview-label');
     const previewValore = document.getElementById('custom-preview-value');
 
-    if (previewTitolo) previewTitolo.textContent = titolo.toUpperCase();
+    if (previewTitolo) previewTitolo.textContent = titolo;
     if (previewEtichetta) previewEtichetta.textContent = etichetta;
     if (previewValore) previewValore.textContent = valore;
 }
