@@ -317,6 +317,7 @@ function vaiA(idSezione) {
     if (idSezione === "sez-op-allergeni") renderizzaAllergeni();
     if (idSezione === "sez-op-ccp") renderizzaCCP();
     if (idSezione === "sez-op-formazione") renderizzaFormazione();
+                            <button type="button" onclick="eliminaLottoArchivio(${index})" title="Elimina" style="width:26px; height:26px; border-radius:50%; background:#f44336; padding:0; font-size:14px; line-height:1;">✕</button>
     if (idSezione === "sez-op-inventario") renderizzaInventario();
     if (idSezione === "sez-operatore") renderizzaDashboard();
     
@@ -327,7 +328,41 @@ function vaiA(idSezione) {
     if (idSezione === "sez-admin-prodotti") renderizzaProdottiAdmin();
 }
 
+        function eliminaLottoArchivio(index) {
+            const lotto = lottiArchivioCorrenti[index];
+            if (!lotto) return;
+            if (!confirm(`Eliminare il lotto "${lotto.prodotto}"?
 
+
+                return;
+            }
+
+            const lottoIndex = databaseLotti.findIndex(l =>
+                l.lottoInterno === lotto.lottoInterno &&
+                l.dataProduzione === lotto.dataProduzione
+            );
+
+            if (lottoIndex === -1) {
+                mostraNotifica('⚠️ Lotto non trovato', 'warning');
+                return;
+            }
+
+            databaseLotti.splice(lottoIndex, 1);
+            localStorage.setItem('haccp_lotti', JSON.stringify(databaseLotti));
+
+            if (Array.isArray(databaseFotoLotti) && databaseFotoLotti.length > 0) {
+                databaseFotoLotti = databaseFotoLotti.filter(f => f.lotto !== lotto.lottoInterno);
+                localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
+            }
+
+            if (lottoDettaglioCorrente && lottoDettaglioCorrente.lottoInterno === lotto.lottoInterno) {
+                lottoDettaglioCorrente = null;
+                chiudiModalDettaglioLotto();
+            }
+
+            renderizzaArchivioLotti();
+            mostraNotifica('🗑️ Lotto eliminato', 'success');
+        }
 
 /* ===========================================================
    4. GESTIONE UTENTI (ADMIN)
@@ -2373,15 +2408,45 @@ function stampaLottoDaDettaglio() {
 
 function terminaLottoDaDettaglio() {
     if (!lottoDettaglioCorrente) return;
-    terminaLotto(lottoDettaglioCorrente);
-    chiudiModalDettaglioLotto();
-    renderizzaArchivioLotti();
+    terminaLottoArchivio(lottoDettaglioCorrente);
 }
 
 function cambiaLottoDaDettaglio() {
     if (!lottoDettaglioCorrente) return;
     cambiaLotto(lottoDettaglioCorrente);
     chiudiModalDettaglioLotto();
+}
+
+function terminaLottoArchivio(lotto) {
+    if (!lotto) return;
+    if (lotto.terminato === true) {
+        mostraNotifica('ℹ️ Lotto gia terminato', 'info');
+        return;
+    }
+
+    if (!confirm(`Marcare il lotto "${lotto.prodotto}" come TERMINATO?`)) {
+        return;
+    }
+
+    const index = databaseLotti.findIndex(l =>
+        l.lottoInterno === lotto.lottoInterno &&
+        l.dataProduzione === lotto.dataProduzione
+    );
+
+    if (index === -1) {
+        mostraNotifica('⚠️ Lotto non trovato', 'warning');
+        return;
+    }
+
+    databaseLotti[index].terminato = true;
+    databaseLotti[index].dataTerminazione = new Date().toISOString();
+    databaseLotti[index].operatoreTerminazione = sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore';
+    localStorage.setItem('haccp_lotti', JSON.stringify(databaseLotti));
+
+    lottoDettaglioCorrente = databaseLotti[index];
+    chiudiModalDettaglioLotto();
+    renderizzaArchivioLotti();
+    mostraNotifica(`✓ Lotto "${lotto.prodotto}" marcato come terminato`, 'success');
 }
 
 
@@ -5542,11 +5607,22 @@ async function generaReportPDF() {
         yPos += 10;
         doc.text('Data e Firma: _________________________', 20, yPos);
         
-        // SALVA PDF
-        const nomeFile = `Report_HACCP_${dataInizio.toISOString().split('T')[0]}_${dataFine.toISOString().split('T')[0]}.pdf`;
-        doc.save(nomeFile);
-        
-        mostraNotifica('✅ Report PDF generato con successo!', 'success');
+        const pdfUrl = doc.output('bloburl');
+        const win = window.open(pdfUrl, 'ANTEPRIMA_REPORT');
+        if (!win) {
+            mostraNotifica('⚠️ Popup bloccato. Consenti i popup per vedere l\'anteprima.', 'warning');
+            return;
+        }
+        win.focus();
+        setTimeout(() => {
+            try {
+                win.print();
+            } catch (err) {
+                // Ignora errori di stampa automatica.
+            }
+        }, 600);
+
+        mostraNotifica('✅ Anteprima report aperta', 'success');
         
     } catch (error) {
         console.error('Errore generazione PDF:', error);
