@@ -4038,11 +4038,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(caricaAccountPEC, 500); // Carica account PEC salvati
     setTimeout(aggiornaAnteprimaEtichettaPersonalizzata, 500);
     
-    // Previeni comportamento default di TUTTI i button
+    // Previeni comportamento default solo per stampe etichette
     document.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
             const onclick = e.target.getAttribute('onclick');
-            if (onclick && onclick.includes('stampa')) {
+            const allowStampa = e.target.getAttribute('data-allow-stampa') === 'true';
+            if (!allowStampa && onclick && onclick.includes('stampa')) {
                 e.preventDefault();
                 e.stopPropagation();
             }

@@ -525,14 +525,14 @@
         <div class="card-centrale" style="padding: 32px;">
             <h3 style="margin-bottom: 24px; text-align: center;">Seleziona Periodo Report</h3>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
-                <div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; align-items:end;">
+                <div style="display:flex; flex-direction:column; gap:6px;">
                     <label class="label-oro" for="report-data-inizio">Data Inizio</label>
-                    <input type="date" id="report-data-inizio">
+                    <input type="date" id="report-data-inizio" style="width:100%; padding:10px 12px; text-align:center;">
                 </div>
-                <div>
+                <div style="display:flex; flex-direction:column; gap:6px;">
                     <label class="label-oro" for="report-data-fine">Data Fine</label>
-                    <input type="date" id="report-data-fine">
+                    <input type="date" id="report-data-fine" style="width:100%; padding:10px 12px; text-align:center;">
                 </div>
             </div>
             
@@ -957,14 +957,8 @@
         <div id="lista-temperature-giorno"></div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-            <button type="button" onclick="salvaTemperatureArchivioGiorno()" style="padding:10px 14px; background:#30D158;">
-                ✅ SALVA
-            </button>
-            <button type="button" onclick="stampaTemperatureArchivioSistema()" style="padding:10px 14px; background:#2196F3;">
+            <button type="button" data-allow-stampa="true" onclick="stampaTemperatureArchivioSistema()" style="padding:10px 14px; background:#2196F3;">
                 🖨️ STAMPA
-            </button>
-            <button type="button" onclick="scaricaTemperatureGiornoPDF()" style="padding:10px 14px; background:#2196F3;">
-                📄 PDF
             </button>
         </div>
     </div>
