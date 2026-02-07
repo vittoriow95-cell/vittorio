@@ -2131,6 +2131,8 @@ function cambiaLottoDaDettaglio() {
    10. STAMPA ETICHETTE LOTTI
    =========================================================== */
 
+const PRINT_AGENT_LOCAL_URL = 'http://localhost:7002/stampa';
+const PRINT_AGENT_LOCAL_TIMEOUT_MS = 2000;
 const PRINT_DIRECT_URL = 'https://print.miohaccp.it/stampa';
 const PRINT_DIRECT_TIMEOUT_MS = 2500;
 const PRINT_FALLBACK_TIMEOUT_MS = 7000;
@@ -2143,6 +2145,7 @@ async function inviaStampa(datiStampa) {
     }
 
     const targets = [];
+    targets.push({ url: PRINT_AGENT_LOCAL_URL, timeout: PRINT_AGENT_LOCAL_TIMEOUT_MS });
     if (PRINT_DIRECT_URL && location.hostname.endsWith('onrender.com')) {
         targets.push({ url: PRINT_DIRECT_URL, timeout: PRINT_DIRECT_TIMEOUT_MS });
     }
