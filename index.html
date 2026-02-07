@@ -834,7 +834,7 @@
             <span class="label">TRACCIA-<br>BILITA</span>
         </div>
 
-        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')" style="border-color: #9C27B0;">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-etichetta')" style="border-color: #9C27B0;">
             <span class="emoji">🖨️</span>
             <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
         </div>
@@ -882,7 +882,7 @@
             <span class="label">TRACCIA-<br>BILITA</span>
         </div>
 
-        <div class="icona-quadrata" onclick="vaiA('sez-op-lotti-archivio')" style="border-color: #9C27B0;">
+        <div class="icona-quadrata" onclick="vaiA('sez-op-etichetta')" style="border-color: #9C27B0;">
             <span class="emoji">🖨️</span>
             <span class="label" style="color: #9C27B0;">ETICHETTA<br>PRODOTTO</span>
         </div>
@@ -890,6 +890,38 @@
         <div class="icona-quadrata" onclick="vaiA('sez-op-pec')" style="border-color: #FF9800;">
             <span class="emoji">📧</span>
             <span class="label" style="color: #FF9800;">PEC</span>
+        </div>
+    </div>
+</section>
+
+<!-- OPERATORE - ETICHETTA PERSONALIZZATA -->
+<section id="sez-op-etichetta" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-operatore')">⬅ TORNA AL MENU</button>
+        <h2>🖨️ ETICHETTA PERSONALIZZATA</h2>
+    </div>
+
+    <div style="max-width: 1000px; margin: 0 auto; padding: 20px; display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));">
+        <div class="card-centrale" style="max-width:none;">
+            <h3 style="margin-bottom:10px;">ETICHETTA PERSONALIZZATA</h3>
+            <div style="display:grid; gap:8px; max-width:320px; margin:0 auto 10px;">
+                <input type="text" id="custom-etichetta-nome" placeholder="Nome etichetta" value="Etichetta A" style="text-align:center;" oninput="aggiornaAnteprimaEtichettaPersonalizzata()">
+                <input type="text" id="custom-etichetta-label" placeholder="Etichetta" value="Prodotto" style="text-align:center;" oninput="aggiornaAnteprimaEtichettaPersonalizzata()">
+                <input type="text" id="custom-etichetta-valore" placeholder="Valore" value="Hamburger di vitello" style="text-align:center;" oninput="aggiornaAnteprimaEtichettaPersonalizzata()">
+            </div>
+
+            <button type="button" onclick="stampaEtichettaPersonalizzata()" style="width:100%; padding:12px; background:#30D158; font-weight:700;">STAMPA</button>
+        </div>
+
+        <div class="card-centrale" style="max-width:none;">
+            <h3 style="margin-bottom:10px;">ANTEPRIMA</h3>
+            <div style="background:#fff; color:#000; border-radius:8px; padding:12px; max-width:380px; margin:0 auto; box-shadow:0 6px 16px rgba(0,0,0,0.35); font-family: Arial, sans-serif; font-size:12px;">
+                <div id="custom-preview-title" style="font-weight:800; font-size:14px; margin-bottom:6px; text-align:center;">ETICHETTA A</div>
+                <div style="display:flex; justify-content:space-between; gap:8px; border-bottom:1px dashed #bbb; padding:4px 0;">
+                    <span id="custom-preview-label" style="font-weight:700;">Prodotto</span>
+                    <span id="custom-preview-value">Hamburger di vitello</span>
+                </div>
+            </div>
         </div>
     </div>
 </section>

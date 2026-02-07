@@ -291,8 +291,12 @@ const server = http.createServer((req, res) => {
             }
             
             console.log('\n📦 STAMPA RICHIESTA:');
-            console.log('Prodotto:', dati.prodotto);
-            console.log('Lotto:', dati.lottoOrigine);
+            if (dati && dati.customLabel) {
+                console.log('Etichetta personalizzata:', dati.titolo, '|', dati.etichetta, '|', dati.valore);
+            } else {
+                console.log('Prodotto:', dati.prodotto);
+                console.log('Lotto:', dati.lottoOrigine);
+            }
             
             // Leggi configurazione (se inviata dal client)
             const config = dati.config || {
@@ -317,29 +321,43 @@ const server = http.createServer((req, res) => {
             let y = 20;
             const fontTitolo = config.fontTitolo || '3';
             const fontCampi = config.fontCampi || '2';
-            
-            if (config.mostraTitolo) {
-                comandiStampante += `TEXT 50,${y},"${fontTitolo}",0,1,1,"ETICHETTA HACCP"\r\n`;
+            const isCustom = Boolean(dati && dati.customLabel);
+
+            if (isCustom) {
+                const titolo = String(dati.titolo || '').trim() || 'ETICHETTA';
+                const etichetta = String(dati.etichetta || '').trim();
+                const valore = String(dati.valore || '').trim();
+                const linea = [etichetta, valore].filter(Boolean).join(': ');
+
+                comandiStampante += `TEXT 20,${y},"${fontTitolo}",0,1,1,"${titolo}"\r\n`;
                 y += 40;
-            }
-            
-            if (config.mostraProdotto) {
-                comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Prodotto: ${dati.prodotto}"\r\n`;
-                y += 30;
-            }
-            
-            if (config.mostraLotto) {
-                comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Lotto: ${dati.lottoOrigine}"\r\n`;
-                y += 30;
-            }
-            
-            if (config.mostraProduzione) {
-                comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Prod: ${dati.dataProduzione}"\r\n`;
-                y += 30;
-            }
-            
-            if (config.mostraScadenza) {
-                comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Scad: ${dati.scadenza || dati.dataScadenza}"\r\n`;
+                if (linea) {
+                    comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"${linea}"\r\n`;
+                }
+            } else {
+                if (config.mostraTitolo) {
+                    comandiStampante += `TEXT 50,${y},"${fontTitolo}",0,1,1,"ETICHETTA HACCP"\r\n`;
+                    y += 40;
+                }
+                
+                if (config.mostraProdotto) {
+                    comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Prodotto: ${dati.prodotto}"\r\n`;
+                    y += 30;
+                }
+                
+                if (config.mostraLotto) {
+                    comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Lotto: ${dati.lottoOrigine}"\r\n`;
+                    y += 30;
+                }
+                
+                if (config.mostraProduzione) {
+                    comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Prod: ${dati.dataProduzione}"\r\n`;
+                    y += 30;
+                }
+                
+                if (config.mostraScadenza) {
+                    comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"Scad: ${dati.scadenza || dati.dataScadenza}"\r\n`;
+                }
             }
             
             // Numero copie

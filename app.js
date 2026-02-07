@@ -2326,6 +2326,76 @@ async function stampaEtichettaLottoAuto(lotto) {
     }
 }
 
+function leggiCampoEtichettaPersonalizzata(id, fallback) {
+    const input = document.getElementById(id);
+    if (!input) return fallback;
+    const value = String(input.value || '').trim();
+    return value || fallback;
+}
+
+function aggiornaAnteprimaEtichettaPersonalizzata() {
+    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', 'Etichetta');
+    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', 'Prodotto');
+    const valore = leggiCampoEtichettaPersonalizzata('custom-etichetta-valore', 'Valore');
+
+    const previewTitolo = document.getElementById('custom-preview-title');
+    const previewEtichetta = document.getElementById('custom-preview-label');
+    const previewValore = document.getElementById('custom-preview-value');
+
+    if (previewTitolo) previewTitolo.textContent = titolo.toUpperCase();
+    if (previewEtichetta) previewEtichetta.textContent = etichetta;
+    if (previewValore) previewValore.textContent = valore;
+}
+
+function stampaEtichettaPersonalizzata() {
+    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', 'Etichetta');
+    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', 'Prodotto');
+    const valoreRaw = document.getElementById('custom-etichetta-valore');
+    const valore = valoreRaw ? String(valoreRaw.value || '').trim() : '';
+
+    if (!valore) {
+        alert('Inserisci un valore da stampare');
+        return;
+    }
+
+    const config = JSON.parse(localStorage.getItem('haccp_config_stampa')) || {
+        larghezza: 40,
+        altezza: 30,
+        mostraTitolo: true,
+        mostraProdotto: true,
+        mostraLotto: true,
+        mostraProduzione: true,
+        mostraScadenza: true,
+        sizeTitolo: 3,
+        sizeCampi: 2,
+        fontTitolo: '3',
+        fontCampi: '2'
+    };
+
+    const datiStampa = {
+        customLabel: true,
+        titolo: titolo,
+        etichetta: etichetta,
+        valore: valore,
+        copie: 1,
+        config: config
+    };
+
+    inviaStampa(datiStampa)
+    .then(data => {
+        if (!data.success) {
+            console.error('Errore stampa:', data.error || data.message);
+            mostraNotifica('⚠️ Errore stampa etichetta', 'warning');
+            return;
+        }
+        mostraNotifica('🖨️ Etichetta inviata!', 'success');
+    })
+    .catch(error => {
+        console.error('Errore connessione stampante:', error);
+        mostraNotifica('⚠️ Errore comunicazione stampante', 'warning');
+    });
+}
+
 
 
 // VERIFICA SE IL SERVER È ATTIVO
@@ -3699,6 +3769,7 @@ async function testStampa() {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(caricaConfigurazioneStampa, 500);
     setTimeout(caricaAccountPEC, 500); // Carica account PEC salvati
+    setTimeout(aggiornaAnteprimaEtichettaPersonalizzata, 500);
     
     // Previeni comportamento default di TUTTI i button
     document.addEventListener('click', (e) => {
