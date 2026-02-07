@@ -273,7 +273,10 @@ function vaiA(idSezione) {
     const btnBackFixed = document.getElementById('btn-back-fixed');
     if (btnBackFixed) {
         const isOperatore = idSezione && idSezione.startsWith('sez-op-');
+        const sezioniArchivio = ['sez-op-temp-archivio', 'sez-op-lotti-archivio'];
+        const ritorno = sezioniArchivio.includes(idSezione) ? 'sez-op-archivi' : 'sez-operatore';
         btnBackFixed.style.display = (isOperatore && idSezione !== 'sez-operatore') ? 'flex' : 'none';
+        btnBackFixed.onclick = () => vaiA(ritorno);
     }
 
     // 3. Logica speciale per temperature
