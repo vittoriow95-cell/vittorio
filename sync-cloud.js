@@ -4,6 +4,8 @@
 
 let utenteLoggato = null;
 let sincroinCorso = false;
+const AUTO_CLOUD_USERNAME_KEY = 'haccp_cloud_username';
+const AUTO_CLOUD_DEFAULT = 'azienda';
 
 // Controlla se utente è loggato
 function isLoggato() {
@@ -11,6 +13,12 @@ function isLoggato() {
         utenteLoggato = sessionStorage.getItem('haccp_username');
     }
     return !!utenteLoggato;
+}
+
+function impostaUtenteCloudAutomatico() {
+    const usernameSalvato = localStorage.getItem(AUTO_CLOUD_USERNAME_KEY) || AUTO_CLOUD_DEFAULT;
+    utenteLoggato = usernameSalvato;
+    sessionStorage.setItem('haccp_username', usernameSalvato);
 }
 
 // Aggiorna barra utente cloud
@@ -22,6 +30,11 @@ function aggiornaBarraCloudUser() {
     if (isLoggato()) {
         barra.style.display = 'flex';
         usernameDisplay.textContent = utenteLoggato;
+
+        const logoutButton = barra.querySelector('button');
+        if (logoutButton) {
+            logoutButton.style.display = 'none';
+        }
         
         const ultimoSync = localStorage.getItem('haccp_ultimo_sync');
         if (ultimoSync) {
@@ -39,23 +52,16 @@ function aggiornaBarraCloudUser() {
 
 // Logout
 function effettuaLogout() {
-    if (confirm('Vuoi uscire dal tuo account cloud? I dati locali saranno mantenuti.')) {
-        sessionStorage.removeItem('haccp_username');
-        utenteLoggato = null;
-        
-        // Resetta interfaccia
-        document.body.style.paddingTop = '0';
-        document.getElementById('cloud-user-bar').style.display = 'none';
-        
-        mostraNotifica('👋 Logout effettuato', 'success');
-        
-        // Mostra login dopo 500ms
-        setTimeout(mostraLogin, 500);
-    }
+    mostraNotifica('☁️ Accesso cloud automatico attivo', 'info');
 }
 
 // Mostra schermata login/registrazione
 function mostraLogin() {
+    impostaUtenteCloudAutomatico();
+    aggiornaBarraCloudUser();
+    caricaDatiDaCloud();
+    return;
+
     const overlay = document.createElement('div');
     overlay.id = 'login-overlay';
     overlay.style.cssText = `
@@ -359,7 +365,7 @@ window.addEventListener('beforeunload', () => {
 // Mostra login all'avvio se non loggato
 window.addEventListener('DOMContentLoaded', () => {
     if (!isLoggato()) {
-        setTimeout(mostraLogin, 500);
+        setTimeout(mostraLogin, 200);
     } else {
         // Mostra barra utente e carica dati
         aggiornaBarraCloudUser();
