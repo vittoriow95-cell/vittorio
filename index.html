@@ -820,7 +820,7 @@
                 <h3 style="margin:0;">📌 PRENOTAZIONI DI OGGI</h3>
                 <div style="font-size:11px; color:#aaa;">Dashboard</div>
             </div>
-            <div id="lista-ordini-home"></div>
+            <div id="lista-ordini-home" class="ordini-home-list"></div>
         </div>
     </div>
 
@@ -877,30 +877,60 @@
         <h2>📝 PRESA ORDINE</h2>
     </div>
 
-    <div style="padding: 20px; max-width: 900px; margin: 0 auto;">
-        <div style="background:#1a1a1a; border-radius:16px; padding:16px; border:1px solid #2a2a2a; margin-bottom:12px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-                <h3 style="margin:0;">📝 PRESA ORDINE</h3>
-                <button type="button" onclick="toggleOrdineData()" style="padding:6px 10px; font-size:12px; background:#2a2a2a;">📅 DATA/ORA</button>
-            </div>
-            <input type="text" id="ordine-nome" placeholder="Nome" style="width:100%; margin-bottom:8px;">
-            <textarea id="ordine-testo" placeholder="Ordine" style="width:100%; height:70px; margin-bottom:8px;"></textarea>
-            <div id="ordine-data-box" style="display:none; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap;">
-                <input type="date" id="ordine-data" style="padding:8px 10px;">
-                <label style="display:flex; align-items:center; gap:6px; font-size:12px;">
-                    <input type="checkbox" id="ordine-ora-toggle" onchange="toggleOraOrdine()"> Ora
-                </label>
-                <input type="time" id="ordine-ora" style="padding:8px 10px;" disabled>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" id="btn-salva-ordine" onclick="salvaOrdine()" style="flex:1; padding:12px; background:#30D158; font-weight:700;">SALVA ORDINE</button>
-                <button type="button" id="btn-annulla-modifica" onclick="annullaModificaOrdine()" style="padding:12px; background:#444; display:none;">ANNULLA</button>
-            </div>
+    <div class="ordini-screen">
+        <div class="ordini-view ordini-view-lista active" id="ordini-view-lista">
+            <div id="ordini-empty" class="ordini-empty">Nessun promemoria</div>
+            <div id="lista-ordini-dashboard" class="ordini-lista" style="display:none;"></div>
         </div>
 
-        <div id="lista-ordini-dashboard"></div>
+        <div class="ordini-view ordini-view-nota" id="ordini-view-nota">
+            <div class="ordini-note-header">
+                <button type="button" class="ordini-note-back" onclick="tornaListaOrdini()">◀︎</button>
+                <div class="ordini-note-titlebar">Promemoria</div>
+                <button type="button" class="ordini-note-save" onclick="salvaOrdine()">✓</button>
+            </div>
+            <div class="ordini-note-shell">
+                <div class="ordini-note-topbar">Aggiungi nota</div>
+                <input type="text" id="ordine-titolo" class="ordini-note-field ordini-note-title" placeholder="Titolo">
+                <textarea id="ordine-contesto" class="ordini-note-field ordini-note-context" placeholder="Contesto"></textarea>
+                <div id="ordine-data-label" class="ordini-note-date"></div>
+                <div class="ordini-date-chip">
+                    <button type="button" class="ordini-calendar-btn" onclick="toggleCalendarioOrdini(true)">
+                        <img alt="Calendario" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23cbd2e6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='4' width='18' height='18' rx='2' ry='2'/><line x1='16' y1='2' x2='16' y2='6'/><line x1='8' y1='2' x2='8' y2='6'/><line x1='3' y1='10' x2='21' y2='10'/></svg>">
+                    </button>
+                </div>
+                <div class="ordini-note-toolbar">☐  ✎  Aa  ⌘  #  ⎙</div>
+            </div>
+        </div>
     </div>
+
+    <button type="button" class="ordini-fab" onclick="apriNuovoOrdine()">+</button>
 </section>
+
+<div class="ordini-modal" id="ordini-modal">
+    <div class="ordini-modal-card">
+        <div class="ordini-modal-header">
+            <button type="button" class="ordini-modal-close" onclick="toggleCalendarioOrdini(false)">×</button>
+            <div class="ordini-modal-title">Data e ora</div>
+            <div class="ordini-modal-actions">
+                <button type="button" class="ordini-modal-delete" id="ordini-modal-delete" onclick="eliminaOrdineDaModal()">🗑</button>
+                <button type="button" class="ordini-modal-check" onclick="toggleCalendarioOrdini(false)">✓</button>
+            </div>
+        </div>
+        <div class="ordini-modal-row ordini-modal-row-month">
+            <button type="button" class="ordini-month-btn" onclick="cambiaMeseOrdini(-1)">◀︎</button>
+            <div class="ordini-calendar-title" id="ordini-calendar-title"></div>
+            <button type="button" class="ordini-month-btn" onclick="cambiaMeseOrdini(1)">▶︎</button>
+        </div>
+        <div class="ordini-calendar-grid" id="ordini-calendar-grid"></div>
+        <div class="ordini-modal-row ordini-time-row">
+            <label class="ordini-time-label">
+                <input type="checkbox" id="ordine-ora-toggle" onchange="toggleOraOrdine()"> Ora
+            </label>
+            <input type="time" id="ordine-ora" class="ordini-time-input" onchange="selezionaOraOrdine()" disabled>
+        </div>
+    </div>
+</div>
 
 <button id="btn-back-fixed" type="button" onclick="vaiA('sez-operatore')" style="display:none;" aria-label="Torna al menu">
     ⬅

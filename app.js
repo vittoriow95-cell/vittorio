@@ -2616,13 +2616,13 @@ function aggiornaAnteprimaEtichettaPersonalizzata() {
 }
 
 function stampaEtichettaPersonalizzata() {
-    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', 'Etichetta');
-    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', 'Prodotto');
+    const titolo = leggiCampoEtichettaPersonalizzata('custom-etichetta-nome', '');
+    const etichetta = leggiCampoEtichettaPersonalizzata('custom-etichetta-label', '');
     const valoreRaw = document.getElementById('custom-etichetta-valore');
     const valore = valoreRaw ? String(valoreRaw.value || '').trim() : '';
 
-    if (!valore) {
-        alert('Inserisci un valore da stampare');
+    if (!titolo && !etichetta && !valore) {
+        alert('Inserisci almeno un testo da stampare');
         return;
     }
 
@@ -5397,42 +5397,195 @@ function renderizzaDashboard() {
     `;
 }
 
-function toggleOrdineData() {
-    const box = document.getElementById('ordine-data-box');
-    if (!box) return;
-    const isHidden = box.style.display === 'none' || !box.style.display;
-    box.style.display = isHidden ? 'flex' : 'none';
+const ORDINI_STORAGE_KEY = 'haccp_ordini';
+let ordineInModificaId = null;
+let ordineDataSelezionata = null;
+let ordineOraSelezionata = '';
+let calendarioOrdiniMese = null;
+
+function getOrdiniSalvati() {
+    return JSON.parse(localStorage.getItem(ORDINI_STORAGE_KEY) || '[]');
+}
+
+function normalizzaDataOrdine(dataStr) {
+    if (!dataStr) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dataStr)) return dataStr;
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) {
+        const [gg, mm, aa] = dataStr.split('/');
+        return `${aa}-${mm}-${gg}`;
+    }
+    return dataStr;
+}
+
+function parseDataOrdine(dataStr) {
+    const iso = normalizzaDataOrdine(dataStr);
+    if (!iso) return null;
+    const date = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return null;
+    return date;
+}
+
+function formatDataLabel(dataStr, ora) {
+    const data = parseDataOrdine(dataStr);
+    if (!data) return '';
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    const diffGiorni = Math.round((data - oggi) / (1000 * 60 * 60 * 24));
+    const base = data.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
+    const oraLabel = ora ? ` - ${ora}` : '';
+    if (diffGiorni === 0) return `Oggi, ${base}${oraLabel}`;
+    if (diffGiorni === 1) return `Domani, ${base}${oraLabel}`;
+    if (diffGiorni === 2) return `Dopodomani, ${base}${oraLabel}`;
+    return `${base}${oraLabel}`;
+}
+
+function mostraVistaOrdini(idVista) {
+    const vistaLista = document.getElementById('ordini-view-lista');
+    const vistaNota = document.getElementById('ordini-view-nota');
+    if (!vistaLista || !vistaNota) return;
+    vistaLista.classList.toggle('active', idVista === 'lista');
+    vistaNota.classList.toggle('active', idVista === 'nota');
+}
+
+function aggiornaOrdineDataLabel() {
+    const label = document.getElementById('ordine-data-label');
+    if (!label) return;
+    if (!ordineDataSelezionata) {
+        label.textContent = '';
+        label.style.display = 'none';
+        return;
+    }
+    label.textContent = formatDataLabel(ordineDataSelezionata, ordineOraSelezionata);
+    label.style.display = 'block';
+}
+
+function syncOraOrdineUI() {
+    const toggle = document.getElementById('ordine-ora-toggle');
+    const input = document.getElementById('ordine-ora');
+    if (!toggle || !input) return;
+    toggle.checked = Boolean(ordineOraSelezionata);
+    input.disabled = !toggle.checked;
+    input.value = ordineOraSelezionata || '';
+}
+
+function toggleCalendarioOrdini(show) {
+    const modal = document.getElementById('ordini-modal');
+    if (!modal) return;
+    modal.style.display = show ? 'flex' : 'none';
+    if (show) {
+        inizializzaMeseCalendario();
+        syncOraOrdineUI();
+        renderCalendarioOrdini();
+        const delBtn = document.getElementById('ordini-modal-delete');
+        if (delBtn) delBtn.style.display = ordineInModificaId ? 'inline-flex' : 'none';
+    }
+}
+
+function inizializzaMeseCalendario() {
+    const riferimento = parseDataOrdine(ordineDataSelezionata) || new Date();
+    calendarioOrdiniMese = {
+        year: riferimento.getFullYear(),
+        month: riferimento.getMonth()
+    };
+}
+
+function cambiaMeseOrdini(delta) {
+    if (!calendarioOrdiniMese) {
+        inizializzaMeseCalendario();
+    }
+    const nextMonth = calendarioOrdiniMese.month + delta;
+    const date = new Date(calendarioOrdiniMese.year, nextMonth, 1);
+    calendarioOrdiniMese = { year: date.getFullYear(), month: date.getMonth() };
+    renderCalendarioOrdini();
+}
+
+function renderCalendarioOrdini() {
+    const grid = document.getElementById('ordini-calendar-grid');
+    const title = document.getElementById('ordini-calendar-title');
+    if (!grid || !title) return;
+
+    if (!calendarioOrdiniMese) {
+        inizializzaMeseCalendario();
+    }
+
+    const anno = calendarioOrdiniMese.year;
+    const mese = calendarioOrdiniMese.month;
+    const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+    const nomeMese = new Date(anno, mese, 1).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+
+    title.textContent = nomeMese;
+
+    const selezionata = parseDataOrdine(ordineDataSelezionata);
+    const giornoSelezionato = selezionata && selezionata.getMonth() === mese && selezionata.getFullYear() === anno
+        ? selezionata.getDate()
+        : null;
+
+    let html = '';
+    for (let d = 1; d <= giorniNelMese; d += 1) {
+        const selectedClass = d === giornoSelezionato ? 'selected' : '';
+        html += `<div class="ordini-calendar-day ${selectedClass}" onclick="selezionaDataOrdine(${d})">${d}</div>`;
+    }
+    grid.innerHTML = html;
+}
+
+function selezionaDataOrdine(giorno) {
+    if (!calendarioOrdiniMese) {
+        inizializzaMeseCalendario();
+    }
+    const anno = calendarioOrdiniMese.year;
+    const mese = calendarioOrdiniMese.month + 1;
+    const mm = String(mese).padStart(2, '0');
+    const gg = String(giorno).padStart(2, '0');
+    ordineDataSelezionata = `${anno}-${mm}-${gg}`;
+    aggiornaOrdineDataLabel();
+    renderCalendarioOrdini();
 }
 
 function toggleOraOrdine() {
     const toggle = document.getElementById('ordine-ora-toggle');
-    const oraInput = document.getElementById('ordine-ora');
-    if (!toggle || !oraInput) return;
-    oraInput.disabled = !toggle.checked;
-    if (!toggle.checked) oraInput.value = '';
+    const input = document.getElementById('ordine-ora');
+    if (!toggle || !input) return;
+    input.disabled = !toggle.checked;
+    if (!toggle.checked) {
+        ordineOraSelezionata = '';
+        input.value = '';
+        aggiornaOrdineDataLabel();
+    }
 }
 
-function getOrdiniSalvati() {
-    return JSON.parse(localStorage.getItem('haccp_ordini') || '[]');
+function selezionaOraOrdine() {
+    const input = document.getElementById('ordine-ora');
+    if (!input) return;
+    ordineOraSelezionata = String(input.value || '').trim();
+    aggiornaOrdineDataLabel();
 }
 
-let ordineInModificaId = null;
+function apriNuovoOrdine() {
+    ordineInModificaId = null;
+    ordineDataSelezionata = null;
+    ordineOraSelezionata = '';
+    const titoloInput = document.getElementById('ordine-titolo');
+    const testoInput = document.getElementById('ordine-contesto');
+    if (titoloInput) titoloInput.value = '';
+    if (testoInput) testoInput.value = '';
+    aggiornaOrdineDataLabel();
+    mostraVistaOrdini('nota');
+}
+
+function tornaListaOrdini() {
+    mostraVistaOrdini('lista');
+    renderizzaOrdiniDashboard();
+}
 
 function salvaOrdine() {
-    const nomeInput = document.getElementById('ordine-nome');
-    const ordineInput = document.getElementById('ordine-testo');
-    const dataInput = document.getElementById('ordine-data');
-    const oraToggle = document.getElementById('ordine-ora-toggle');
-    const oraInput = document.getElementById('ordine-ora');
+    const titoloInput = document.getElementById('ordine-titolo');
+    const testoInput = document.getElementById('ordine-contesto');
+    if (!titoloInput || !testoInput) return;
 
-    if (!ordineInput) return;
-    const nome = nomeInput ? nomeInput.value.trim() : '';
-    const ordine = ordineInput.value.trim();
-    const data = dataInput ? dataInput.value : '';
-    const ora = oraToggle && oraToggle.checked && oraInput ? oraInput.value : '';
-
-    if (!ordine) {
-        alert('Inserisci l\'ordine');
+    const titolo = titoloInput.value.trim();
+    const testo = testoInput.value.trim();
+    if (!titolo && !testo) {
+        alert('Inserisci titolo o contesto');
         return;
     }
 
@@ -5444,56 +5597,45 @@ function salvaOrdine() {
         if (idx !== -1) {
             ordini[idx] = {
                 ...ordini[idx],
-                nome,
-                ordine,
-                data,
-                ora,
+                titolo,
+                testo,
+                data: ordineDataSelezionata || '',
+                ora: ordineOraSelezionata || '',
                 aggiornatoIl: adessoIso
             };
         }
     } else {
         ordini.unshift({
             id: Date.now().toString(),
-            nome: nome,
-            ordine: ordine,
-            data: data,
-            ora: ora,
+            titolo,
+            testo,
+            data: ordineDataSelezionata || '',
+            ora: ordineOraSelezionata || '',
             creatoIl: adessoIso
         });
     }
 
-    localStorage.setItem('haccp_ordini', JSON.stringify(ordini));
-
-    resetFormOrdine();
+    localStorage.setItem(ORDINI_STORAGE_KEY, JSON.stringify(ordini));
     mostraNotifica(ordineInModificaId ? '✅ Ordine aggiornato' : '✅ Ordine salvato', 'success');
     ordineInModificaId = null;
+    ordineDataSelezionata = null;
+    ordineOraSelezionata = '';
+    aggiornaOrdineDataLabel();
+    mostraVistaOrdini('lista');
     renderizzaOrdiniDashboard();
     renderizzaOrdiniHome();
 }
 
-function resetFormOrdine() {
-    const nomeInput = document.getElementById('ordine-nome');
-    const ordineInput = document.getElementById('ordine-testo');
-    const dataInput = document.getElementById('ordine-data');
-    const oraToggle = document.getElementById('ordine-ora-toggle');
-    const oraInput = document.getElementById('ordine-ora');
-    const btnSalva = document.getElementById('btn-salva-ordine');
-    const btnAnnulla = document.getElementById('btn-annulla-modifica');
-
-    if (nomeInput) nomeInput.value = '';
-    if (ordineInput) ordineInput.value = '';
-    if (dataInput) dataInput.value = '';
-    if (oraInput) oraInput.value = '';
-    if (oraToggle) oraToggle.checked = false;
-    toggleOraOrdine();
-
-    if (btnSalva) btnSalva.textContent = 'SALVA ORDINE';
-    if (btnAnnulla) btnAnnulla.style.display = 'none';
-}
-
 function annullaModificaOrdine() {
     ordineInModificaId = null;
-    resetFormOrdine();
+    ordineDataSelezionata = null;
+    ordineOraSelezionata = '';
+    const titoloInput = document.getElementById('ordine-titolo');
+    const testoInput = document.getElementById('ordine-contesto');
+    if (titoloInput) titoloInput.value = '';
+    if (testoInput) testoInput.value = '';
+    aggiornaOrdineDataLabel();
+    mostraVistaOrdini('lista');
 }
 
 function avviaModificaOrdine(id) {
@@ -5502,50 +5644,44 @@ function avviaModificaOrdine(id) {
     if (!ordine) return;
 
     ordineInModificaId = id;
-    const nomeInput = document.getElementById('ordine-nome');
-    const ordineInput = document.getElementById('ordine-testo');
-    const dataInput = document.getElementById('ordine-data');
-    const oraToggle = document.getElementById('ordine-ora-toggle');
-    const oraInput = document.getElementById('ordine-ora');
-    const btnSalva = document.getElementById('btn-salva-ordine');
-    const btnAnnulla = document.getElementById('btn-annulla-modifica');
-
-    if (nomeInput) nomeInput.value = ordine.nome || '';
-    if (ordineInput) ordineInput.value = ordine.ordine || '';
-    if (dataInput) dataInput.value = ordine.data || '';
-    if (oraInput) oraInput.value = ordine.ora || '';
-    if (oraToggle) oraToggle.checked = Boolean(ordine.ora);
-    toggleOraOrdine();
-
-    if (btnSalva) btnSalva.textContent = 'AGGIORNA ORDINE';
-    if (btnAnnulla) btnAnnulla.style.display = 'inline-flex';
+    const titoloInput = document.getElementById('ordine-titolo');
+    const testoInput = document.getElementById('ordine-contesto');
+    if (titoloInput) titoloInput.value = ordine.titolo || ordine.nome || '';
+    if (testoInput) testoInput.value = ordine.testo || ordine.ordine || '';
+    ordineDataSelezionata = normalizzaDataOrdine(ordine.data || '') || null;
+    ordineOraSelezionata = ordine.ora || '';
+    aggiornaOrdineDataLabel();
+    mostraVistaOrdini('nota');
 }
 
 function annullaOrdine(id) {
     const ordini = getOrdiniSalvati();
     const next = ordini.filter(o => o.id !== id);
-    localStorage.setItem('haccp_ordini', JSON.stringify(next));
+    localStorage.setItem(ORDINI_STORAGE_KEY, JSON.stringify(next));
     if (ordineInModificaId === id) {
         ordineInModificaId = null;
-        resetFormOrdine();
+        ordineDataSelezionata = null;
+        ordineOraSelezionata = '';
+        aggiornaOrdineDataLabel();
     }
     renderizzaOrdiniDashboard();
     renderizzaOrdiniHome();
+    mostraVistaOrdini('lista');
 }
 
-function formattaDataOrdine(dataStr) {
-    if (!dataStr) return '';
-    const parts = dataStr.split('-');
-    if (parts.length !== 3) return dataStr;
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+function eliminaOrdineDaModal() {
+    if (!ordineInModificaId) return;
+    annullaOrdine(ordineInModificaId);
+    toggleCalendarioOrdini(false);
 }
 
 function renderizzaOrdiniDashboard() {
-    renderizzaOrdiniLista('lista-ordini-dashboard', { soloOggi: false, mostraAzioni: true });
+    mostraVistaOrdini('lista');
+    renderizzaOrdiniLista('lista-ordini-dashboard', { soloOggi: false, cliccabile: true });
 }
 
 function renderizzaOrdiniHome() {
-    renderizzaOrdiniLista('lista-ordini-home', { soloOggi: true });
+    renderizzaOrdiniLista('lista-ordini-home', { soloOggi: true, cliccabile: false, home: true });
 }
 
 function renderizzaOrdiniLista(containerId, opzioni) {
@@ -5553,44 +5689,51 @@ function renderizzaOrdiniLista(containerId, opzioni) {
     if (!container) return;
 
     const ordini = getOrdiniSalvati();
-    const oggi = new Date().toISOString().slice(0, 10);
+    const oggiIso = new Date().toISOString().slice(0, 10);
     const filtroOggi = opzioni && opzioni.soloOggi;
-    const mostraAzioni = opzioni && opzioni.mostraAzioni;
+    const cliccabile = opzioni && opzioni.cliccabile;
+    const isHome = opzioni && opzioni.home;
 
     const filtrati = filtroOggi
-        ? ordini.filter(o => o.data === oggi)
+        ? ordini.filter(o => normalizzaDataOrdine(o.data) === oggiIso)
         : ordini;
 
+    const emptyBox = document.getElementById('ordini-empty');
     if (!filtrati.length) {
+        if (containerId === 'lista-ordini-dashboard' && emptyBox) {
+            emptyBox.style.display = 'flex';
+            container.style.display = 'none';
+            container.innerHTML = '';
+            return;
+        }
         container.innerHTML = filtroOggi
             ? '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessuna prenotazione per oggi</div>'
             : '<div style="color:#888; text-align:center; font-size:12px; padding:8px;">Nessun ordine salvato</div>';
         return;
     }
 
+    if (containerId === 'lista-ordini-dashboard' && emptyBox) {
+        emptyBox.style.display = 'none';
+        container.style.display = 'block';
+    }
+
     const ordinati = [...filtrati].sort((a, b) => {
-        const aKey = `${a.data || '9999-12-31'} ${a.ora || '23:59'}`;
-        const bKey = `${b.data || '9999-12-31'} ${b.ora || '23:59'}`;
+        const aKey = `${normalizzaDataOrdine(a.data) || '9999-12-31'}`;
+        const bKey = `${normalizzaDataOrdine(b.data) || '9999-12-31'}`;
         return aKey.localeCompare(bKey);
     });
 
     container.innerHTML = ordinati.map((o) => {
-        const dataLabel = formattaDataOrdine(o.data);
-        const oraLabel = o.ora ? ` ${o.ora}` : '';
-        const when = dataLabel ? `${dataLabel}${oraLabel}` : 'Data non impostata';
+        const titolo = escapeHtml(o.titolo || o.nome || 'Promemoria');
+        const testo = escapeHtml(o.testo || o.ordine || '');
+        const dataLabel = o.data ? formatDataLabel(o.data, o.ora) : '';
+        const onClick = cliccabile ? `onclick="avviaModificaOrdine('${o.id}')"` : '';
+        const listClass = isHome ? 'ordini-list-item ordini-list-item-home' : 'ordini-list-item';
         return `
-            <div style="background:#1f1f1f; border:1px solid #2a2a2a; border-radius:12px; padding:10px; margin-bottom:8px;">
-                <div style="display:flex; justify-content:space-between; gap:8px;">
-                    <div style="color:#fff; font-weight:700; font-size:13px;">${escapeHtml(o.nome || 'Ordine')}</div>
-                    <div style="color:#aaa; font-size:11px;">${escapeHtml(when)}</div>
-                </div>
-                <div style="color:#ddd; font-size:12px; margin-top:6px; white-space:pre-wrap;">${escapeHtml(o.ordine || '')}</div>
-                ${mostraAzioni ? `
-                <div style="display:flex; gap:8px; margin-top:8px;">
-                    <button type="button" onclick="avviaModificaOrdine('${o.id}')" style="padding:6px 10px; font-size:11px;">Modifica</button>
-                    <button type="button" onclick="annullaOrdine('${o.id}')" style="padding:6px 10px; font-size:11px; background:#444;">Annulla</button>
-                </div>
-                ` : ''}
+            <div class="${listClass}" ${onClick}>
+                <div class="ordini-list-title">${titolo}</div>
+                <div class="ordini-list-context">${testo}</div>
+                ${dataLabel ? `<div class="ordini-list-date">${escapeHtml(dataLabel)}</div>` : ''}
             </div>
         `;
     }).join('');

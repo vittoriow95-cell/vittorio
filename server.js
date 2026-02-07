@@ -321,16 +321,18 @@ const server = http.createServer((req, res) => {
             let y = 20;
             const fontTitolo = config.fontTitolo || '3';
             const fontCampi = config.fontCampi || '2';
-            const isCustom = Boolean(dati && dati.customLabel);
+            const isCustom = Boolean(dati && (dati.customLabel || dati.titolo || dati.etichetta || dati.valore));
 
             if (isCustom) {
-                const titolo = String(dati.titolo || '').trim() || 'ETICHETTA';
+                const titolo = String(dati.titolo || '').trim();
                 const etichetta = String(dati.etichetta || '').trim();
                 const valore = String(dati.valore || '').trim();
                 const linea = [etichetta, valore].filter(Boolean).join(': ');
 
-                comandiStampante += `TEXT 20,${y},"${fontTitolo}",0,1,1,"${titolo}"\r\n`;
-                y += 40;
+                if (titolo) {
+                    comandiStampante += `TEXT 20,${y},"${fontTitolo}",0,1,1,"${titolo}"\r\n`;
+                    y += 40;
+                }
                 if (linea) {
                     comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"${linea}"\r\n`;
                 }
