@@ -520,46 +520,46 @@
         <h2>📄 GENERA REPORT HACCP</h2>
     </div>
     
-    <div class="contenuto" style="max-width: 800px; margin: 0 auto;">
+    <div class="contenuto report-screen">
         
-        <div class="card-centrale" style="padding: 32px;">
-            <h3 style="margin-bottom: 24px; text-align: center;">Seleziona Periodo Report</h3>
+        <div class="card-centrale report-card">
+            <h3 class="report-title">Seleziona Periodo Report</h3>
             
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; align-items:end;">
-                <div style="display:flex; flex-direction:column; gap:6px;">
+            <div class="report-date-grid">
+                <div class="report-field">
                     <label class="label-oro" for="report-data-inizio">Data Inizio</label>
-                    <input type="date" id="report-data-inizio" style="width:100%; padding:10px 12px; text-align:center;">
+                    <input type="date" id="report-data-inizio" class="report-date-input">
                 </div>
-                <div style="display:flex; flex-direction:column; gap:6px;">
+                <div class="report-field">
                     <label class="label-oro" for="report-data-fine">Data Fine</label>
-                    <input type="date" id="report-data-fine" style="width:100%; padding:10px 12px; text-align:center;">
+                    <input type="date" id="report-data-fine" class="report-date-input">
                 </div>
             </div>
             
-            <h3 style="margin: 32px 0 16px 0;">Sezioni da Includere</h3>
+            <h3 class="report-subtitle">Sezioni da Includere</h3>
             
-            <div style="background: rgba(255, 255, 255, 0.05); padding: 24px; border-radius: 16px; margin-bottom: 24px;">
-                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+            <div class="report-section-list">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-temp" checked> 🌡️ Temperature Frigoriferi
                 </label>
-                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-lotti" checked> 🏷️ Lotti Produzione
                 </label>
-                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-nc" checked> ⚠️ Non Conformità
                 </label>
-                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-sanif" checked> 🧼 Sanificazioni
                 </label>
-                <label style="display: block; margin-bottom: 12px; font-size: 1rem;">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-manut" checked> 🔧 Manutenzioni
                 </label>
-                <label style="display: block; font-size: 1rem;">
+                <label class="report-section-item">
                     <input type="checkbox" id="report-inc-form" checked> 🎓 Formazione Personale
                 </label>
             </div>
             
-            <button onclick="generaReportPDF()" style="width: 100%; padding: 18px; font-size: 1.1rem; background: linear-gradient(135deg, #FF453A, #FF9F0A);">
+            <button onclick="generaReportPDF()" class="report-action-btn">
                 📥 GENERA E SCARICA PDF
             </button>
         </div>

@@ -1214,19 +1214,22 @@ function convalidaTracciabilitaCamera() {
         dataScadenza = d.toISOString().slice(0, 10);
     }
 
-    Promise.all(
-        fotoIngredientiTemp.map(async (f) => {
-            if (f.url) return f.url;
-            try {
-                return await uploadFoto('ingrediente', f.dataUrl);
-            } catch (err) {
-                console.error('Upload foto ingrediente fallito:', err.message);
-                // Fallback: salva comunque il dataUrl per non perdere la foto.
-                return f.dataUrl;
-            }
-        })
-    ).then((urls) => {
+    const uploadPromises = fotoIngredientiTemp.map(async (f) => {
+        if (f.url) return f.url;
+        try {
+            return await uploadFoto('ingrediente', f.dataUrl);
+        } catch (err) {
+            console.error('Upload foto ingrediente fallito:', err.message);
+            // Fallback: salva comunque il dataUrl per non perdere la foto.
+            return f.dataUrl;
+        }
+    });
+
+    const backupPromises = fotoIngredientiTemp.map((f) => creaMiniaturaDataUrl(f.dataUrl));
+
+    Promise.all([Promise.all(uploadPromises), Promise.all(backupPromises)]).then(([urls, backups]) => {
         const fotoPrincipale = urls[0] || '';
+        const fotoBackupPrincipale = backups[0] || '';
         const nuovoLotto = {
             dataProduzione: oggi.toLocaleDateString('it-IT'),
             prodotto: prodottoAssociatoTemp,
@@ -1236,7 +1239,9 @@ function convalidaTracciabilitaCamera() {
             operatore: sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore',
             timestamp: new Date().toISOString(),
             fotoLottoUrl: fotoPrincipale,
-            fotoIngredienti: urls
+            fotoLottoBackup: fotoBackupPrincipale,
+            fotoIngredienti: urls,
+            fotoIngredientiBackup: backups
         };
 
         databaseLotti.push(nuovoLotto);
@@ -1249,6 +1254,7 @@ function convalidaTracciabilitaCamera() {
                 lotto: nuovoLotto.lottoInterno,
                 scadenza: nuovoLotto.scadenza,
                 fotoUrl: fotoPrincipale,
+                fotoBackup: fotoBackupPrincipale,
                 creatoIl: new Date().toISOString()
             });
             localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
@@ -1297,8 +1303,9 @@ function renderizzaLottiGiorno() {
             .map(i => i.nome)
             .filter(Boolean)
             .join(', ');
-        const fotoHtml = l.fotoLottoUrl
-            ? `<div style="margin-top:8px;"><img src="${l.fotoLottoUrl}" style="max-height:60px; border-radius:6px; border:1px solid #333;"></div>`
+        const fotoSrc = resolveFotoSrc(l.fotoLottoUrl, l.fotoLottoBackup);
+        const fotoHtml = fotoSrc
+            ? `<div style="margin-top:8px;"><img src="${fotoSrc}" style="max-height:60px; border-radius:6px; border:1px solid #333;"></div>`
             : '';
         
         return `
@@ -1490,6 +1497,7 @@ function apriModalLotto() {
     ingredienteInSelezioneIndex = null;
     prodottoCorrenteSelezionato = '';
     fotoLottoTempUrl = '';
+    fotoLottoTempBackup = '';
     const lottoOrigineEl = document.getElementById('lotto-origine-lotto');
     if (lottoOrigineEl) lottoOrigineEl.value = '';
     const dataScadenzaEl = document.getElementById('data-scadenza-lotto');
@@ -1509,6 +1517,7 @@ function chiudiModalLotto() {
     // Reset campi
     ingredientiLottoCorrente = [];
     fotoLottoTempUrl = '';
+    fotoLottoTempBackup = '';
     document.getElementById("select-prodotto-lotto").value = "";
     document.getElementById("nuovo-prodotto-input").style.display = "none";
     document.getElementById("nuovo-prodotto-input").value = "";
@@ -1523,6 +1532,7 @@ function chiudiModalLotto() {
 // Array temporaneo per gli ingredienti usati nel lotto corrente
 let ingredientiLottoCorrente = [];
 let fotoLottoTempUrl = '';
+let fotoLottoTempBackup = '';
 let lottoPrecedenteId = null;
 let fotoIngredienteManualeDataUrl = '';
 
@@ -1893,6 +1903,37 @@ function isRenderHost() {
     return location.hostname.endsWith('onrender.com');
 }
 
+function resolveFotoSrc(url, backup) {
+    const primary = url || '';
+    if (!primary && backup) return backup;
+    if (primary.startsWith('/foto-') && isRenderHost() && backup) return backup;
+    return primary || backup || '';
+}
+
+function creaMiniaturaDataUrl(dataUrl, maxSize = 900) {
+    return new Promise((resolve) => {
+        if (!dataUrl) return resolve('');
+        const img = new Image();
+        img.onload = () => {
+            const w = img.width || 0;
+            const h = img.height || 0;
+            if (!w || !h) return resolve(dataUrl);
+            const scale = Math.min(1, maxSize / Math.max(w, h));
+            const outW = Math.max(1, Math.round(w * scale));
+            const outH = Math.max(1, Math.round(h * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = outW;
+            canvas.height = outH;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return resolve(dataUrl);
+            ctx.drawImage(img, 0, 0, outW, outH);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = () => resolve(dataUrl);
+        img.src = dataUrl;
+    });
+}
+
 async function uploadFoto(tipo, dataUrl) {
     const response = await fetch('/api/upload-foto', {
         method: 'POST',
@@ -2023,6 +2064,8 @@ async function processaFotoEtichettaLotto(input) {
         const preview = document.getElementById('preview-foto-lotto-prodotto');
         if (preview) preview.innerHTML = `<img src="${dataUrl}" style="max-width:100%; max-height:240px; border-radius:8px; border:2px solid #2196F3;">`;
 
+        fotoLottoTempBackup = await creaMiniaturaDataUrl(dataUrl);
+
         try {
             const worker = await Tesseract.createWorker('ita');
             const { data: { text } } = await worker.recognize(dataUrl);
@@ -2078,9 +2121,10 @@ function renderizzaFotoLotti() {
 
     container.innerHTML = databaseFotoLotti.map((f) => {
         const info = [f.prodotto, f.lotto, f.scadenza].filter(Boolean).join(' | ');
+        const src = resolveFotoSrc(f.fotoUrl, f.fotoBackup);
         return `
             <div style="background:#1f1f1f; padding:10px; border-radius:8px; margin-bottom:10px;">
-                <img src="${f.fotoUrl}" style="width:100%; max-height:240px; object-fit:contain; border-radius:6px; border:1px solid #333;">
+                <img src="${src}" style="width:100%; max-height:240px; object-fit:contain; border-radius:6px; border:1px solid #333;">
                 <div style="color:#ccc; margin-top:6px; font-size:12px;">${info}</div>
             </div>
         `;
@@ -2202,7 +2246,8 @@ function confermaSalvataggioLotto() {
             scadenza: dataScadenza.toLocaleDateString('it-IT'),
             operatore: sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore',
             timestamp: new Date().toISOString(),
-            fotoLottoUrl: fotoLottoTempUrl || ''
+            fotoLottoUrl: fotoLottoTempUrl || '',
+            fotoLottoBackup: fotoLottoTempBackup || ''
         };
 
         if (lottoPrecedenteId) {
@@ -2221,6 +2266,7 @@ function confermaSalvataggioLotto() {
                 lotto: nuovoLotto.lottoInterno,
                 scadenza: nuovoLotto.scadenza,
                 fotoUrl: nuovoLotto.fotoLottoUrl,
+                fotoBackup: nuovoLotto.fotoLottoBackup || '',
                 creatoIl: new Date().toISOString()
             });
             localStorage.setItem('haccp_foto_lotti', JSON.stringify(databaseFotoLotti));
@@ -2350,7 +2396,8 @@ function renderizzaArchivioLotti() {
 
     const ordinati = [...databaseLotti].sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0));
     container.innerHTML = ordinati.map((l, index) => {
-        const foto = l.fotoLottoUrl ? `<img src="${l.fotoLottoUrl}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #333;">` : '';
+        const fotoSrc = resolveFotoSrc(l.fotoLottoUrl, l.fotoLottoBackup);
+        const foto = fotoSrc ? `<img src="${fotoSrc}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #333;">` : '';
         const fotoCount = Array.isArray(l.fotoIngredienti) ? l.fotoIngredienti.length : 0;
         return `
             <div style="background:#1f1f1f; padding:10px; border-radius:8px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -2469,11 +2516,28 @@ function chiudiModalDettaglioLotto() {
 function getFotoLottoCorrente() {
     if (!lottoDettaglioCorrente) return [];
     const lista = [];
-    if (lottoDettaglioCorrente.fotoLottoUrl) {
-        lista.push(lottoDettaglioCorrente.fotoLottoUrl);
+    const fotoPrincipale = resolveFotoSrc(
+        lottoDettaglioCorrente.fotoLottoUrl,
+        lottoDettaglioCorrente.fotoLottoBackup
+    );
+    if (fotoPrincipale) {
+        lista.push(fotoPrincipale);
     }
-    if (Array.isArray(lottoDettaglioCorrente.fotoIngredienti)) {
-        lista.push(...lottoDettaglioCorrente.fotoIngredienti.filter(Boolean));
+    const ingredienti = Array.isArray(lottoDettaglioCorrente.fotoIngredienti)
+        ? lottoDettaglioCorrente.fotoIngredienti
+        : [];
+    const ingredientiBackup = Array.isArray(lottoDettaglioCorrente.fotoIngredientiBackup)
+        ? lottoDettaglioCorrente.fotoIngredientiBackup
+        : [];
+    ingredienti.forEach((url, i) => {
+        const backup = ingredientiBackup[i] || '';
+        const src = resolveFotoSrc(url, backup);
+        if (src) lista.push(src);
+    });
+    if (ingredienti.length === 0 && ingredientiBackup.length > 0) {
+        ingredientiBackup.forEach((backup) => {
+            if (backup) lista.push(backup);
+        });
     }
     return lista;
 }

@@ -1102,6 +1102,101 @@ label {
 }
 
 /* ===========================================================
+   REPORT HACCP
+   =========================================================== */
+
+.report-screen {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 16px 24px;
+}
+
+.report-card {
+    width: min(92vw, 620px);
+    margin: 24px auto 40px;
+    padding: 28px 26px;
+}
+
+.report-title {
+    margin-bottom: 22px;
+    text-align: center;
+    font-size: 1.25rem;
+}
+
+.report-date-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    align-items: end;
+}
+
+.report-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.report-date-input {
+    width: 100%;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+.report-subtitle {
+    margin: 28px 0 14px;
+    font-size: 1.05rem;
+}
+
+.report-section-list {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 18px 18px;
+    border-radius: 16px;
+    margin-bottom: 22px;
+}
+
+.report-section-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.98rem;
+    margin-bottom: 10px;
+}
+
+.report-section-item:last-child {
+    margin-bottom: 0;
+}
+
+.report-section-item input[type="checkbox"] {
+    margin: 0;
+}
+
+.report-action-btn {
+    width: 100%;
+    padding: 18px;
+    font-size: 1.05rem;
+    background: linear-gradient(135deg, #FF453A, #FF9F0A);
+}
+
+@media (max-width: 900px) {
+    .report-card {
+        width: min(94vw, 640px);
+        margin: 20px auto 32px;
+    }
+}
+
+@media (max-width: 680px) {
+    .report-date-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .report-card {
+        padding: 24px 20px;
+    }
+}
+
+/* ===========================================================
    CHECKBOX E RADIO
    =========================================================== */
 
