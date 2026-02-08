@@ -1221,6 +1221,9 @@ function convalidaTracciabilitaCamera() {
                 return await uploadFoto('ingrediente', f.dataUrl);
             } catch (err) {
                 console.error('Upload foto ingrediente fallito:', err.message);
+                if (isRenderHost()) {
+                    return '';
+                }
                 return f.dataUrl;
             }
         })
@@ -1866,6 +1869,10 @@ async function confermaIngredienteScansionato() {
     mostraNotifica('✅ Ingrediente salvato', 'success');
 }
 
+function isRenderHost() {
+    return location.hostname.endsWith('onrender.com');
+}
+
 async function uploadFoto(tipo, dataUrl) {
     const response = await fetch('/api/upload-foto', {
         method: 'POST',
@@ -1878,11 +1885,9 @@ async function uploadFoto(tipo, dataUrl) {
         throw new Error(data.error || 'Upload fallito');
     }
     const url = data.url || '';
-    const isRender = location.hostname.endsWith('onrender.com');
     const isRelative = url.startsWith('/foto-');
-    // Su Render senza storage persistente, salva direttamente il dataUrl.
-    if (isRender && isRelative) {
-        return dataUrl;
+    if (isRenderHost() && isRelative) {
+        throw new Error('R2 non attivo: URL foto non persistente');
     }
     return url;
 }
