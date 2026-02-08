@@ -2506,6 +2506,17 @@ function inizializzaSwipePreview() {
         previewTouchStartY = touch.clientY;
     };
 
+    img.ontouchmove = (event) => {
+        if (!previewTouching) return;
+        const touch = event.touches && event.touches[0];
+        if (!touch) return;
+        const dx = touch.clientX - previewTouchStartX;
+        const dy = touch.clientY - previewTouchStartY;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            event.preventDefault();
+        }
+    };
+
     img.ontouchend = (event) => {
         if (!previewTouching) return;
         previewTouching = false;
@@ -2577,6 +2588,17 @@ function inizializzaSwipeGalleria() {
         galleriaTouching = true;
         galleriaTouchStartX = touch.clientX;
         galleriaTouchStartY = touch.clientY;
+    };
+
+    img.ontouchmove = (event) => {
+        if (!galleriaTouching) return;
+        const touch = event.touches && event.touches[0];
+        if (!touch) return;
+        const dx = touch.clientX - galleriaTouchStartX;
+        const dy = touch.clientY - galleriaTouchStartY;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            event.preventDefault();
+        }
     };
 
     img.ontouchend = (event) => {
