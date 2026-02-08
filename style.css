@@ -1129,18 +1129,27 @@ label {
     gap: 16px;
     margin-bottom: 24px;
     align-items: end;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .report-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    align-items: center;
+    text-align: center;
 }
 
 .report-date-input {
     width: 100%;
-    padding: 10px 12px;
+    padding: 8px 10px;
     text-align: center;
+    max-width: 220px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: var(--text-primary);
 }
 
 .report-subtitle {
