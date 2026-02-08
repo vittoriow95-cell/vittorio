@@ -1013,6 +1013,9 @@ let cameraIngredientiStream = null;
 let galleriaFotoLotto = [];
 let galleriaIndiceLotto = 0;
 let previewIndiceLotto = 0;
+let galleriaTouchStartX = 0;
+let galleriaTouchStartY = 0;
+let galleriaTouching = false;
 
 function inizializzaTracciabilitaCamera() {
     fotoIngredientiTemp = [];
@@ -2456,6 +2459,7 @@ function apriGalleriaLotto() {
     }
     galleriaIndiceLotto = Math.min(previewIndiceLotto, galleriaFotoLotto.length - 1);
     renderGalleriaLotto();
+    inizializzaSwipeGalleria();
     const modal = document.getElementById('modal-galleria-lotto');
     if (modal) modal.style.display = 'flex';
 }
@@ -2487,6 +2491,34 @@ function renderGalleriaLotto() {
         const active = i === galleriaIndiceLotto ? 'attiva' : '';
         return `<img src="${url}" class="galleria-thumb ${active}" onclick="selezionaFotoLotto(${i})" />`;
     }).join('');
+}
+
+function inizializzaSwipeGalleria() {
+    const img = document.getElementById('galleria-foto-principale');
+    if (!img) return;
+
+    img.ontouchstart = (event) => {
+        const touch = event.touches && event.touches[0];
+        if (!touch) return;
+        galleriaTouching = true;
+        galleriaTouchStartX = touch.clientX;
+        galleriaTouchStartY = touch.clientY;
+    };
+
+    img.ontouchend = (event) => {
+        if (!galleriaTouching) return;
+        galleriaTouching = false;
+        const touch = event.changedTouches && event.changedTouches[0];
+        if (!touch) return;
+        const dx = touch.clientX - galleriaTouchStartX;
+        const dy = touch.clientY - galleriaTouchStartY;
+        if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy)) return;
+        if (dx > 0) {
+            cambiaFotoLotto(-1);
+        } else {
+            cambiaFotoLotto(1);
+        }
+    };
 }
 
 function stampaLottoDaDettaglio() {
