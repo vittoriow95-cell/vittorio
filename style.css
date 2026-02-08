@@ -1,20 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
+
 /* ===========================================================
-   HACCP SYSTEM - MODERN APPLE-INSPIRED DESIGN 2026
-   =========================================================== */
+    HACCP SYSTEM - PROFESSIONAL UI 2026
+    =========================================================== */
 
 :root {
     /* Colori principali */
-    --bg-primary: #000000;
-    --bg-secondary: #0d0d0d;
-    --bg-card: rgba(28, 28, 30, 0.8);
-    --bg-glass: rgba(255, 255, 255, 0.05);
+    --bg-primary: #0b0f14;
+    --bg-secondary: #101621;
+    --bg-card: rgba(20, 26, 36, 0.92);
+    --bg-glass: rgba(255, 255, 255, 0.04);
     
     /* Accenti vivaci */
     --accent-blue: #0A84FF;
     --accent-green: #30D158;
     --accent-orange: #FF9F0A;
     --accent-red: #FF453A;
-    --accent-purple: #BF5AF2;
+    --accent-purple: #6b7b8a;
     --accent-cyan: #64D2FF;
     --accent-yellow: #FFD60A;
     
@@ -192,7 +194,7 @@ body.light-mode::before {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    font-family: 'Manrope', 'Segoe UI', sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
@@ -227,13 +229,13 @@ body.modal-open {
 body::before {
     content: '';
     position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 50% 50%, rgba(102, 126, 234, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 20%, rgba(191, 90, 242, 0.08) 0%, transparent 50%),
-                radial-gradient(circle at 20% 80%, rgba(100, 210, 255, 0.08) 0%, transparent 50%);
+    top: -30%;
+    left: -30%;
+    width: 160%;
+    height: 160%;
+    background: radial-gradient(circle at 20% 20%, rgba(10, 132, 255, 0.08) 0%, transparent 45%),
+                radial-gradient(circle at 80% 15%, rgba(48, 209, 88, 0.06) 0%, transparent 42%),
+                linear-gradient(120deg, rgba(255, 255, 255, 0.02) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
 }
@@ -661,9 +663,9 @@ button[style*="background:#9C27B0"]:hover {
     justify-content: space-between;
     align-items: center;
     padding: 20px 24px;
-    background: rgba(28, 28, 30, 0.8);
+    background: rgba(15, 20, 28, 0.95);
     backdrop-filter: var(--blur-md);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     position: sticky;
     top: 0;
     z-index: 100;
@@ -671,15 +673,17 @@ button[style*="background:#9C27B0"]:hover {
 
 .header-sottopagina h2,
 .header-sottopagina h3 {
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
 }
 
 .header-sottopagina button {
     width: auto;
-    padding: 8px 16px;
-    background: rgba(255, 255, 255, 0.1);
-    font-size: 0.85rem;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.8rem;
     box-shadow: none;
 }
 
@@ -741,10 +745,10 @@ button[style*="background:#9C27B0"]:hover {
 
 .grid-icone {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 16px;
-    padding: 24px;
-    max-width: 1400px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 18px;
+    padding: 28px;
+    max-width: 1200px;
     margin: 0 auto;
 }
 
@@ -754,13 +758,13 @@ button[style*="background:#9C27B0"]:hover {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    background: var(--bg-glass);
-    backdrop-filter: var(--blur-md);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: var(--radius-lg);
+    gap: 10px;
+    background: rgba(16, 22, 33, 0.95);
+    backdrop-filter: var(--blur-sm);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 18px;
     cursor: pointer;
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     position: relative;
     overflow: hidden;
 }
@@ -768,82 +772,56 @@ button[style*="background:#9C27B0"]:hover {
 .icona-quadrata::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(10, 132, 255, 0.15) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.5s;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), transparent 45%);
+    opacity: 1;
+    transition: opacity 0.2s;
 }
 
 .icona-quadrata::after {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
-    border-radius: var(--radius-lg);
-    opacity: 0;
-    z-index: -1;
-    filter: blur(15px);
-    transition: opacity 0.5s;
+    content: none;
 }
 
 .icona-quadrata:hover::before {
-    opacity: 1;
+    opacity: 0.85;
 }
 
 .icona-quadrata:hover::after {
-    opacity: 0.3;
+    opacity: 0;
 }
 
 .icona-quadrata:hover {
-    transform: translateY(-12px) scale(1.05) rotateY(5deg);
-    box-shadow: 0 20px 60px rgba(10, 132, 255, 0.3), 0 0 50px rgba(10, 132, 255, 0.1);
-    border-color: rgba(10, 132, 255, 0.5);
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.16);
 }
 
 .icona-quadrata:active {
-    transform: translateY(-8px) scale(1.02) rotateY(0deg);
+    transform: translateY(-2px);
 }
 
 .icona-quadrata .emoji {
-    font-size: 2.5rem;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-    animation: emojiFloat 3s ease-in-out infinite;
-}
-
-@keyframes emojiFloat {
-    0%, 100% { transform: translateY(0px) scale(1); }
-    50% { transform: translateY(-5px) scale(1.05); }
+    font-size: 2.1rem;
+    filter: none;
+    transition: transform 0.2s ease;
 }
 
 .icona-quadrata:hover .emoji {
-    filter: drop-shadow(0 8px 20px rgba(10, 132, 255, 0.6));
-    animation: emojiPulse 0.6s ease-in-out infinite;
-}
-
-@keyframes emojiPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.15); }
+    transform: scale(1.06);
 }
 
 .icona-quadrata .label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-weight: 600;
     text-align: center;
-    line-height: 1.3;
-    letter-spacing: 0.3px;
-    transition: all 0.4s;
+    line-height: 1.25;
+    letter-spacing: 0.2px;
+    color: var(--text-secondary);
+    transition: color 0.2s;
 }
 
 .icona-quadrata:hover .label {
-    background: linear-gradient(135deg, #fff 0%, var(--accent-cyan) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 20px rgba(10, 132, 255, 0.5);
+    color: var(--text-primary);
 }
 
 /* ===========================================================
@@ -1185,6 +1163,107 @@ label {
     padding: 18px;
     font-size: 1.05rem;
     background: linear-gradient(135deg, #FF453A, #FF9F0A);
+}
+
+/* ===========================================================
+   PIANO PULIZIE
+   =========================================================== */
+
+.pulizie-alert {
+    max-width: 720px;
+    margin: 12px auto 6px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    background: rgba(255, 159, 10, 0.12);
+    border: 1px solid rgba(255, 159, 10, 0.35);
+    color: #ffd7a0;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.pulizie-alert.is-success {
+    background: rgba(48, 209, 88, 0.12);
+    border-color: rgba(48, 209, 88, 0.35);
+    color: #baf7c8;
+}
+
+.pulizie-home-badge {
+    max-width: 720px;
+    margin: 10px auto 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 159, 10, 0.12);
+    border: 1px solid rgba(255, 159, 10, 0.35);
+    color: #ffd7a0;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.pulizie-home-badge.is-danger {
+    background: rgba(255, 69, 58, 0.12);
+    border-color: rgba(255, 69, 58, 0.35);
+    color: #ffb3ad;
+}
+
+.pulizie-riepilogo {
+    max-width: 720px;
+    margin: 8px auto 0;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.piano-row {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.piano-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+}
+
+.piano-item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.piano-item-title {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.piano-item-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.piano-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.piano-overdue-title {
+    margin: 6px 0 10px;
+    font-weight: 700;
+    color: #ffb3ad;
+    text-align: center;
+}
+
+.piano-item.is-overdue {
+    border-color: rgba(255, 69, 58, 0.45);
+    background: rgba(255, 69, 58, 0.08);
 }
 
 @media (max-width: 900px) {

@@ -1,0 +1,32 @@
+#!/bin/bash
+set -e
+
+APP_PATH="/Applications/HACCP System.app"
+PLIST_PATH="/Library/LaunchAgents/com.haccp.system.autostart.plist"
+
+cat > "$PLIST_PATH" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.haccp.system.autostart</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/open</string>
+    <string>-a</string>
+    <string>/Applications/HACCP System.app</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+PLIST
+
+chmod 644 "$PLIST_PATH"
+chown root:wheel "$PLIST_PATH"
+
+launchctl unload "$PLIST_PATH" >/dev/null 2>&1 || true
+launchctl load "$PLIST_PATH"
+
+exit 0

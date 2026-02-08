@@ -302,6 +302,11 @@
             <span class="label">FRIGORIFERI</span>
         </div>
 
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-pulizie')" style="border-color: #4CAF50;">
+            <span class="emoji">🧼</span>
+            <span class="label" style="color: #4CAF50;">PIANO<br>PULIZIE</span>
+        </div>
+
         <div class="icona-quadrata" onclick="vaiA('sez-admin-prodotti')" style="border-color: #30D158;">
             <span class="emoji">📦</span>
             <span class="label" style="color: #30D158;">PRODOTTI</span>
@@ -369,6 +374,67 @@
     </div>
 
     <div id="lista-prodotti-admin" class="elenco-dati"></div>
+</section>
+
+<!-- ADMIN - PIANO PULIZIE -->
+<section id="sez-admin-pulizie" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>🧼 PIANO PULIZIE</h3>
+    </div>
+
+    <div class="card-centrale" style="max-width: 680px;">
+        <h4 style="margin-bottom:14px;">Nuova pulizia programmata</h4>
+
+        <input type="hidden" id="pulizia-edit-id">
+
+        <label class="label-oro" for="pulizia-nome" style="margin-bottom:3px; font-size:0.85rem;">NOME ATTIVITA:</label>
+        <input type="text" id="pulizia-nome" placeholder="Es: Bancone vendita" style="margin-bottom:8px;">
+
+        <label class="label-oro" for="pulizia-frequenza" style="margin-bottom:3px; font-size:0.85rem;">FREQUENZA:</label>
+        <select id="pulizia-frequenza" onchange="aggiornaPianoPuliziaCampi()" style="margin-bottom:8px;">
+            <option value="daily">Ogni giorno</option>
+            <option value="weekly">Ogni settimana</option>
+            <option value="monthly">Ogni mese</option>
+            <option value="interval">Ogni X giorni</option>
+        </select>
+
+        <div id="pulizia-campo-settimanale" class="piano-row" style="display:none;">
+            <label class="label-oro" for="pulizia-giorno-sett" style="margin-bottom:3px; font-size:0.85rem;">GIORNO SETTIMANA:</label>
+            <select id="pulizia-giorno-sett">
+                <option value="1">Lunedi</option>
+                <option value="2">Martedi</option>
+                <option value="3">Mercoledi</option>
+                <option value="4">Giovedi</option>
+                <option value="5">Venerdi</option>
+                <option value="6">Sabato</option>
+                <option value="0">Domenica</option>
+            </select>
+        </div>
+
+        <div id="pulizia-campo-mensile" class="piano-row" style="display:none;">
+            <label class="label-oro" for="pulizia-giorno-mese" style="margin-bottom:3px; font-size:0.85rem;">GIORNO DEL MESE:</label>
+            <input type="number" id="pulizia-giorno-mese" min="1" max="31" value="1">
+        </div>
+
+        <div id="pulizia-campo-intervallo" class="piano-row" style="display:none;">
+            <label class="label-oro" for="pulizia-intervallo" style="margin-bottom:3px; font-size:0.85rem;">OGNI (GIORNI):</label>
+            <input type="number" id="pulizia-intervallo" min="1" value="7">
+        </div>
+
+        <div id="pulizia-campo-start" class="piano-row">
+            <label class="label-oro" for="pulizia-start" style="margin-bottom:3px; font-size:0.85rem;">DATA INIZIO:</label>
+            <input type="date" id="pulizia-start">
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button type="button" onclick="salvaPianoPulizia()" style="flex:1; background:#30D158;">💾 SALVA</button>
+            <button type="button" onclick="resetPianoPuliziaForm()" style="flex:1; background:#444;">ANNULLA</button>
+        </div>
+    </div>
+
+    <div id="piano-pulizie-ritardi" class="elenco-dati" style="max-width: 680px; margin: 0 auto 18px;"></div>
+    <div id="lista-piano-pulizie" class="elenco-dati" style="max-width: 680px; margin: 0 auto 30px;"></div>
 </section>
 
 <!-- OPERATORE - SCADENZARIO -->
@@ -816,6 +882,8 @@
         <span id="testo-stato">Caricamento...</span>
     </div>
 
+    <div id="pulizie-home-badge" class="pulizie-home-badge" style="display:none;"></div>
+
     <div style="padding: 0 20px 20px; max-width: 900px; margin: 0 auto;">
         <div style="background:#1a1a1a; border-radius:16px; padding:16px; border:1px solid #2a2a2a;">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
@@ -838,7 +906,12 @@
         
         <div class="icona-quadrata" onclick="vaiAPulizie()">
             <span class="emoji">🧼</span>
-            <span class="label">CONTROLLO<br>PULIZIE</span>
+            <span class="label">PULIZIE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiANC()" style="border-color: #FF453A;">
+            <span class="emoji">⚠️</span>
+            <span class="label" style="color: #FF453A;">NON<br>CONFORMITA</span>
         </div>
 
         <div class="icona-quadrata" onclick="vaiA('sez-op-lotti')">
@@ -953,7 +1026,12 @@
         
         <div class="icona-quadrata" onclick="vaiAPulizie()">
             <span class="emoji">🧼</span>
-            <span class="label">CONTROLLO<br>PULIZIE</span>
+            <span class="label">PULIZIE</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiANC()" style="border-color: #FF453A;">
+            <span class="emoji">⚠️</span>
+            <span class="label" style="color: #FF453A;">NON<br>CONFORMITA</span>
         </div>
 
         <div class="icona-quadrata" onclick="vaiA('sez-op-lotti-archivio')">
@@ -1355,6 +1433,10 @@
         <h3 style="color: var(--oro); margin: 0;">REGISTRO PULIZIE</h3>
         <div style="width: 80px;"></div>
     </div>
+
+    <div id="pulizie-alert" class="pulizie-alert" style="display:none;"></div>
+
+    <div id="pulizie-riepilogo" class="pulizie-riepilogo" style="display:none;"></div>
 
     <p style="text-align: center; color: #888; font-size: 0.85rem; margin: 10px 0;">Sanificazione Ambienti</p>
 

@@ -277,7 +277,11 @@ function vaiA(idSezione) {
         const isOperatore = idSezione && idSezione.startsWith('sez-op-');
         const sezioniArchivio = ['sez-op-temp-archivio', 'sez-op-lotti-archivio'];
         const ritorno = sezioniArchivio.includes(idSezione) ? 'sez-op-archivi' : 'sez-operatore';
-        btnBackFixed.style.display = (isOperatore && idSezione !== 'sez-operatore') ? 'flex' : 'none';
+        const hasSectionBack = sezioneDaAprire
+            ? Boolean(sezioneDaAprire.querySelector('.header-sottopagina button, .btn-mini-back'))
+            : false;
+
+        btnBackFixed.style.display = (isOperatore && idSezione !== 'sez-operatore' && !hasSectionBack) ? 'flex' : 'none';
         btnBackFixed.onclick = () => vaiA(ritorno);
     }
 
@@ -328,6 +332,10 @@ function vaiA(idSezione) {
     if (idSezione === "sez-admin-backup") aggiornaInfoBackup();
 
     if (idSezione === "sez-admin-prodotti") renderizzaProdottiAdmin();
+    if (idSezione === "sez-admin-pulizie") {
+        renderPianoPulizieAdmin();
+        aggiornaPianoPuliziaCampi();
+    }
 }
 
 /* ===========================================================
@@ -1353,6 +1361,31 @@ function aggiornaAssistente(nomeUtente) {
             </div>
         `;
     }
+}
+
+function aggiornaBadgePulizieHome() {
+    const badge = document.getElementById('pulizie-home-badge');
+    if (!badge) return;
+
+    const oggi = new Date();
+    const due = getDueTasksForDate(oggi);
+    const overdue = getOverdueTasksForDate(oggi);
+
+    if (due.length === 0 && overdue.length === 0) {
+        badge.style.display = 'none';
+        badge.classList.remove('is-danger');
+        return;
+    }
+
+    if (overdue.length > 0) {
+        badge.textContent = `⏰ Pulizie in ritardo: ${overdue.map(t => t.nome).join(', ')}`;
+        badge.classList.add('is-danger');
+    } else {
+        badge.textContent = `🧼 Pulizie da fare oggi: ${due.map(t => t.nome).join(', ')}`;
+        badge.classList.remove('is-danger');
+    }
+
+    badge.style.display = 'block';
 }
 
 function segnaRiposoRapido(quando) {
@@ -3908,11 +3941,14 @@ function mostraStoricoPulizie() {
     html += '</tr>';
     
     [...databasePulizie].reverse().forEach(p => {
+        const areeCount = Array.isArray(p.aree)
+            ? p.aree.length
+            : (Array.isArray(p.tasks) ? p.tasks.length : 0);
         html += `<tr style="border-bottom: 1px solid #444;">`;
         html += `<td style="padding:10px; border:1px solid #555;">${p.data}</td>`;
         html += `<td style="padding:10px; border:1px solid #555;">${p.ora}</td>`;
         html += `<td style="padding:10px; border:1px solid #555;">${p.operatore}</td>`;
-        html += `<td style="padding:10px; border:1px solid #555; font-size:0.8rem;">${p.aree.length} zone</td>`;
+        html += `<td style="padding:10px; border:1px solid #555; font-size:0.8rem;">${areeCount} zone</td>`;
         html += '</tr>';
     });
 
@@ -4056,6 +4092,231 @@ const areePulizia = [
     { id: 8, nome: "Vetrine Esposizione", frequenza: "Giornaliera" }
 ];
 
+const PIANO_PULIZIE_KEY = 'haccp_pulizie_piano';
+let databasePuliziePiano = caricaPianoPulizie();
+
+function caricaPianoPulizie() {
+    let list = [];
+    try {
+        list = JSON.parse(localStorage.getItem(PIANO_PULIZIE_KEY)) || [];
+    } catch (err) {
+        list = [];
+    }
+
+    if (!Array.isArray(list) || list.length === 0) {
+        const oggi = new Date().toISOString().slice(0, 10);
+        list = areePulizia.map((area) => ({
+            id: `def-${area.id}`,
+            nome: area.nome,
+            frequenza: area.frequenza === 'Settimanale' ? 'weekly' : 'daily',
+            dayOfWeek: area.frequenza === 'Settimanale' ? 1 : null,
+            dayOfMonth: 1,
+            everyNDays: 7,
+            startDate: oggi,
+            attiva: true,
+            createdAt: new Date().toISOString()
+        }));
+        localStorage.setItem(PIANO_PULIZIE_KEY, JSON.stringify(list));
+    }
+
+    return list;
+}
+
+function salvaPianoPulizie(list) {
+    databasePuliziePiano = Array.isArray(list) ? list : [];
+    localStorage.setItem(PIANO_PULIZIE_KEY, JSON.stringify(databasePuliziePiano));
+}
+
+function getPianoPulizieAttivo() {
+    return (databasePuliziePiano || []).filter(t => t && t.attiva !== false);
+}
+
+function normalizzaData(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function parseDateIso(dateStr) {
+    if (!dateStr) return null;
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return null;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    return new Date(year, month, day);
+}
+
+function isTaskDue(task, date) {
+    const baseDate = normalizzaData(date);
+    const start = parseDateIso(task.startDate) || baseDate;
+    const startDate = normalizzaData(start);
+    if (baseDate < startDate) return false;
+
+    if (task.frequenza === 'daily') {
+        return true;
+    }
+
+    if (task.frequenza === 'weekly') {
+        const day = typeof task.dayOfWeek === 'number' ? task.dayOfWeek : 1;
+        return baseDate.getDay() === day;
+    }
+
+    if (task.frequenza === 'monthly') {
+        const target = Math.max(1, Math.min(31, parseInt(task.dayOfMonth || 1, 10)));
+        const daysInMonth = new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 0).getDate();
+        const day = Math.min(target, daysInMonth);
+        return baseDate.getDate() === day;
+    }
+
+    if (task.frequenza === 'interval') {
+        const step = Math.max(1, parseInt(task.everyNDays || 1, 10));
+        const diffMs = normalizzaData(baseDate).getTime() - startDate.getTime();
+        const diffDays = Math.floor(diffMs / 86400000);
+        return diffDays >= 0 && diffDays % step === 0;
+    }
+
+    return false;
+}
+
+function getDueTasksForDate(date) {
+    return getPianoPulizieAttivo().filter(task => isTaskDue(task, date));
+}
+
+function wasTaskCompletedOn(task, date) {
+    const dateStr = date.toLocaleDateString('it-IT');
+    const reg = databasePulizie.find(p => p.data === dateStr);
+    if (!reg) return false;
+
+    if (Array.isArray(reg.tasks)) {
+        return reg.tasks.some(t => (t.id && t.id === task.id) || t.nome === task.nome);
+    }
+
+    if (Array.isArray(reg.aree)) {
+        return reg.aree.includes(task.nome);
+    }
+
+    return false;
+}
+
+function getLastDueDate(task, date) {
+    const base = normalizzaData(date);
+    const start = normalizzaData(parseDateIso(task.startDate) || base);
+    if (base <= start) return null;
+
+    if (task.frequenza === 'daily') {
+        const last = new Date(base);
+        last.setDate(base.getDate() - 1);
+        return last >= start ? last : null;
+    }
+
+    if (task.frequenza === 'weekly') {
+        const targetDay = typeof task.dayOfWeek === 'number' ? task.dayOfWeek : 1;
+        let cursor = new Date(base);
+        cursor.setDate(base.getDate() - 1);
+        for (let i = 0; i < 8; i += 1) {
+            if (cursor < start) return null;
+            if (cursor.getDay() === targetDay) return cursor;
+            cursor.setDate(cursor.getDate() - 1);
+        }
+        return null;
+    }
+
+    if (task.frequenza === 'monthly') {
+        const target = Math.max(1, Math.min(31, parseInt(task.dayOfMonth || 1, 10)));
+        const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+        const dueDay = Math.min(target, daysInMonth);
+
+        let due = new Date(base.getFullYear(), base.getMonth(), dueDay);
+        if (base.getDate() <= dueDay) {
+            due = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+            const prevDays = new Date(due.getFullYear(), due.getMonth() + 1, 0).getDate();
+            const prevDay = Math.min(target, prevDays);
+            due = new Date(due.getFullYear(), due.getMonth(), prevDay);
+        }
+
+        return due >= start ? due : null;
+    }
+
+    if (task.frequenza === 'interval') {
+        const step = Math.max(1, parseInt(task.everyNDays || 1, 10));
+        const diffDays = Math.floor((base.getTime() - start.getTime()) / 86400000);
+        if (diffDays <= 0) return null;
+        const offset = diffDays % step === 0 ? diffDays - step : diffDays - (diffDays % step);
+        const due = new Date(start);
+        due.setDate(start.getDate() + offset);
+        return due >= start ? due : null;
+    }
+
+    return null;
+}
+
+function getOverdueTasksForDate(date) {
+    const base = normalizzaData(date);
+    return getPianoPulizieAttivo().filter((task) => {
+        const lastDue = getLastDueDate(task, base);
+        if (!lastDue) return false;
+        if (lastDue >= base) return false;
+        return !wasTaskCompletedOn(task, lastDue);
+    });
+}
+
+function formatDateKey(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function aggiornaRiepilogoPulizie() {
+    const box = document.getElementById('pulizie-riepilogo');
+    if (!box) return;
+
+    const today = new Date();
+    const due = getDueTasksForDate(today);
+    const overdue = getOverdueTasksForDate(today);
+
+    if (due.length === 0 && overdue.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    const dueText = due.length > 0 ? `Da fare oggi: ${due.length}` : 'Da fare oggi: 0';
+    const overdueText = overdue.length > 0 ? `In ritardo: ${overdue.length}` : 'In ritardo: 0';
+    box.textContent = `🧼 ${dueText} • ${overdueText}`;
+    box.style.display = 'block';
+}
+
+function inviaAvvisoPulizieGiornaliero() {
+    const todayKey = formatDateKey(new Date());
+    const flagKey = `haccp_pulizie_avviso_${todayKey}`;
+    if (localStorage.getItem(flagKey)) return;
+
+    const due = getDueTasksForDate(new Date());
+    const overdue = getOverdueTasksForDate(new Date());
+
+    if (overdue.length > 0) {
+        mostraNotifica(`⏰ Pulizie in ritardo: ${overdue.length}`, 'warning');
+    } else if (due.length > 0) {
+        mostraNotifica(`🧼 Pulizie da fare oggi: ${due.length}`, 'warning');
+    }
+
+    localStorage.setItem(flagKey, '1');
+}
+
+function descriviFrequenza(task) {
+    const giorni = ['Domenica', 'Lunedi', 'Martedi', 'Mercoledi', 'Giovedi', 'Venerdi', 'Sabato'];
+    if (task.frequenza === 'daily') return 'Ogni giorno';
+    if (task.frequenza === 'weekly') {
+        const day = typeof task.dayOfWeek === 'number' ? task.dayOfWeek : 1;
+        return `Ogni settimana (${giorni[day]})`;
+    }
+    if (task.frequenza === 'monthly') {
+        const day = Math.max(1, Math.min(31, parseInt(task.dayOfMonth || 1, 10)));
+        return `Ogni mese (giorno ${day})`;
+    }
+    if (task.frequenza === 'interval') {
+        const step = Math.max(1, parseInt(task.everyNDays || 1, 10));
+        return `Ogni ${step} giorni`;
+    }
+    return 'Frequenza non definita';
+}
+
 // Variabile per la data visualizzata
 let dataVisualizzataPulizie = new Date();
 
@@ -4063,6 +4324,13 @@ let dataVisualizzataPulizie = new Date();
 function vaiAPulizie() {
     dataVisualizzataPulizie = new Date();
     renderizzaPulizieGiorno();
+    const oggiStr = dataVisualizzataPulizie.toLocaleDateString('it-IT');
+    const due = getDueTasksForDate(dataVisualizzataPulizie);
+    const registrazione = databasePulizie.find(p => p.data === oggiStr);
+    const overdue = getOverdueTasksForDate(new Date());
+    if (!registrazione) {
+        inviaAvvisoPulizieGiornaliero();
+    }
     vaiA('sez-op-pulizie');
 }
 
@@ -4077,11 +4345,43 @@ function renderizzaPulizieGiorno() {
     const container = document.getElementById("lista-pulizie-giorno");
     const dataStr = dataVisualizzataPulizie.toLocaleDateString('it-IT');
     document.getElementById("data-visualizzata-pulizie").innerText = dataStr;
+    const alertEl = document.getElementById('pulizie-alert');
 
-    // Verifica se esiste già una registrazione per oggi
+    const dueTasks = getDueTasksForDate(dataVisualizzataPulizie);
     const registrazioneEsistente = databasePulizie.find(p => p.data === dataStr);
+    const oggi = normalizzaData(new Date());
+    const isToday = normalizzaData(dataVisualizzataPulizie).getTime() === oggi.getTime();
+    const overdueTasks = isToday ? getOverdueTasksForDate(new Date()) : [];
+    const overdueIds = overdueTasks.map(t => t.id);
+
+    if (alertEl) {
+        if (dueTasks.length === 0) {
+            alertEl.style.display = 'none';
+        } else if (registrazioneEsistente) {
+            alertEl.textContent = `✅ Pulizie completate (${dueTasks.length} previste)`;
+            alertEl.classList.add('is-success');
+            alertEl.style.display = 'block';
+        } else {
+            const nomi = dueTasks.map(t => t.nome).join(', ');
+            const overdueText = overdueTasks.length > 0
+                ? ` | ⏰ In ritardo: ${overdueTasks.map(t => t.nome).join(', ')}`
+                : '';
+            alertEl.textContent = `⚠️ Oggi sono previste: ${nomi}${overdueText}`;
+            alertEl.classList.remove('is-success');
+            alertEl.style.display = 'block';
+        }
+    }
+
+    aggiornaRiepilogoPulizie();
 
     if (registrazioneEsistente) {
+        const areeCompletate = Array.isArray(registrazioneEsistente.aree)
+            ? registrazioneEsistente.aree
+            : (registrazioneEsistente.tasks || []).map(t => t.nome);
+        const areeHtml = areeCompletate.length > 0
+            ? areeCompletate.map(a => `<li style="margin: 5px 0;">✓ ${a}</li>`).join('')
+            : '<li style="margin: 5px 0;">Nessuna attivita registrata</li>';
+
         // Mostra conferma avvenuta
         container.innerHTML = `
             <div style="background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #4CAF50;">
@@ -4094,7 +4394,7 @@ function renderizzaPulizieGiorno() {
                 <div style="margin-top: 20px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 8px;">
                     <p style="color: white; font-size: 0.9rem; margin-bottom: 10px;"><strong>Aree sanificate:</strong></p>
                     <ul style="list-style: none; padding: 0; color: #ddd; font-size: 0.85rem;">
-                        ${areePulizia.map(a => `<li style="margin: 5px 0;">✓ ${a.nome}</li>`).join('')}
+                        ${areeHtml}
                     </ul>
                 </div>
                 
@@ -4106,20 +4406,32 @@ function renderizzaPulizieGiorno() {
         return;
     }
 
+    if (dueTasks.length === 0) {
+        container.innerHTML = `
+            <div style="background: rgba(255,255,255,0.04); padding: 20px; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-size: 2.5rem; margin-bottom: 10px;">🗓️</div>
+                <p style="color:#bbb;">Nessuna pulizia programmata per questa data</p>
+            </div>
+        `;
+        return;
+    }
+
     // Mostra checklist da completare
     let html = '<div style="background: var(--grigio-medio); padding: 20px; border-radius: 16px; border: 2px solid var(--oro);">';
     html += '<h4 style="color: var(--oro); margin-bottom: 20px; text-align: center;">CHECKLIST SANIFICAZIONE</h4>';
     
-    areePulizia.forEach(area => {
-        const badgeColor = area.frequenza === 'Giornaliera' ? '#4CAF50' : '#FF9800';
+    dueTasks.forEach(task => {
+        const isOverdue = overdueIds.includes(task.id);
+        const badgeColor = isOverdue ? '#ff5252' : (task.frequenza === 'daily' ? '#4CAF50' : '#FF9800');
+        const freqLabel = descriviFrequenza(task);
         html += `
             <div style="background: var(--grigio-scuro); padding: 15px; margin-bottom: 12px; border-radius: 10px; border-left: 4px solid ${badgeColor};">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <div style="font-weight: bold; color: white; margin-bottom: 5px;">${area.nome}</div>
-                        <div style="font-size: 0.75rem; color: #aaa;">Frequenza: ${area.frequenza}</div>
+                        <div style="font-weight: bold; color: white; margin-bottom: 5px;">${task.nome}</div>
+                        <div style="font-size: 0.75rem; color: #aaa;">Frequenza: ${freqLabel}${isOverdue ? ' • ⏰ In ritardo' : ''}</div>
                     </div>
-                    <input type="checkbox" id="check-area-${area.id}" checked style="width: 25px; height: 25px; cursor: pointer;">
+                    <input type="checkbox" id="check-area-${task.id}" checked style="width: 25px; height: 25px; cursor: pointer;">
                 </div>
             </div>
         `;
@@ -4133,11 +4445,17 @@ function renderizzaPulizieGiorno() {
 function registraPulizieGiorno() {
     const dataStr = dataVisualizzataPulizie.toLocaleDateString('it-IT');
     const operatore = sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore';
+    const dueTasks = getDueTasksForDate(dataVisualizzataPulizie);
+
+    if (dueTasks.length === 0) {
+        alert('Nessuna pulizia programmata per questa data');
+        return;
+    }
     
     // Verifica che tutte le checkbox siano spuntate
     let tutteSpuntate = true;
-    areePulizia.forEach(area => {
-        const checkbox = document.getElementById(`check-area-${area.id}`);
+    dueTasks.forEach(task => {
+        const checkbox = document.getElementById(`check-area-${task.id}`);
         if (checkbox && !checkbox.checked) {
             tutteSpuntate = false;
         }
@@ -4158,7 +4476,8 @@ function registraPulizieGiorno() {
         data: dataStr,
         operatore: operatore,
         ora: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
-        aree: areePulizia.map(a => a.nome),
+        aree: dueTasks.map(t => t.nome),
+        tasks: dueTasks.map(t => ({ id: t.id, nome: t.nome })),
         timestamp: new Date().toISOString()
     };
     
@@ -4168,6 +4487,7 @@ function registraPulizieGiorno() {
     
     // Ricarica visualizzazione
     renderizzaPulizieGiorno();
+    aggiornaBadgePulizieHome();
     
     alert('✅ Pulizie registrate con successo!');
 }
@@ -4182,7 +4502,266 @@ function eliminaRegistrazionePulizia(data) {
     localStorage.setItem("haccp_pulizie", JSON.stringify(databasePulizie));
     
     renderizzaPulizieGiorno();
+    aggiornaBadgePulizieHome();
     alert('🗑️ Registrazione eliminata');
+}
+
+function aggiornaPianoPuliziaCampi() {
+    const freqEl = document.getElementById('pulizia-frequenza');
+    const settEl = document.getElementById('pulizia-campo-settimanale');
+    const mensEl = document.getElementById('pulizia-campo-mensile');
+    const intEl = document.getElementById('pulizia-campo-intervallo');
+
+    if (!freqEl) return;
+    const value = freqEl.value;
+
+    if (settEl) settEl.style.display = value === 'weekly' ? 'grid' : 'none';
+    if (mensEl) mensEl.style.display = value === 'monthly' ? 'grid' : 'none';
+    if (intEl) intEl.style.display = value === 'interval' ? 'grid' : 'none';
+}
+
+function resetPianoPuliziaForm() {
+    const editId = document.getElementById('pulizia-edit-id');
+    const nomeEl = document.getElementById('pulizia-nome');
+    const freqEl = document.getElementById('pulizia-frequenza');
+    const dayWeekEl = document.getElementById('pulizia-giorno-sett');
+    const dayMonthEl = document.getElementById('pulizia-giorno-mese');
+    const intervalEl = document.getElementById('pulizia-intervallo');
+    const startEl = document.getElementById('pulizia-start');
+
+    if (editId) editId.value = '';
+    if (nomeEl) nomeEl.value = '';
+    if (freqEl) freqEl.value = 'daily';
+    if (dayWeekEl) dayWeekEl.value = '1';
+    if (dayMonthEl) dayMonthEl.value = '1';
+    if (intervalEl) intervalEl.value = '7';
+    if (startEl) startEl.value = new Date().toISOString().slice(0, 10);
+
+    aggiornaPianoPuliziaCampi();
+}
+
+function salvaPianoPulizia() {
+    const editId = document.getElementById('pulizia-edit-id');
+    const nomeEl = document.getElementById('pulizia-nome');
+    const freqEl = document.getElementById('pulizia-frequenza');
+    const dayWeekEl = document.getElementById('pulizia-giorno-sett');
+    const dayMonthEl = document.getElementById('pulizia-giorno-mese');
+    const intervalEl = document.getElementById('pulizia-intervallo');
+    const startEl = document.getElementById('pulizia-start');
+
+    if (!nomeEl || !freqEl) return;
+
+    const nome = nomeEl.value.trim();
+    const frequenza = freqEl.value;
+    const dayOfWeek = dayWeekEl ? parseInt(dayWeekEl.value, 10) : 1;
+    const dayOfMonth = dayMonthEl ? parseInt(dayMonthEl.value, 10) : 1;
+    const everyNDays = intervalEl ? parseInt(intervalEl.value, 10) : 7;
+    const startDate = startEl && startEl.value ? startEl.value : new Date().toISOString().slice(0, 10);
+
+    if (!nome) {
+        alert('Inserisci il nome della pulizia');
+        return;
+    }
+
+    const list = Array.isArray(databasePuliziePiano) ? [...databasePuliziePiano] : [];
+    const existingId = editId && editId.value ? editId.value : '';
+
+    if (existingId) {
+        const idx = list.findIndex(t => t.id === existingId);
+        if (idx >= 0) {
+            list[idx] = {
+                ...list[idx],
+                nome,
+                frequenza,
+                dayOfWeek: frequenza === 'weekly' ? dayOfWeek : null,
+                dayOfMonth: frequenza === 'monthly' ? dayOfMonth : 1,
+                everyNDays: frequenza === 'interval' ? everyNDays : 7,
+                startDate
+            };
+        }
+    } else {
+        list.push({
+            id: `pln-${Date.now().toString(16)}`,
+            nome,
+            frequenza,
+            dayOfWeek: frequenza === 'weekly' ? dayOfWeek : null,
+            dayOfMonth: frequenza === 'monthly' ? dayOfMonth : 1,
+            everyNDays: frequenza === 'interval' ? everyNDays : 7,
+            startDate,
+            attiva: true,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    salvaPianoPulizie(list);
+    renderPianoPulizieAdmin();
+    resetPianoPuliziaForm();
+    aggiornaBadgePulizieHome();
+    mostraNotifica('✅ Piano pulizie aggiornato', 'success');
+}
+
+function eliminaPianoPulizia(id) {
+    if (!confirm('Vuoi eliminare questa pulizia programmata?')) return;
+    const list = (databasePuliziePiano || []).filter(t => t.id !== id);
+    salvaPianoPulizie(list);
+    renderPianoPulizieAdmin();
+    aggiornaBadgePulizieHome();
+}
+
+function togglePianoPulizia(id) {
+    const list = Array.isArray(databasePuliziePiano) ? [...databasePuliziePiano] : [];
+    const idx = list.findIndex(t => t.id === id);
+    if (idx < 0) return;
+    list[idx].attiva = list[idx].attiva === false ? true : false;
+    salvaPianoPulizie(list);
+    renderPianoPulizieAdmin();
+    aggiornaBadgePulizieHome();
+}
+
+function registraPuliziaManualeDaAdmin(taskId) {
+    const task = (databasePuliziePiano || []).find(t => t.id === taskId);
+    if (!task) return;
+
+    const today = new Date();
+    const dataStr = today.toLocaleDateString('it-IT');
+    const operatore = sessionStorage.getItem('nomeUtenteLoggato') || 'Admin';
+
+    const registrazione = databasePulizie.find(p => p.data === dataStr);
+    if (registrazione) {
+        if (Array.isArray(registrazione.tasks)) {
+            const exists = registrazione.tasks.some(t => t.id === task.id || t.nome === task.nome);
+            if (!exists) {
+                registrazione.tasks.push({ id: task.id, nome: task.nome });
+            }
+        }
+
+        if (Array.isArray(registrazione.aree)) {
+            if (!registrazione.aree.includes(task.nome)) {
+                registrazione.aree.push(task.nome);
+            }
+        } else {
+            registrazione.aree = [task.nome];
+        }
+    } else {
+        databasePulizie.push({
+            data: dataStr,
+            operatore,
+            ora: today.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+            aree: [task.nome],
+            tasks: [{ id: task.id, nome: task.nome }],
+            timestamp: new Date().toISOString()
+        });
+    }
+
+    localStorage.setItem('haccp_pulizie', JSON.stringify(databasePulizie));
+    renderPianoPulizieAdmin();
+    aggiornaBadgePulizieHome();
+    aggiornaRiepilogoPulizie();
+    const sezPulizie = document.getElementById('sez-op-pulizie');
+    if (sezPulizie && sezPulizie.style.display === 'block') {
+        renderizzaPulizieGiorno();
+    }
+    mostraNotifica('✅ Pulizia segnata come completata', 'success');
+}
+
+function selezionaPianoPulizia(id) {
+    const task = (databasePuliziePiano || []).find(t => t.id === id);
+    if (!task) return;
+
+    const editId = document.getElementById('pulizia-edit-id');
+    const nomeEl = document.getElementById('pulizia-nome');
+    const freqEl = document.getElementById('pulizia-frequenza');
+    const dayWeekEl = document.getElementById('pulizia-giorno-sett');
+    const dayMonthEl = document.getElementById('pulizia-giorno-mese');
+    const intervalEl = document.getElementById('pulizia-intervallo');
+    const startEl = document.getElementById('pulizia-start');
+
+    if (editId) editId.value = task.id;
+    if (nomeEl) nomeEl.value = task.nome || '';
+    if (freqEl) freqEl.value = task.frequenza || 'daily';
+    if (dayWeekEl) dayWeekEl.value = typeof task.dayOfWeek === 'number' ? String(task.dayOfWeek) : '1';
+    if (dayMonthEl) dayMonthEl.value = String(task.dayOfMonth || 1);
+    if (intervalEl) intervalEl.value = String(task.everyNDays || 7);
+    if (startEl) startEl.value = task.startDate || new Date().toISOString().slice(0, 10);
+
+    aggiornaPianoPuliziaCampi();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderPianoPulizieAdmin() {
+    const container = document.getElementById('lista-piano-pulizie');
+    const overdueBox = document.getElementById('piano-pulizie-ritardi');
+    const startEl = document.getElementById('pulizia-start');
+    if (startEl && !startEl.value) {
+        startEl.value = new Date().toISOString().slice(0, 10);
+    }
+    if (!container) return;
+
+    const list = databasePuliziePiano || [];
+    const today = new Date();
+    const overdueTasks = getOverdueTasksForDate(today)
+        .map((task) => ({ task, lastDue: getLastDueDate(task, today) }))
+        .sort((a, b) => {
+            const aTime = a.lastDue ? a.lastDue.getTime() : 0;
+            const bTime = b.lastDue ? b.lastDue.getTime() : 0;
+            return aTime - bTime;
+        });
+
+    if (overdueBox) {
+        if (overdueTasks.length === 0) {
+            overdueBox.innerHTML = '';
+        } else {
+            const items = overdueTasks.map(({ task, lastDue }) => {
+                const lastDueStr = lastDue ? lastDue.toLocaleDateString('it-IT') : '—';
+                return `
+                    <div class="piano-item is-overdue">
+                        <div class="piano-item-head">
+                            <div>
+                                <div class="piano-item-title">${escapeHtml(task.nome || '')}</div>
+                                <div class="piano-item-meta">Scaduta il ${lastDueStr}</div>
+                            </div>
+                            <div class="piano-item-actions">
+                                <button type="button" onclick="registraPuliziaManualeDaAdmin('${task.id}')" style="background:#30D158;">Segna fatta oggi</button>
+                                <button type="button" onclick="selezionaPianoPulizia('${task.id}')" style="background:#2196F3;">Modifica</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            overdueBox.innerHTML = `
+                <div class="piano-overdue-title">⏰ Pulizie in ritardo (${overdueTasks.length})</div>
+                ${items}
+            `;
+        }
+    }
+
+    if (list.length === 0) {
+        container.innerHTML = '<p style="color:#888; text-align:center; padding:20px;">Nessuna pulizia programmata</p>';
+        return;
+    }
+
+    container.innerHTML = list.map(task => {
+        const freq = descriviFrequenza(task);
+        const start = task.startDate ? `Dal ${task.startDate}` : 'Senza data inizio';
+        const stato = task.attiva === false ? 'Disattiva' : 'Attiva';
+        const toggleLabel = task.attiva === false ? 'Attiva' : 'Disattiva';
+        return `
+            <div class="piano-item">
+                <div class="piano-item-head">
+                    <div>
+                        <div class="piano-item-title">${escapeHtml(task.nome || '')}</div>
+                        <div class="piano-item-meta">${freq} • ${start} • ${stato}</div>
+                    </div>
+                    <div class="piano-item-actions">
+                        <button type="button" onclick="selezionaPianoPulizia('${task.id}')" style="background:#2196F3;">Modifica</button>
+                        <button type="button" onclick="togglePianoPulizia('${task.id}')" style="background:#FF9800;">${toggleLabel}</button>
+                        <button type="button" onclick="eliminaPianoPulizia('${task.id}')" style="background:#ff5252;">Elimina</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 /* ===========================================================
@@ -6073,6 +6652,10 @@ function renderizzaDashboard() {
             </div>
         </div>
     `;
+
+    aggiornaBadgePulizieHome();
+    aggiornaRiepilogoPulizie();
+    inviaAvvisoPulizieGiornaliero();
 }
 
 const ORDINI_STORAGE_KEY = 'haccp_ordini';

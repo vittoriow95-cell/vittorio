@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.665.0",
+    "better-sqlite3": "^11.5.0",
     "bcryptjs": "^2.4.3",
     "imap": "^0.8.19",
     "mailparser": "^3.9.3",
@@ -40,8 +41,19 @@
     "win": {
       "target": "nsis"
     },
+    "nsis": {
+      "perMachine": true,
+      "allowElevation": true,
+      "include": "build/installer.nsh"
+    },
     "mac": {
-      "target": "dmg"
+      "target": [
+        "dmg",
+        "pkg"
+      ]
+    },
+    "pkg": {
+      "scripts": "build/mac"
     }
   }
 }
