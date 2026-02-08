@@ -18,16 +18,36 @@ function buildComandi(dati, config) {
     const fontTitolo = config.fontTitolo || '3';
     const fontCampi = config.fontCampi || '2';
     const isCustom = Boolean(dati && (dati.customLabel || dati.titolo || dati.etichetta || dati.valore));
+    const labelWidthDots = Math.round((parseFloat(config.larghezza) || 40) * 8);
+
+    function estimateCharWidth(font) {
+        switch (String(font)) {
+            case '1': return 8;
+            case '2': return 12;
+            case '4': return 32;
+            case '5': return 48;
+            default: return 24;
+        }
+    }
+
+    function centerX(text, font, scale) {
+        if (!text) return 0;
+        const charWidth = estimateCharWidth(font);
+        const estWidth = text.length * charWidth * scale;
+        return Math.max(0, Math.floor((labelWidthDots - estWidth) / 2));
+    }
 
     if (isCustom) {
         const titolo = String(dati.titolo || '').trim();
         const etichetta = String(dati.etichetta || '').trim();
         const valore = String(dati.valore || '').trim();
         const linea = [etichetta, valore].filter(Boolean).join(': ');
+        const titoloScale = 2;
 
         if (titolo) {
-            comandiStampante += `TEXT 20,${y},"${fontTitolo}",0,1,1,"${titolo}"\r\n`;
-            y += 40;
+            const xTitolo = centerX(titolo, fontTitolo, titoloScale);
+            comandiStampante += `TEXT ${xTitolo},${y},"${fontTitolo}",0,${titoloScale},${titoloScale},"${titolo}"\r\n`;
+            y += 40 * titoloScale;
         }
         if (linea) {
             comandiStampante += `TEXT 10,${y},"${fontCampi}",0,1,1,"${linea}"\r\n`;
