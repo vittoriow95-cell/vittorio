@@ -1877,7 +1877,14 @@ async function uploadFoto(tipo, dataUrl) {
     if (!data.success) {
         throw new Error(data.error || 'Upload fallito');
     }
-    return data.url;
+    const url = data.url || '';
+    const isRender = location.hostname.endsWith('onrender.com');
+    const isRelative = url.startsWith('/foto-');
+    // Su Render senza storage persistente, salva direttamente il dataUrl.
+    if (isRender && isRelative) {
+        return dataUrl;
+    }
+    return url;
 }
 
 function gestisciFotoIngredienteManuale(input) {
