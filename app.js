@@ -1221,9 +1221,7 @@ function convalidaTracciabilitaCamera() {
                 return await uploadFoto('ingrediente', f.dataUrl);
             } catch (err) {
                 console.error('Upload foto ingrediente fallito:', err.message);
-                if (isRenderHost()) {
-                    return '';
-                }
+                // Fallback: salva comunque il dataUrl per non perdere la foto.
                 return f.dataUrl;
             }
         })
@@ -1887,9 +1885,10 @@ async function uploadFoto(tipo, dataUrl) {
     const url = data.url || '';
     const isRelative = url.startsWith('/foto-');
     if (isRenderHost() && isRelative) {
-        throw new Error('R2 non attivo: URL foto non persistente');
+        // Fallback: salva dataUrl se R2 non attivo.
+        return dataUrl;
     }
-    return url;
+    return url || dataUrl;
 }
 
 function gestisciFotoIngredienteManuale(input) {
