@@ -1212,11 +1212,28 @@
         <h3 style="margin-bottom:12px;">DETTAGLIO LOTTO</h3>
         <div id="dettaglio-lotto-contenuto" style="margin-bottom:12px;"></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" onclick="apriGalleriaLotto()" style="background:#0A84FF;">FOTO</button>
             <button type="button" onclick="stampaLottoDaDettaglio()" style="background:#30D158;">STAMPA</button>
             <button type="button" onclick="terminaLottoDaDettaglio()" style="background:#FF9F0A;">TERMINA</button>
             <button type="button" onclick="cambiaLottoDaDettaglio()" style="background:#2196F3;">CAMBIA LOTTO</button>
             <button type="button" onclick="chiudiModalDettaglioLotto()" style="background:#444;">CHIUDI</button>
         </div>
+    </div>
+</div>
+
+<!-- MODAL GALLERIA FOTO LOTTO -->
+<div id="modal-galleria-lotto" class="overlay-lotto" style="display:none;">
+    <div class="card-centrale" style="max-width: 900px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
+            <h3 style="margin:0;">FOTO LOTTO</h3>
+            <button type="button" onclick="chiudiGalleriaLotto()" style="background:#444;">CHIUDI</button>
+        </div>
+        <div class="galleria-lotto">
+            <button type="button" class="galleria-nav" onclick="cambiaFotoLotto(-1)">◀︎</button>
+            <img id="galleria-foto-principale" class="galleria-img" alt="Foto lotto" />
+            <button type="button" class="galleria-nav" onclick="cambiaFotoLotto(1)">▶︎</button>
+        </div>
+        <div id="galleria-thumbs" class="galleria-thumbs"></div>
     </div>
 </div>
 

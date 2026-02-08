@@ -1010,6 +1010,8 @@ let lottoDettaglioCorrente = null;
 let dataArchivioTemperatura = null;
 let lottiArchivioCorrenti = [];
 let cameraIngredientiStream = null;
+let galleriaFotoLotto = [];
+let galleriaIndiceLotto = 0;
 
 function inizializzaTracciabilitaCamera() {
     fotoIngredientiTemp = [];
@@ -2363,6 +2365,10 @@ Questa operazione non puo' essere annullata.`)) {
 
     renderizzaArchivioLotti();
     mostraNotifica('🗑️ Lotto eliminato', 'success');
+
+    if (typeof salvaDatiSuCloud === 'function') {
+        salvaDatiSuCloud();
+    }
 }
 
 function apriModalStampaCopieDaArchivio(index) {
@@ -2381,13 +2387,14 @@ function apriDettaglioLotto(index) {
     if (container) {
         const foto = lotto.fotoLottoUrl ? `<img src="${lotto.fotoLottoUrl}" style="width:100%; max-height:200px; object-fit:contain; border-radius:8px; border:1px solid #333;">` : '';
         const fotoCount = Array.isArray(lotto.fotoIngredienti) ? lotto.fotoIngredienti.length : 0;
+        const totaleFoto = (lotto.fotoLottoUrl ? 1 : 0) + fotoCount;
         container.innerHTML = `
             <div style="margin-bottom:8px;">${foto}</div>
             <div style="color:#fff; font-weight:600;">${lotto.prodotto || ''}</div>
             <div style="color:#aaa; font-size:12px;">Lotto: ${lotto.lottoInterno || ''}</div>
             <div style="color:#aaa; font-size:12px;">Produzione: ${lotto.dataProduzione || ''}</div>
             <div style="color:#aaa; font-size:12px;">Scadenza: ${lotto.scadenza || ''}</div>
-            <div style="color:#aaa; font-size:12px;">Foto ingredienti: ${fotoCount}</div>
+            <div style="color:#aaa; font-size:12px;">Foto totali: ${totaleFoto}</div>
         `;
     }
 
@@ -2398,6 +2405,54 @@ function apriDettaglioLotto(index) {
 function chiudiModalDettaglioLotto() {
     const modal = document.getElementById('modal-dettaglio-lotto');
     if (modal) modal.style.display = 'none';
+}
+
+function apriGalleriaLotto() {
+    if (!lottoDettaglioCorrente) return;
+    galleriaFotoLotto = [];
+    if (lottoDettaglioCorrente.fotoLottoUrl) {
+        galleriaFotoLotto.push(lottoDettaglioCorrente.fotoLottoUrl);
+    }
+    if (Array.isArray(lottoDettaglioCorrente.fotoIngredienti)) {
+        galleriaFotoLotto.push(...lottoDettaglioCorrente.fotoIngredienti.filter(Boolean));
+    }
+    if (galleriaFotoLotto.length === 0) {
+        mostraNotifica('Nessuna foto disponibile', 'info');
+        return;
+    }
+    galleriaIndiceLotto = 0;
+    renderGalleriaLotto();
+    const modal = document.getElementById('modal-galleria-lotto');
+    if (modal) modal.style.display = 'flex';
+}
+
+function chiudiGalleriaLotto() {
+    const modal = document.getElementById('modal-galleria-lotto');
+    if (modal) modal.style.display = 'none';
+}
+
+function cambiaFotoLotto(delta) {
+    if (!galleriaFotoLotto.length) return;
+    galleriaIndiceLotto = (galleriaIndiceLotto + delta + galleriaFotoLotto.length) % galleriaFotoLotto.length;
+    renderGalleriaLotto();
+}
+
+function selezionaFotoLotto(index) {
+    if (index < 0 || index >= galleriaFotoLotto.length) return;
+    galleriaIndiceLotto = index;
+    renderGalleriaLotto();
+}
+
+function renderGalleriaLotto() {
+    const img = document.getElementById('galleria-foto-principale');
+    const thumbs = document.getElementById('galleria-thumbs');
+    if (!img || !thumbs) return;
+
+    img.src = galleriaFotoLotto[galleriaIndiceLotto] || '';
+    thumbs.innerHTML = galleriaFotoLotto.map((url, i) => {
+        const active = i === galleriaIndiceLotto ? 'attiva' : '';
+        return `<img src="${url}" class="galleria-thumb ${active}" onclick="selezionaFotoLotto(${i})" />`;
+    }).join('');
 }
 
 function stampaLottoDaDettaglio() {
