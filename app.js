@@ -1464,6 +1464,22 @@ function cambiaLotto(lotto) {
    9. GESTIONE LOTTI E PRODUZIONE - CREAZIONE NUOVO LOTTO
    =========================================================== */
 
+let modalOpenCount = 0;
+
+function setModalOpen(isOpen) {
+    const body = document.body;
+    if (!body) return;
+    if (isOpen) {
+        modalOpenCount += 1;
+        body.classList.add('modal-open');
+        return;
+    }
+    modalOpenCount = Math.max(0, modalOpenCount - 1);
+    if (modalOpenCount === 0) {
+        body.classList.remove('modal-open');
+    }
+}
+
 // Apre il modal per registrare un nuovo lotto
 function apriModalLotto() {
     ingredientiLottoCorrente = []; // Reset lista ingredienti
@@ -1483,11 +1499,13 @@ function apriModalLotto() {
         dataScadenzaEl.value = scad.toISOString().slice(0, 10);
     }
     document.getElementById("modal-produzione").style.display = "flex";
+    setModalOpen(true);
 }
 
 // Chiude il modal produzione
 function chiudiModalLotto() {
     document.getElementById("modal-produzione").style.display = "none";
+    setModalOpen(false);
     // Reset campi
     ingredientiLottoCorrente = [];
     fotoLottoTempUrl = '';
@@ -1514,10 +1532,12 @@ function apriModalSelezionaIngredienti() {
     ingredienteInSelezioneIndex = null;
     renderizzaSelezioneIngredienti();
     document.getElementById('modal-seleziona-ingredienti').style.display = 'flex';
+    setModalOpen(true);
 }
 
 function chiudiModalSelezionaIngredienti() {
     document.getElementById('modal-seleziona-ingredienti').style.display = 'none';
+    setModalOpen(false);
     modalSelezioneModo = 'ricetta';
     ingredienteInSelezioneIndex = null;
 }
@@ -1748,12 +1768,14 @@ function scansionaIngredienteFoto() {
     document.getElementById('preview-foto-ingrediente').innerHTML = '';
     document.getElementById('risultato-ocr-ingrediente').innerHTML = '<p style="color:#888; margin:0;">In attesa di foto...</p>';
     document.getElementById('form-ingrediente-estratto').style.display = 'none';
+    setModalOpen(true);
 }
 
 // Chiude modal scansione ingrediente
 function chiudiModalScansioneIngrediente() {
     document.getElementById('modal-scansione-ingrediente').style.display = 'none';
     document.getElementById('input-foto-ingrediente-ocr').value = '';
+    setModalOpen(false);
 }
 
 function estraiDataDaTesto(text) {
@@ -2243,11 +2265,13 @@ function apriModalStampaCopie() {
     const input = document.getElementById('input-copie-stampa');
     if (input) input.value = '1';
     if (modal) modal.style.display = 'flex';
+    setModalOpen(true);
 }
 
 function chiudiModalStampaCopie() {
     const modal = document.getElementById('modal-stampa-copie');
     if (modal) modal.style.display = 'none';
+    setModalOpen(false);
 }
 
 function aggiornaCopieStampa(delta) {
@@ -2430,11 +2454,13 @@ function apriDettaglioLotto(index) {
 
     const modal = document.getElementById('modal-dettaglio-lotto');
     if (modal) modal.style.display = 'flex';
+    setModalOpen(true);
 }
 
 function chiudiModalDettaglioLotto() {
     const modal = document.getElementById('modal-dettaglio-lotto');
     if (modal) modal.style.display = 'none';
+    setModalOpen(false);
 }
 
 function getFotoLottoCorrente() {
@@ -2505,11 +2531,13 @@ function apriGalleriaLotto() {
     inizializzaSwipeGalleria();
     const modal = document.getElementById('modal-galleria-lotto');
     if (modal) modal.style.display = 'flex';
+    setModalOpen(true);
 }
 
 function chiudiGalleriaLotto() {
     const modal = document.getElementById('modal-galleria-lotto');
     if (modal) modal.style.display = 'none';
+    setModalOpen(false);
 }
 
 function cambiaFotoLotto(delta) {
@@ -3696,10 +3724,12 @@ function vaiANC() {
 // Apre modal nuova segnalazione
 function apriModalNC() {
     document.getElementById("modal-nc").style.display = "flex";
+    setModalOpen(true);
 }
 
 function chiudiModalNC() {
     document.getElementById("modal-nc").style.display = "none";
+    setModalOpen(false);
     // Reset campi
     document.getElementById("nc-tipo").value = "";
     document.getElementById("nc-area").value = "";
@@ -3847,11 +3877,13 @@ function apriModalAzioneCorrettiva(idNC) {
     document.getElementById('nc-id-chiusura').value = idNC;
     document.getElementById('nc-responsabile').value = sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore';
     document.getElementById("modal-azione-correttiva").style.display = "flex";
+    setModalOpen(true);
 }
 
 function chiudiModalAzioneCorrettiva() {
     document.getElementById("modal-azione-correttiva").style.display = "none";
     document.getElementById("nc-azione").value = "";
+    setModalOpen(false);
 }
 
 // Chiude NC con azione correttiva
@@ -5636,7 +5668,10 @@ function syncOraOrdineUI() {
 function toggleCalendarioOrdini(show) {
     const modal = document.getElementById('ordini-modal');
     if (!modal) return;
+    const eraAperto = modal.style.display === 'flex';
     modal.style.display = show ? 'flex' : 'none';
+    if (show && !eraAperto) setModalOpen(true);
+    if (!show && eraAperto) setModalOpen(false);
     if (show) {
         inizializzaMeseCalendario();
         syncOraOrdineUI();
