@@ -1129,7 +1129,7 @@ label {
     gap: 16px;
     margin-bottom: 24px;
     align-items: end;
-    max-width: 420px;
+    max-width: 340px;
     margin-left: auto;
     margin-right: auto;
 }
@@ -1146,7 +1146,7 @@ label {
     width: 100%;
     padding: 8px 10px;
     text-align: center;
-    max-width: 220px;
+    max-width: 160px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.18);
     color: var(--text-primary);
@@ -1194,10 +1194,19 @@ label {
     }
 }
 
+@media (max-width: 1024px) {
+    .report-date-grid {
+        max-width: 320px;
+    }
+
+    .report-date-input {
+        max-width: 150px;
+    }
+}
+
 @media (max-width: 680px) {
     .report-date-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
+        max-width: 260px;
     }
 
     .report-card {
