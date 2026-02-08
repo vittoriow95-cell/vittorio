@@ -2468,7 +2468,8 @@ async function inviaStampa(datiStampa) {
     }
 
     const targets = [];
-    if (PRINT_DIRECT_URL && location.hostname.endsWith('onrender.com')) {
+    const isCustom = Boolean(datiStampa && datiStampa.customLabel);
+    if (!isCustom && PRINT_DIRECT_URL && location.hostname.endsWith('onrender.com')) {
         targets.push({ url: PRINT_DIRECT_URL, timeout: PRINT_DIRECT_TIMEOUT_MS });
     }
     targets.push({ url: '/stampa', timeout: PRINT_FALLBACK_TIMEOUT_MS });
