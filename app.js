@@ -2382,10 +2382,13 @@ Questa operazione non puo' essere annullata.`)) {
         return;
     }
 
-    const lottoIndex = databaseLotti.findIndex(l =>
-        l.lottoInterno === lotto.lottoInterno &&
-        l.dataProduzione === lotto.dataProduzione
-    );
+    let lottoIndex = databaseLotti.indexOf(lotto);
+    if (lottoIndex === -1) {
+        lottoIndex = databaseLotti.findIndex(l => l.timestamp && l.timestamp === lotto.timestamp);
+    }
+    if (lottoIndex === -1) {
+        lottoIndex = databaseLotti.findIndex(l => l.lottoInterno === lotto.lottoInterno);
+    }
 
     if (lottoIndex === -1) {
         mostraNotifica('⚠️ Lotto non trovato', 'warning');
