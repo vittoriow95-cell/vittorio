@@ -283,6 +283,7 @@ async function salvaDatiSuCloud() {
             configPec: localStorage.getItem('haccp_pec_accounts'),
             ingredienti: localStorage.getItem('haccp_ingredienti'),
             fotoLotti: localStorage.getItem('haccp_foto_lotti'),
+            tempNC: localStorage.getItem('haccp_temp_nc'),
             ordini: localStorage.getItem('haccp_ordini'),
             ultimoSync: new Date().toISOString()
         };
@@ -340,6 +341,7 @@ async function caricaDatiDaCloud() {
                 configPec: 'haccp_pec_accounts',
                 ingredienti: 'haccp_ingredienti',
                 fotoLotti: 'haccp_foto_lotti',
+                tempNC: 'haccp_temp_nc',
                 ordini: 'haccp_ordini'
             };
 
@@ -359,6 +361,7 @@ async function caricaDatiDaCloud() {
             if (typeof renderizzaLotti === 'function') renderizzaLotti();
             if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
             if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
+            if (typeof renderTempNCList === 'function') renderTempNCList();
             if (typeof renderizzaProdottiAdmin === 'function') renderizzaProdottiAdmin();
             if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
             

@@ -52,6 +52,8 @@
     </div>
 </section>
 
+<button type="button" id="temp-nc-trigger" class="temp-nc-trigger-icon" onclick="apriTempNcManuale()" aria-label="Gestisci anomalie">⚠️</button>
+
 <!-- ADMIN - GESTIONE UTENTI -->
 <section id="sez-admin-utenti" class="schermata" style="display:none">
     <div class="header-sottopagina">
@@ -1015,6 +1017,75 @@
         <button type="button" onclick="salvaTemperatureGiornaliere()" style="width:100%; padding:12px; background:#30D158;">
             ✅ SALVA
         </button>
+    </div>
+
+    <div id="temp-nc-overlay" class="temp-nc-overlay">
+        <div id="temp-nc-card" class="card-centrale temp-nc-card">
+            <div class="temp-nc-header">
+                <h3 class="temp-nc-title">NON CONFORMITA TEMPERATURE</h3>
+                <button type="button" class="temp-nc-close" onclick="chiudiTempNC()">✕ Chiudi</button>
+            </div>
+
+            <div id="temp-nc-alert" class="temp-nc-alert"></div>
+
+            <div class="temp-nc-grid">
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-data">Data</label>
+                    <input type="date" id="temp-nc-data" class="temp-nc-input">
+                </div>
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-ora">Ora</label>
+                    <input type="time" id="temp-nc-ora" class="temp-nc-input">
+                </div>
+            </div>
+
+            <div class="temp-nc-field">
+                <label class="label-oro" for="temp-nc-frigo">Frigorifero</label>
+                <select id="temp-nc-frigo" class="temp-nc-input"></select>
+            </div>
+
+            <div class="temp-nc-grid">
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-frigo-val">Temperatura Frigo</label>
+                    <input type="number" step="0.1" id="temp-nc-frigo-val" class="temp-nc-input" placeholder="°C">
+                </div>
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-freezer-val">Temperatura Freezer</label>
+                    <input type="number" step="0.1" id="temp-nc-freezer-val" class="temp-nc-input" placeholder="°C">
+                </div>
+            </div>
+
+            <div class="temp-nc-field">
+                <label class="label-oro" for="temp-nc-motivo">Motivo</label>
+                <select id="temp-nc-motivo" class="temp-nc-input">
+                    <option value="Temperatura Fuori Range">🌡️ Temperatura Fuori Range</option>
+                    <option value="Mancata Rilevazione">⏱️ Mancata Rilevazione</option>
+                </select>
+            </div>
+
+            <div class="temp-nc-field">
+                <label class="label-oro" for="temp-nc-azione">Azione correttiva</label>
+                <textarea id="temp-nc-azione" class="temp-nc-textarea" placeholder="Descrivi l'azione intrapresa..."></textarea>
+            </div>
+
+            <div class="temp-nc-grid">
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-resp">Responsabile</label>
+                    <input type="text" id="temp-nc-resp" class="temp-nc-input" placeholder="Operatore">
+                </div>
+                <div class="temp-nc-field">
+                    <label class="label-oro" for="temp-nc-foto">Foto (opzionale)</label>
+                    <input type="file" id="temp-nc-foto" class="temp-nc-input" accept="image/*" capture="environment" onchange="gestisciFotoTempNC(this)">
+                    <div id="temp-nc-foto-preview" class="temp-nc-preview"></div>
+                </div>
+            </div>
+
+            <button type="button" class="temp-nc-save" onclick="salvaNonConformitaTemperatura()">
+                ✅ SALVA NON CONFORMITA
+            </button>
+
+            <div id="temp-nc-lista" class="temp-nc-lista"></div>
+        </div>
     </div>
 </section>
 

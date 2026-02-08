@@ -1215,6 +1215,204 @@ label {
 }
 
 /* ===========================================================
+   NON CONFORMITA TEMPERATURE
+   =========================================================== */
+
+.temp-nc-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    padding: 20px;
+}
+
+.temp-nc-overlay.is-visible {
+    display: flex;
+}
+
+.temp-nc-card {
+    width: min(92vw, 700px);
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 26px 24px;
+}
+
+.temp-nc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.temp-nc-alert {
+    display: none;
+    margin: 8px 0 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(255, 159, 10, 0.12);
+    border: 1px solid rgba(255, 159, 10, 0.35);
+    color: #ffd7a0;
+    font-size: 0.85rem;
+}
+
+.temp-nc-alert.is-visible {
+    display: block;
+}
+
+.temp-nc-title {
+    text-align: left;
+    margin-bottom: 0;
+    font-size: 1.1rem;
+}
+
+.temp-nc-close {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.temp-nc-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.temp-nc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.temp-nc-input {
+    width: 100%;
+    padding: 10px 12px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    color: var(--text-primary);
+}
+
+.temp-nc-textarea {
+    min-height: 90px;
+    resize: vertical;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: var(--text-primary);
+}
+
+.temp-nc-preview {
+    margin-top: 8px;
+}
+
+.temp-nc-preview img {
+    width: 100%;
+    max-height: 160px;
+    object-fit: cover;
+    border-radius: 10px;
+    border: 1px solid #333;
+}
+
+.temp-nc-save {
+    width: 100%;
+    padding: 12px;
+    margin-top: 6px;
+    background: linear-gradient(135deg, #FF453A, #FF9F0A);
+}
+
+.temp-nc-open {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 0.85rem;
+    width: 28px;
+    height: 28px;
+    background: rgba(255, 69, 58, 0.2);
+    border: 1px solid rgba(255, 69, 58, 0.35);
+    color: #ffb4ad;
+}
+
+.temp-nc-trigger-icon {
+    display: none;
+    position: fixed;
+    right: 16px;
+    top: 72px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(255, 69, 58, 0.22);
+    border: 1px solid rgba(255, 69, 58, 0.45);
+    color: #ffb4ad;
+    font-size: 1rem;
+    padding: 0;
+    z-index: 10050;
+}
+
+.temp-nc-trigger-icon.is-visible {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.temp-frigo-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.temp-frigo-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.temp-frigo-input {
+    width: 110px;
+    text-align: center;
+}
+
+.temp-nc-lista {
+    margin-top: 16px;
+    display: grid;
+    gap: 10px;
+}
+
+.temp-nc-item {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.temp-nc-item-title {
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.temp-nc-item-meta {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+@media (max-width: 700px) {
+    .temp-nc-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ===========================================================
    CHECKBOX E RADIO
    =========================================================== */
 

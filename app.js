@@ -8,6 +8,7 @@ const PIN_ADMIN = "9999";
 let databaseUtenti = JSON.parse(localStorage.getItem("haccp_utenti")) || [];
 let databaseFrigo = JSON.parse(localStorage.getItem("haccp_frigo")) || [];
 let databaseTemperature = JSON.parse(localStorage.getItem("haccp_log")) || [];
+let databaseTempNC = JSON.parse(localStorage.getItem("haccp_temp_nc")) || [];
 let databaseLotti = JSON.parse(localStorage.getItem("haccp_lotti")) || [];
 let elencoNomiProdotti = JSON.parse(localStorage.getItem("haccp_elenco_nomi")) || [];
 let databaseIngredienti = JSON.parse(localStorage.getItem("haccp_ingredienti")) || [];
@@ -220,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('light-mode');
         aggiornaIconaTema();
     }
+    aggiornaTempNcTriggerDaStorage();
 });
 
 function toggleTema() {
@@ -543,23 +545,355 @@ function popolaMenuFrigo() {
    6. REGISTRAZIONE TEMPERATURE (OPERATORE)
    =========================================================== */
 
+let tempNcFotoDataUrl = '';
+let tempNcFotoBackup = '';
+let tempNcArmed = false;
+const TEMP_NC_PENDING_KEY = 'haccp_temp_anomalie_pending';
+
 function renderizzaTemperatureEntry() {
     const container = document.getElementById('lista-temperature-frigo');
     if (!container) return;
 
     if (!databaseFrigo || databaseFrigo.length === 0) {
         container.innerHTML = '<p style="color:#888; text-align:center;">Nessun frigo configurato</p>';
+        initTempNCForm();
+        chiudiTempNC();
         return;
     }
 
     container.innerHTML = databaseFrigo.map((f) => {
         return `
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+            <div class="temp-frigo-row">
                 <div style="color:#fff; font-weight:600; font-size:13px;">${f.nome}</div>
-                <input type="number" step="0.1" data-frigo-temp data-frigo-nome="${f.nome}" placeholder="°C" style="max-width:120px; text-align:center;">
+                <div class="temp-frigo-actions">
+                    <input type="number" step="0.1" data-frigo-temp data-frigo-nome="${f.nome}" placeholder="°C" class="temp-frigo-input">
+                    <button type="button" class="temp-nc-open" data-frigo-nome="${f.nome}" style="display:none;" aria-label="Apri non conformita">⚠️</button>
+                </div>
             </div>
         `;
     }).join('');
+
+    container.querySelectorAll('.temp-nc-open').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const frigo = btn.getAttribute('data-frigo-nome') || '';
+            const input = container.querySelector(`[data-frigo-temp][data-frigo-nome="${escapeAttrSelector(frigo)}"]`);
+            const valore = input ? parseFloat(input.value) : NaN;
+            apriTempNcDaAllarme(frigo, valore);
+        });
+    });
+
+    initTempNCForm();
+    chiudiTempNC();
+    tempNcArmed = getTempNcPending().length > 0;
+    aggiornaAllarmiTemperatura();
+    setTempNcTriggerVisible(tempNcArmed);
+}
+
+function initTempNCForm() {
+    const dataEl = document.getElementById('temp-nc-data');
+    const oraEl = document.getElementById('temp-nc-ora');
+    const frigoEl = document.getElementById('temp-nc-frigo');
+    const respEl = document.getElementById('temp-nc-resp');
+    const azioneEl = document.getElementById('temp-nc-azione');
+    const motivoEl = document.getElementById('temp-nc-motivo');
+    const frigoValEl = document.getElementById('temp-nc-frigo-val');
+    const freezerValEl = document.getElementById('temp-nc-freezer-val');
+    const fotoEl = document.getElementById('temp-nc-foto');
+    const previewEl = document.getElementById('temp-nc-foto-preview');
+
+    if (dataEl) {
+        dataEl.value = new Date().toISOString().slice(0, 10);
+    }
+    if (oraEl) {
+        oraEl.value = getOraAttuale();
+    }
+    if (respEl) {
+        respEl.value = sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore';
+    }
+    if (azioneEl) azioneEl.value = '';
+    if (motivoEl && !motivoEl.value) motivoEl.value = 'Temperatura Fuori Range';
+    if (frigoValEl) frigoValEl.value = '';
+    if (freezerValEl) freezerValEl.value = '';
+
+    if (frigoEl) {
+        frigoEl.innerHTML = '';
+        if (!databaseFrigo || databaseFrigo.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Nessun frigo configurato';
+            frigoEl.appendChild(opt);
+        } else {
+            databaseFrigo.forEach((f) => {
+                const opt = document.createElement('option');
+                opt.value = f.nome;
+                opt.textContent = f.nome;
+                frigoEl.appendChild(opt);
+            });
+        }
+    }
+
+    tempNcFotoDataUrl = '';
+    tempNcFotoBackup = '';
+    if (fotoEl) fotoEl.value = '';
+    if (previewEl) previewEl.innerHTML = '';
+
+    setTempNcAlert('');
+
+    renderTempNCList();
+}
+
+function setTempNcAlert(message) {
+    const alertEl = document.getElementById('temp-nc-alert');
+    if (!alertEl) return;
+    if (!message) {
+        alertEl.textContent = '';
+        alertEl.classList.remove('is-visible');
+        return;
+    }
+    alertEl.textContent = message;
+    alertEl.classList.add('is-visible');
+}
+
+function setTempNcCardVisible(isVisible) {
+    const overlay = document.getElementById('temp-nc-overlay');
+    if (!overlay) return;
+    overlay.classList.toggle('is-visible', Boolean(isVisible));
+}
+
+function setTempNcTriggerVisible(isVisible) {
+    const btn = document.getElementById('temp-nc-trigger');
+    if (!btn) return;
+    btn.classList.toggle('is-visible', Boolean(isVisible));
+}
+
+function getTempNcPending() {
+    try {
+        return JSON.parse(localStorage.getItem(TEMP_NC_PENDING_KEY)) || [];
+    } catch (err) {
+        return [];
+    }
+}
+
+function setTempNcPending(list) {
+    localStorage.setItem(TEMP_NC_PENDING_KEY, JSON.stringify(list || []));
+    setTempNcTriggerVisible(Boolean(list && list.length));
+}
+
+function aggiornaTempNcTriggerDaStorage() {
+    const pending = getTempNcPending();
+    setTempNcTriggerVisible(pending.length > 0);
+}
+
+function chiudiTempNC() {
+    setTempNcCardVisible(false);
+    if (tempNcArmed) {
+        const pending = getTempNcPending();
+        setTempNcTriggerVisible(pending.length > 0);
+    }
+}
+
+function getTipoFrigoByNome(nome) {
+    const frigo = databaseFrigo.find(f => f.nome === nome);
+    return frigo ? frigo.tipo : 'Positivo';
+}
+
+function isTemperaturaFuoriRange(frigoNome, valore) {
+    if (isNaN(valore)) return false;
+    const tipo = getTipoFrigoByNome(frigoNome);
+    if (tipo === 'Negativo') {
+        return valore < -22 || valore > -18;
+    }
+    return valore < 0 || valore > 4;
+}
+
+function aggiornaAllarmiTemperatura() {
+    const container = document.getElementById('lista-temperature-frigo');
+    if (!container) return;
+
+    if (!tempNcArmed) {
+        container.querySelectorAll('.temp-nc-open').forEach((btn) => {
+            btn.style.display = 'none';
+        });
+        return;
+    }
+
+    container.querySelectorAll('[data-frigo-temp]').forEach((input) => {
+        const frigo = input.getAttribute('data-frigo-nome') || '';
+        const valore = parseFloat(input.value);
+        const btn = container.querySelector(`.temp-nc-open[data-frigo-nome="${escapeAttrSelector(frigo)}"]`);
+        if (!btn) return;
+        const fuoriRange = isTemperaturaFuoriRange(frigo, valore);
+        btn.style.display = fuoriRange ? 'inline-flex' : 'none';
+    });
+}
+
+function apriTempNcDaAllarme(frigoNome, valore) {
+    initTempNCForm();
+
+    const frigoEl = document.getElementById('temp-nc-frigo');
+    if (frigoEl) frigoEl.value = frigoNome;
+
+    const motivoEl = document.getElementById('temp-nc-motivo');
+    if (motivoEl) motivoEl.value = 'Temperatura Fuori Range';
+
+    const frigoValEl = document.getElementById('temp-nc-frigo-val');
+    const freezerValEl = document.getElementById('temp-nc-freezer-val');
+    if (frigoValEl) frigoValEl.value = '';
+    if (freezerValEl) freezerValEl.value = '';
+
+    const tipo = getTipoFrigoByNome(frigoNome);
+    if (!isNaN(valore)) {
+        if (tipo === 'Negativo') {
+            if (freezerValEl) freezerValEl.value = String(valore);
+        } else {
+            if (frigoValEl) frigoValEl.value = String(valore);
+        }
+    }
+
+    const label = !isNaN(valore)
+        ? `Temperatura fuori range su ${frigoNome}: ${valore}°C`
+        : `Temperatura fuori range su ${frigoNome}`;
+    setTempNcAlert(label);
+
+    setTempNcCardVisible(true);
+}
+
+function apriTempNcDaMancata(frigoNome) {
+    initTempNCForm();
+
+    const frigoEl = document.getElementById('temp-nc-frigo');
+    if (frigoEl) frigoEl.value = frigoNome;
+
+    const motivoEl = document.getElementById('temp-nc-motivo');
+    if (motivoEl) motivoEl.value = 'Mancata Rilevazione';
+
+    setTempNcAlert(`Mancata rilevazione temperatura per ${frigoNome}`);
+    setTempNcCardVisible(true);
+}
+
+function rilevaAnomalieTemperature() {
+    const inputs = document.querySelectorAll('[data-frigo-temp]');
+    const anomalie = [];
+
+    inputs.forEach((input) => {
+        const frigo = input.getAttribute('data-frigo-nome') || '';
+        const valoreRaw = input.value.trim();
+        if (!valoreRaw) {
+            anomalie.push({ tipo: 'mancata', frigo });
+            return;
+        }
+        const valore = parseFloat(valoreRaw);
+        if (isNaN(valore)) return;
+        if (isTemperaturaFuoriRange(frigo, valore)) {
+            anomalie.push({ tipo: 'fuori-range', frigo, valore });
+        }
+    });
+
+    return anomalie;
+}
+
+function gestisciFotoTempNC(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        tempNcFotoDataUrl = e.target.result;
+        tempNcFotoBackup = await creaMiniaturaDataUrl(tempNcFotoDataUrl);
+        const previewEl = document.getElementById('temp-nc-foto-preview');
+        if (previewEl) {
+            previewEl.innerHTML = `<img src="${tempNcFotoBackup || tempNcFotoDataUrl}" alt="Foto non conformita">`;
+        }
+    };
+    reader.readAsDataURL(input.files[0]);
+}
+
+function renderTempNCList() {
+    const container = document.getElementById('temp-nc-lista');
+    if (!container) return;
+
+    databaseTempNC = JSON.parse(localStorage.getItem('haccp_temp_nc')) || [];
+
+    if (!databaseTempNC || databaseTempNC.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const ultimi = [...databaseTempNC].slice(-3).reverse();
+    container.innerHTML = ultimi.map((item) => {
+        const dataOra = [item.data, item.ora].filter(Boolean).join(' ');
+        const fotoSrc = resolveFotoSrc(item.fotoUrl, item.fotoBackup);
+        const fotoHtml = fotoSrc ? `<img src="${fotoSrc}" style="width:100%; max-height:140px; object-fit:cover; border-radius:10px; border:1px solid #333; margin-top:8px;">` : '';
+        return `
+            <div class="temp-nc-item">
+                <div class="temp-nc-item-title">${escapeHtml(item.motivo || 'Non conformita temperature')}</div>
+                <div class="temp-nc-item-meta">${escapeHtml(item.frigo || '—')} • ${escapeHtml(dataOra || '')}</div>
+                ${fotoHtml}
+            </div>
+        `;
+    }).join('');
+}
+
+async function salvaNonConformitaTemperatura() {
+    const dataEl = document.getElementById('temp-nc-data');
+    const oraEl = document.getElementById('temp-nc-ora');
+    const frigoEl = document.getElementById('temp-nc-frigo');
+    const frigoValEl = document.getElementById('temp-nc-frigo-val');
+    const freezerValEl = document.getElementById('temp-nc-freezer-val');
+    const motivoEl = document.getElementById('temp-nc-motivo');
+    const azioneEl = document.getElementById('temp-nc-azione');
+    const respEl = document.getElementById('temp-nc-resp');
+
+    if (!dataEl || !oraEl || !frigoEl || !motivoEl || !azioneEl || !respEl) return;
+
+    const data = dataEl.value || new Date().toISOString().slice(0, 10);
+    const ora = oraEl.value || getOraAttuale();
+    const frigo = frigoEl.value || '';
+    const tempFrigo = frigoValEl ? frigoValEl.value.trim() : '';
+    const tempFreezer = freezerValEl ? freezerValEl.value.trim() : '';
+    const motivo = motivoEl.value || '';
+    const azione = azioneEl.value.trim();
+    const responsabile = respEl.value.trim() || 'Operatore';
+
+    if (!azione) {
+        alert('Inserisci l\'azione correttiva');
+        return;
+    }
+
+    let fotoUrl = '';
+    let fotoBackup = tempNcFotoBackup || tempNcFotoDataUrl;
+    if (tempNcFotoDataUrl) {
+        try {
+            fotoUrl = await uploadFoto('temperatura', tempNcFotoDataUrl);
+        } catch (err) {
+            console.error('Upload foto temperatura fallito:', err.message);
+            fotoUrl = tempNcFotoDataUrl;
+        }
+    }
+
+    const record = {
+        id: Date.now().toString(),
+        data,
+        ora,
+        frigo,
+        tempFrigo,
+        tempFreezer,
+        motivo,
+        azione,
+        responsabile,
+        fotoUrl,
+        fotoBackup,
+        creatoIl: new Date().toISOString()
+    };
+
+    databaseTempNC.push(record);
+    localStorage.setItem('haccp_temp_nc', JSON.stringify(databaseTempNC));
+    const pending = getTempNcPending();
+    const aggiornate = pending.filter(p => !(p.frigo === frigo && p.tipo === motivo));
+    setTempNcPending(aggiornate);
+    tempNcArmed = aggiornate.length > 0;
+    mostraNotifica('✅ Non conformita temperatura salvata', 'success');
+    initTempNCForm();
+    chiudiTempNC();
+    aggiornaAllarmiTemperatura();
 }
 
 function salvaTemperatura() {
@@ -609,7 +943,37 @@ function salvaTemperatureGiornaliere() {
     localStorage.setItem("haccp_log", JSON.stringify(databaseTemperature));
     aggiornaAssistente(operatore);
     mostraNotifica('✅ Temperature salvate', 'success');
+
+    const anomalie = rilevaAnomalieTemperature();
+    const pending = anomalie.map((a) => ({
+        id: Date.now().toString() + Math.random().toString(16).slice(2),
+        tipo: a.tipo === 'mancata' ? 'Mancata Rilevazione' : 'Temperatura Fuori Range',
+        frigo: a.frigo,
+        valore: a.valore || ''
+    }));
+    tempNcArmed = pending.length > 0;
+    setTempNcPending(pending);
+    aggiornaAllarmiTemperatura();
     vaiA("sez-operatore");
+}
+
+function apriTempNcManuale() {
+    const pending = getTempNcPending();
+    if (pending.length === 0) {
+        mostraNotifica('Nessuna anomalia rilevata', 'success');
+        setTempNcTriggerVisible(false);
+        return;
+    }
+
+    const prima = pending[0];
+    vaiA('sez-op-temperature');
+    setTimeout(() => {
+        if (prima.tipo === 'Mancata Rilevazione') {
+            apriTempNcDaMancata(prima.frigo);
+        } else {
+            apriTempNcDaAllarme(prima.frigo, parseFloat(prima.valore));
+        }
+    }, 200);
 }
 
 function renderizzaArchivioTemperature() {
@@ -776,6 +1140,34 @@ function scaricaTemperatureGiornoPDF(dataStr) {
             y = 16;
         }
     });
+
+    const ncTemp = (databaseTempNC || []).filter(n => n.data === dataRif);
+    if (ncTemp.length > 0) {
+        if (y > 260) {
+            doc.addPage();
+            y = 16;
+        }
+        doc.setFontSize(12);
+        doc.text('Non conformita temperature', 14, y);
+        y += 8;
+
+        doc.setFontSize(10);
+        ncTemp.forEach((n) => {
+            const meta = [n.frigo, n.motivo, n.ora].filter(Boolean).join(' | ');
+            const nota = n.azione ? `Azione: ${n.azione}` : '';
+            const responsabile = n.responsabile ? `Resp: ${n.responsabile}` : '';
+            const righe = doc.splitTextToSize([meta, nota, responsabile].filter(Boolean).join(' - '), 180);
+            righe.forEach((riga) => {
+                doc.text(riga, 14, y);
+                y += 6;
+                if (y > 280) {
+                    doc.addPage();
+                    y = 16;
+                }
+            });
+            y += 2;
+        });
+    }
 
     doc.save(`temperature_${dataRif.replace(/\//g, '-')}.pdf`);
 }

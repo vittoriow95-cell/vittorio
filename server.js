@@ -38,6 +38,7 @@ const NOME_STAMPANTE = '4BARCODE 4B-2054L(BT)';
 const TEMPLATE_BARTENDER = path.join(__dirname, 'etichetta_haccp.btw');
 const FOTO_LOTTI_DIR = path.join(__dirname, 'foto-lotti');
 const FOTO_INGREDIENTI_DIR = path.join(__dirname, 'foto-ingredienti');
+const FOTO_TEMPERATURE_DIR = path.join(__dirname, 'foto-temperature');
 
 const R2_ENABLED = Boolean(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET);
 const R2_ENDPOINT = R2_ACCOUNT_ID ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : '';
@@ -60,6 +61,7 @@ function ensureDir(dirPath) {
 
 ensureDir(FOTO_LOTTI_DIR);
 ensureDir(FOTO_INGREDIENTI_DIR);
+ensureDir(FOTO_TEMPERATURE_DIR);
 
 function buildR2PublicUrl(key) {
     if (!R2_PUBLIC_BASE_URL) return '';
@@ -245,7 +247,7 @@ const server = http.createServer((req, res) => {
         });
     }
     // Servi foto lotti e ingredienti
-    else if (req.url.startsWith('/foto-lotti/') || req.url.startsWith('/foto-ingredienti/')) {
+    else if (req.url.startsWith('/foto-lotti/') || req.url.startsWith('/foto-ingredienti/') || req.url.startsWith('/foto-temperature/')) {
         const filePath = path.join(__dirname, req.url);
         const ext = path.extname(filePath).toLowerCase();
         const mimeTypes = {
@@ -837,7 +839,11 @@ const server = http.createServer((req, res) => {
 
                 const ext = mime.split('/')[1] || 'png';
                 const nomeFile = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-                const tipoFolder = tipo === 'ingrediente' ? 'ingredienti' : 'lotti';
+                const tipoFolder = tipo === 'ingrediente'
+                    ? 'ingredienti'
+                    : tipo === 'temperatura'
+                        ? 'temperature'
+                        : 'lotti';
 
                 if (R2_ENABLED) {
                     if (!R2_PUBLIC_BASE_URL) {
@@ -854,8 +860,16 @@ const server = http.createServer((req, res) => {
                     return;
                 }
 
-                const dir = tipo === 'ingrediente' ? FOTO_INGREDIENTI_DIR : FOTO_LOTTI_DIR;
-                const urlBase = tipo === 'ingrediente' ? '/foto-ingredienti/' : '/foto-lotti/';
+                const dir = tipo === 'ingrediente'
+                    ? FOTO_INGREDIENTI_DIR
+                    : tipo === 'temperatura'
+                        ? FOTO_TEMPERATURE_DIR
+                        : FOTO_LOTTI_DIR;
+                const urlBase = tipo === 'ingrediente'
+                    ? '/foto-ingredienti/'
+                    : tipo === 'temperatura'
+                        ? '/foto-temperature/'
+                        : '/foto-lotti/';
                 const filePath = path.join(dir, nomeFile);
 
                 fs.writeFileSync(filePath, buffer);
