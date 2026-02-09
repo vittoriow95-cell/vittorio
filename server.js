@@ -168,7 +168,7 @@ const PAROLE_URGENZA = [
     'tributi', 'tassa', 'contributi', 'mora', 'penale'
 ];
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     // CORS headers CORRETTI
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
