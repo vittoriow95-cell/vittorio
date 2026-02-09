@@ -27,16 +27,30 @@
 </div>
 
 <!-- MODAL SELEZIONE INGREDIENTI -->
-<div id="modal-seleziona-ingredienti" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
-    <div style="background:#1a1a1a; padding:30px; border-radius:15px; max-width:600px; width:90%; margin:20px; border:2px solid #4CAF50;">
-        <h3 style="color:#4CAF50; margin-bottom:20px; text-align:center;">✅ SELEZIONA INGREDIENTI</h3>
-        <div id="lista-ingredienti-selezione" style="max-height:300px; overflow-y:auto; background:#111; padding:10px; border-radius:8px; border:1px solid #333; margin-bottom:20px;"></div>
-        <button type="button" onclick="confermaSelezioneIngredienti()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer; margin-bottom:10px;">
-            ✅ CONFERMA SELEZIONE
-        </button>
-        <button type="button" onclick="chiudiModalSelezionaIngredienti()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
-            ❌ ANNULLA
-        </button>
+<div id="modal-seleziona-ingredienti" class="modal-overlay" style="display:none;">
+    <div class="modal-card is-green">
+        <h3 class="modal-title is-green">✅ SELEZIONA INGREDIENTI</h3>
+        <div id="lista-ingredienti-selezione" class="modal-list"></div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn is-success" onclick="confermaSelezioneIngredienti()">
+                ✅ CONFERMA SELEZIONE
+            </button>
+            <button type="button" class="modal-btn is-secondary" onclick="chiudiModalSelezionaIngredienti()">
+                ❌ ANNULLA
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL CHECKLIST GUIDATE -->
+<div id="modal-checklist" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <h3 id="checklist-title" class="modal-title">Checklist</h3>
+        <div id="checklist-items" class="modal-list"></div>
+        <div class="modal-actions">
+            <button type="button" id="checklist-confirm" class="modal-btn is-success">Conferma</button>
+            <button type="button" onclick="chiudiChecklistModal()" class="modal-btn is-secondary">Annulla</button>
+        </div>
     </div>
 </div>
 
@@ -49,6 +63,54 @@
         </div>
         <p>Seleziona operatore</p>
         <div id="lista-utenti-login" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:10px; margin-top:10px;"></div>
+    </div>
+</section>
+
+<!-- ADMIN - AUDIT LOG -->
+<section id="sez-admin-audit" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>🧾 AUDIT LOG</h3>
+    </div>
+
+    <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+        <div class="audit-toolbar">
+            <input type="text" id="audit-filter" placeholder="Cerca (utente, azione, sezione...)" />
+            <select id="audit-limit">
+                <option value="50">Ultimi 50</option>
+                <option value="100">Ultimi 100</option>
+                <option value="200" selected>Ultimi 200</option>
+                <option value="500">Ultimi 500</option>
+            </select>
+            <button type="button" onclick="caricaAuditLog()">🔄 Aggiorna</button>
+        </div>
+
+        <div id="audit-list" class="audit-list"></div>
+    </div>
+</section>
+
+<!-- ADMIN - FIRMA DIGITALE -->
+<section id="sez-admin-firma" class="schermata" style="display:none">
+    <div class="header-sottopagina">
+        <button onclick="vaiA('sez-admin')">⬅ TORNA INDIETRO</button>
+        <h3>✍️ FIRMA DIGITALE</h3>
+    </div>
+
+    <div class="contenuto">
+        <div class="card-centrale signature-card">
+            <p class="signature-help">Disegna la tua firma con il mouse o il dito.</p>
+            <canvas id="signature-canvas" class="signature-canvas"></canvas>
+
+            <div class="signature-actions">
+                <button type="button" onclick="clearSignatureCanvas()" class="signature-btn secondary">Cancella</button>
+                <button type="button" onclick="saveSignatureCanvas()" class="signature-btn primary">Salva firma</button>
+            </div>
+
+            <div class="signature-preview" id="signature-preview" style="display:none;">
+                <p>Anteprima firma salvata:</p>
+                <img id="signature-preview-img" alt="Firma" />
+            </div>
+        </div>
     </div>
 </section>
 
@@ -332,6 +394,11 @@
             <span class="label">STAMPA</span>
         </div>
 
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-firma')" style="border-color: #FF9F0A;">
+            <span class="emoji">✍️</span>
+            <span class="label" style="color: #FF9F0A;">FIRMA</span>
+        </div>
+
         <div class="icona-quadrata" onclick="apriGeneratoreReport()" style="border-color: #2196F3;">
             <span class="emoji">📄</span>
             <span class="label" style="color: #2196F3;">REPORT<br>MENSILE</span>
@@ -350,6 +417,11 @@
         <div class="icona-quadrata" onclick="vaiA('sez-admin-alert')" style="border-color: #30D158;">
             <span class="emoji">📧</span>
             <span class="label" style="color: #30D158;">ALERT<br>EMAIL/SMS</span>
+        </div>
+
+        <div class="icona-quadrata" onclick="vaiA('sez-admin-audit')" style="border-color: #64D2FF;">
+            <span class="emoji">🧾</span>
+            <span class="label" style="color: #64D2FF;">AUDIT<br>LOG</span>
         </div>
     </div>
 
@@ -592,6 +664,33 @@
         
         <div class="card-centrale report-card">
             <h3 class="report-title">Seleziona Periodo Report</h3>
+
+            <div class="report-customization">
+                <label class="label-oro" for="report-preset-select">Preset PDF</label>
+                <select id="report-preset-select">
+                    <option value="standard" selected>Standard</option>
+                    <option value="minimal">Minimal</option>
+                    <option value="official">Ufficiale</option>
+                </select>
+
+                <label class="label-oro" for="report-title-input">Titolo Report</label>
+                <input type="text" id="report-title-input" placeholder="REPORT HACCP">
+
+                <label class="label-oro" for="report-color-input">Colore Principale</label>
+                <input type="color" id="report-color-input" value="#0A84FF">
+
+                <label class="label-oro" for="report-logo-input">Logo (immagine)</label>
+                <input type="file" id="report-logo-input" accept="image/*">
+                <div id="report-logo-preview" style="display:none; margin: 8px 0; text-align:center;"></div>
+                <button type="button" onclick="rimuoviLogoReport()" style="width:100%; padding:10px; background:#444; margin-bottom:10px;">
+                    Rimuovi logo
+                </button>
+
+                <label style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                    <input type="checkbox" id="report-include-signature" checked>
+                    Includi firma operatore
+                </label>
+            </div>
             
             <div class="report-date-grid">
                 <div class="report-field">
@@ -643,6 +742,19 @@
     </div>
     
     <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+
+        <!-- Importa da Cloud Render -->
+        <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 16px;">☁️ Importa da Cloud Render</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Scarica i dati dal MongoDB su Render e li copia in questo computer.
+            </p>
+            <label for="render-url-input" style="display: block; margin-bottom: 8px; color: var(--oro);">URL Render:</label>
+            <input type="text" id="render-url-input" placeholder="https://vittorio-az8f.onrender.com" style="margin-bottom: 16px; width: 100%;">
+            <button onclick="importaDatiDaRender()" style="width: 100%; padding: 16px; background: linear-gradient(135deg, #0A84FF, #0066CC);">
+                ⬇️ IMPORTA DATI DAL CLOUD
+            </button>
+        </div>
         
         <!-- Export Dati -->
         <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
@@ -702,57 +814,57 @@
         <h2>📅 CALENDARIO SCADENZE</h2>
     </div>
     
-    <div class="contenuto" style="max-width: 1200px; margin: 0 auto;">
+    <div class="contenuto calendario-wrapper">
         
         <!-- Controlli Navigazione -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 16px; background: rgba(255, 255, 255, 0.05); border-radius: 16px;">
-            <button onclick="calendarioMesePrecedente()" style="padding: 12px 24px;">⬅ Mese Prec.</button>
-            <h3 id="calendario-mese-anno" style="margin: 0;">Gennaio 2026</h3>
-            <button onclick="calendarioMeseSuccessivo()" style="padding: 12px 24px;">Mese Succ. ➡</button>
+        <div class="calendario-toolbar">
+            <button onclick="calendarioMesePrecedente()">⬅ Mese Prec.</button>
+            <h3 id="calendario-mese-anno">Gennaio 2026</h3>
+            <button onclick="calendarioMeseSuccessivo()">Mese Succ. ➡</button>
         </div>
         
         <!-- Legenda -->
-        <div style="display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 20px; background: #FF453A; border-radius: 50%;"></div>
+        <div class="calendario-legend">
+            <div class="calendario-legend-item">
+                <div class="calendario-legend-dot" style="background: #FF453A;"></div>
                 <span>Scaduto</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 20px; background: #FF9F0A; border-radius: 50%;"></div>
+            <div class="calendario-legend-item">
+                <div class="calendario-legend-dot" style="background: #FF9F0A;"></div>
                 <span>Critico (0-3 gg)</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 20px; background: #FFD60A; border-radius: 50%;"></div>
+            <div class="calendario-legend-item">
+                <div class="calendario-legend-dot" style="background: #FFD60A;"></div>
                 <span>Imminente (4-7 gg)</span>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <div style="width: 20px; height: 20px; background: #30D158; border-radius: 50%;"></div>
+            <div class="calendario-legend-item">
+                <div class="calendario-legend-dot" style="background: #30D158;"></div>
                 <span>OK (>7 gg)</span>
             </div>
         </div>
         
         <!-- Griglia Calendario -->
-        <div id="calendario-container" style="background: rgba(255, 255, 255, 0.05); padding: 24px; border-radius: 16px;">
+        <div id="calendario-container" class="calendario-container">
             <!-- Intestazione giorni settimana -->
-            <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 8px;">
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Lun</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Mar</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Mer</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Gio</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Ven</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Sab</div>
-                <div style="text-align: center; font-weight: 600; padding: 12px; color: var(--text-secondary);">Dom</div>
+            <div class="calendario-weekdays">
+                <div class="calendario-weekday">Lun</div>
+                <div class="calendario-weekday">Mar</div>
+                <div class="calendario-weekday">Mer</div>
+                <div class="calendario-weekday">Gio</div>
+                <div class="calendario-weekday">Ven</div>
+                <div class="calendario-weekday">Sab</div>
+                <div class="calendario-weekday">Dom</div>
             </div>
             
             <!-- Giorni del mese (generati dinamicamente) -->
-            <div id="calendario-giorni" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;">
+            <div id="calendario-giorni" class="calendario-giorni-grid">
                 <!-- Popolato da JavaScript -->
             </div>
         </div>
         
         <!-- Dettagli Giorno Selezionato -->
-        <div id="calendario-dettagli" style="margin-top: 24px; padding: 24px; background: rgba(255, 255, 255, 0.05); border-radius: 16px; display: none;">
-            <h3 id="calendario-dettagli-titolo" style="margin-bottom: 16px;">Prodotti in scadenza</h3>
+        <div id="calendario-dettagli" class="calendario-dettagli">
+            <h3 id="calendario-dettagli-titolo">Prodotti in scadenza</h3>
             <div id="calendario-dettagli-lista"></div>
         </div>
         
@@ -767,6 +879,17 @@
     </div>
     
     <div class="contenuto" style="max-width: 900px; margin: 0 auto;">
+
+        <div class="card-centrale" style="padding: 24px; margin-bottom: 24px;">
+            <h3 style="margin-bottom: 12px;">🔔 Notifiche Intelligenti</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Mostra solo avvisi critici e prioritari.
+            </p>
+            <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="notif-smart-toggle" checked>
+                Attiva filtro intelligente
+            </label>
+        </div>
         
         <!-- Alert Email -->
         <div class="card-centrale" style="padding: 32px; margin-bottom: 24px;">
@@ -1092,6 +1215,9 @@
 
     <div class="card-centrale" style="max-width: 700px;">
         <div id="lista-temperature-frigo"></div>
+        <button type="button" onclick="copiaUltimeTemperature()" style="width:100%; padding:12px; background:#2196F3; margin-bottom:10px;">
+            🔁 RIPETI ULTIME TEMPERATURE
+        </button>
         <button type="button" onclick="salvaTemperatureGiornaliere()" style="width:100%; padding:12px; background:#30D158;">
             ✅ SALVA
         </button>
@@ -1279,102 +1405,102 @@
 
 <!-- MODAL PRODUZIONE -->
 <div id="modal-produzione" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale" style="position: relative; max-width: 450px;">
-        <button onclick="chiudiModalLotto()" style="position: absolute; top: 8px; right: 8px; background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: opacity 0.3s;">&times;</button>
+    <div class="card-centrale modal-sm">
+        <button onclick="chiudiModalLotto()" class="modal-close">&times;</button>
         
-        <h3 style="margin-bottom:8px; font-size:1rem; color:#fff; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">REGISTRA PRODUZIONE</h3>
+        <h3 class="modal-title-strong">REGISTRA PRODUZIONE</h3>
         
-        <label class="label-oro" for="select-prodotto-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCEGLI PRODOTTO:</label>
-        <select id="select-prodotto-lotto" onchange="gestisciNuovoProdotto(this.value)" style="margin-bottom:6px; padding:10px 12px;"></select>
+        <label class="label-oro label-compact" for="select-prodotto-lotto">SCEGLI PRODOTTO:</label>
+        <select id="select-prodotto-lotto" onchange="gestisciNuovoProdotto(this.value)"></select>
         
-        <label for="nuovo-prodotto-input" style="position: absolute; left: -9999px;">Nuovo prodotto</label>
-        <input type="text" id="nuovo-prodotto-input" placeholder="Nome nuovo prodotto" style="display:none; margin-bottom:6px; padding:10px 12px;">
+        <label for="nuovo-prodotto-input" class="sr-only">Nuovo prodotto</label>
+        <input type="text" id="nuovo-prodotto-input" class="is-hidden" placeholder="Nome nuovo prodotto">
 
-        <label class="label-oro" for="data-scadenza-lotto" style="margin-bottom:3px; font-size:0.85rem;">SCADENZA:</label>
-        <input type="date" id="data-scadenza-lotto" style="margin-bottom:6px; padding:10px 12px;">
+        <label class="label-oro label-compact" for="data-scadenza-lotto">SCADENZA:</label>
+        <input type="date" id="data-scadenza-lotto">
 
-        <label class="label-oro" for="lotto-origine-lotto" style="margin-bottom:3px; font-size:0.85rem;">LOTTO ORIGINE:</label>
-        <input type="text" id="lotto-origine-lotto" placeholder="Lotto fornitore" style="margin-bottom:6px; padding:10px 12px;">
+        <label class="label-oro label-compact" for="lotto-origine-lotto">LOTTO ORIGINE:</label>
+        <input type="text" id="lotto-origine-lotto" placeholder="Lotto fornitore">
 
-        <div class="label-oro" style="margin-bottom:3px; font-size:0.85rem;">LOTTI INGREDIENTI:</div>
-        <div id="lista-ingredienti-usati" style="background:rgba(5, 5, 7, 0.95); padding:6px; border-radius:5px; margin-bottom:6px; min-height:35px; border: 1px solid rgba(255, 255, 255, 0.25);">
-            <p style="color:#ccc; font-size:11px; margin:0;">Nessun ingrediente aggiunto</p>
+        <div class="label-oro label-compact">LOTTI INGREDIENTI:</div>
+        <div id="lista-ingredienti-usati" class="modal-box modal-box--compact">
+            <p class="modal-muted">Nessun ingrediente aggiunto</p>
         </div>
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:6px;">
-            <button type="button" onclick="apriModalSelezionaIngredienti()" style="padding:7px; font-size:12px; background:#4CAF50;">
+        <div class="modal-grid-2 modal-grid-compact">
+            <button type="button" class="modal-btn modal-btn--auto is-success" onclick="apriModalSelezionaIngredienti()">
                 ✅ SELEZIONA
             </button>
-            <button type="button" onclick="vaiA('sez-op-ingredienti')" style="padding:7px; font-size:12px; background:#2196F3;">
+            <button type="button" class="modal-btn modal-btn--auto is-primary" onclick="vaiA('sez-op-ingredienti')">
                 📦 REGISTRO
             </button>
         </div>
 
-        <label class="label-oro" for="input-foto-lotto-prodotto" style="margin-bottom:3px; font-size:0.85rem;">FOTO ETICHETTA PRODOTTO:</label>
-        <input type="file" id="input-foto-lotto-prodotto" accept="image/*" capture="environment" style="margin-bottom:6px;" onchange="processaFotoEtichettaLotto(this)">
-        <div id="preview-foto-lotto-prodotto" style="margin-bottom:6px;"></div>
+        <label class="label-oro label-compact" for="input-foto-lotto-prodotto">FOTO ETICHETTA PRODOTTO:</label>
+        <input type="file" id="input-foto-lotto-prodotto" accept="image/*" capture="environment" onchange="processaFotoEtichettaLotto(this)">
+        <div id="preview-foto-lotto-prodotto" class="modal-preview"></div>
 
-        <label class="label-oro" for="note-lotto" style="margin-bottom:3px; font-size:0.85rem;">NOTE (opzionale):</label>
-        <textarea id="note-lotto" placeholder="Note aggiuntive..." style="height:40px; margin-bottom:6px; padding:10px 12px;"></textarea>
+        <label class="label-oro label-compact" for="note-lotto">NOTE (opzionale):</label>
+        <textarea id="note-lotto" class="modal-textarea-compact" placeholder="Note aggiuntive..."></textarea>
 
-        <button type="button" onclick="confermaSalvataggioLotto()" style="margin-bottom:4px; padding:10px 14px;">SALVA E STAMPA</button>
-        <button type="button" onclick="chiudiModalLotto()" style="background:#444; padding:10px 14px;">ANNULLA</button>
+        <button type="button" class="modal-btn" onclick="confermaSalvataggioLotto()">SALVA E STAMPA</button>
+        <button type="button" class="modal-btn is-secondary" onclick="chiudiModalLotto()">ANNULLA</button>
     </div>
 </div>
 
 <!-- MODAL ASSOCIA PRODOTTO -->
 <div id="modal-associa-prodotto" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale" style="max-width: 600px;">
-        <h3 style="margin-bottom:12px;">ASSOCIA PRODOTTO</h3>
-        <label class="label-oro" for="select-prodotto-associa" style="margin-bottom:6px;">PRODOTTO</label>
-        <select id="select-prodotto-associa" onchange="selezionaProdottoAssocia(this.value)" style="width:100%; padding:10px 12px; margin-bottom:10px;"></select>
+    <div class="card-centrale">
+        <h3 class="modal-title-strong">ASSOCIA PRODOTTO</h3>
+        <label class="label-oro label-compact" for="select-prodotto-associa">PRODOTTO</label>
+        <select id="select-prodotto-associa" onchange="selezionaProdottoAssocia(this.value)"></select>
 
-        <label class="label-oro" for="scadenza-prodotto" style="margin-top:10px;">SCADENZA (opzionale)</label>
-        <input type="date" id="scadenza-prodotto" style="margin-bottom:10px;">
+        <label class="label-oro label-compact" for="scadenza-prodotto">SCADENZA (opzionale)</label>
+        <input type="date" id="scadenza-prodotto">
 
-        <div style="display:flex; gap:10px;">
-            <button type="button" onclick="confermaAssociaProdotto()" style="flex:1; background:#30D158;">CONFERMA</button>
-            <button type="button" onclick="chiudiModalAssociaProdotto()" style="flex:1; background:#444;">ANNULLA</button>
+        <div class="modal-actions-row">
+            <button type="button" class="modal-btn is-success" onclick="confermaAssociaProdotto()">CONFERMA</button>
+            <button type="button" class="modal-btn is-secondary" onclick="chiudiModalAssociaProdotto()">ANNULLA</button>
         </div>
     </div>
 </div>
 
 <!-- MODAL STAMPA COPIE -->
 <div id="modal-stampa-copie" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale" style="max-width: 420px;">
-        <h3 style="margin-bottom:12px;">STAMPA</h3>
-        <label class="label-oro" for="input-copie-stampa">COPIE (1-30)</label>
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-            <button type="button" onclick="aggiornaCopieStampa(-1)" style="padding:6px 10px;">-</button>
-            <input type="number" id="input-copie-stampa" min="1" max="30" value="1" style="width:90px; text-align:center;">
-            <button type="button" onclick="aggiornaCopieStampa(1)" style="padding:6px 10px;">+</button>
+    <div class="card-centrale modal-sm">
+        <h3 class="modal-title-strong">STAMPA</h3>
+        <label class="label-oro label-compact" for="input-copie-stampa">COPIE (1-30)</label>
+        <div class="modal-row modal-body">
+            <button type="button" class="modal-stepper-btn" onclick="aggiornaCopieStampa(-1)">-</button>
+            <input type="number" id="input-copie-stampa" class="modal-stepper-input" min="1" max="30" value="1">
+            <button type="button" class="modal-stepper-btn" onclick="aggiornaCopieStampa(1)">+</button>
         </div>
-        <div style="display:flex; gap:10px;">
-            <button type="button" onclick="confermaStampaCopie()" style="flex:1; background:#30D158;">STAMPA</button>
-            <button type="button" onclick="chiudiModalStampaCopie()" style="flex:1; background:#444;">ANNULLA</button>
+        <div class="modal-actions-row">
+            <button type="button" class="modal-btn is-success" onclick="confermaStampaCopie()">STAMPA</button>
+            <button type="button" class="modal-btn is-secondary" onclick="chiudiModalStampaCopie()">ANNULLA</button>
         </div>
     </div>
 </div>
 
 <!-- MODAL DETTAGLIO LOTTO -->
 <div id="modal-dettaglio-lotto" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale" style="max-width: 600px;">
-        <h3 style="margin-bottom:12px;">DETTAGLIO LOTTO</h3>
-        <div id="dettaglio-lotto-contenuto" style="margin-bottom:12px;"></div>
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button type="button" onclick="stampaLottoDaDettaglio()" style="background:#30D158;">STAMPA</button>
-            <button type="button" onclick="terminaLottoDaDettaglio()" style="background:#FF9F0A;">TERMINA</button>
-            <button type="button" onclick="cambiaLottoDaDettaglio()" style="background:#2196F3;">CAMBIA LOTTO</button>
-            <button type="button" onclick="chiudiModalDettaglioLotto()" style="background:#444;">CHIUDI</button>
+    <div class="card-centrale">
+        <h3 class="modal-title-strong">DETTAGLIO LOTTO</h3>
+        <div id="dettaglio-lotto-contenuto" class="modal-body"></div>
+        <div class="modal-actions-row">
+            <button type="button" class="modal-btn is-success" onclick="stampaLottoDaDettaglio()">STAMPA</button>
+            <button type="button" class="modal-btn" onclick="terminaLottoDaDettaglio()">TERMINA</button>
+            <button type="button" class="modal-btn is-primary" onclick="cambiaLottoDaDettaglio()">CAMBIA LOTTO</button>
+            <button type="button" class="modal-btn is-secondary" onclick="chiudiModalDettaglioLotto()">CHIUDI</button>
         </div>
     </div>
 </div>
 
 <!-- MODAL GALLERIA FOTO LOTTO -->
 <div id="modal-galleria-lotto" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale modal-wide" style="max-width: 900px;">
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px;">
-            <h3 style="margin:0;">FOTO LOTTO</h3>
-            <button type="button" onclick="chiudiGalleriaLotto()" style="background:#444;">CHIUDI</button>
+    <div class="card-centrale modal-wide">
+        <div class="modal-header-row">
+            <h3 class="modal-title-inline">FOTO LOTTO</h3>
+            <button type="button" class="modal-btn modal-btn--auto is-secondary" onclick="chiudiGalleriaLotto()">CHIUDI</button>
         </div>
         <div class="galleria-lotto">
             <button type="button" class="galleria-nav" onclick="cambiaFotoLotto(-1)">◀︎</button>
@@ -1386,41 +1512,41 @@
 </div>
 
 <!-- MODAL SCANSIONE INGREDIENTE -->
-<div id="modal-scansione-ingrediente" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:9999; justify-content:center; align-items:center; overflow-y:auto;">
-    <div style="background:#1a1a1a; padding:30px; border-radius:15px; max-width:600px; width:90%; margin:20px; border:2px solid #2196F3;">
-        <h3 style="color:#2196F3; margin-bottom:20px; text-align:center;">📷 SCANSIONE INGREDIENTE</h3>
+<div id="modal-scansione-ingrediente" class="modal-overlay" style="display:none;">
+    <div class="modal-card is-blue">
+        <h3 class="modal-title is-blue">📷 SCANSIONE INGREDIENTE</h3>
         
-        <label for="input-foto-ingrediente-ocr" style="position: absolute; left: -9999px;">Seleziona foto ingrediente</label>
-        <input type="file" id="input-foto-ingrediente-ocr" accept="image/*" capture="environment" style="display:none;" onchange="processaFotoIngrediente(this)">
+        <label for="input-foto-ingrediente-ocr" class="sr-only">Seleziona foto ingrediente</label>
+        <input type="file" id="input-foto-ingrediente-ocr" class="is-hidden" accept="image/*" capture="environment" onchange="processaFotoIngrediente(this)">
         
-        <div style="margin-bottom:20px;">
-            <button type="button" onclick="document.getElementById('input-foto-ingrediente-ocr').click()" style="width:100%; padding:15px; font-size:16px; background:#2196F3; border:none; border-radius:8px; color:white; cursor:pointer;">
+        <div class="modal-actions">
+            <button type="button" class="modal-btn is-primary" onclick="document.getElementById('input-foto-ingrediente-ocr').click()">
                 📸 SCATTA FOTO / CARICA IMMAGINE
             </button>
         </div>
         
-        <div id="preview-foto-ingrediente" style="margin-bottom:20px; text-align:center;"></div>
+        <div id="preview-foto-ingrediente" class="modal-preview"></div>
         
-        <div id="risultato-ocr-ingrediente" style="background:#2a2a2a; padding:15px; border-radius:8px; margin-bottom:20px; min-height:100px; color:#fff;">
-            <p style="color:#888; margin:0;">In attesa di foto...</p>
+        <div id="risultato-ocr-ingrediente" class="modal-result">
+            <p class="modal-placeholder">In attesa di foto...</p>
         </div>
         
-        <div id="form-ingrediente-estratto" style="display:none; margin-bottom:20px;">
-            <label for="nome-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Nome:</label>
-            <input type="text" id="nome-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:12px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+        <div id="form-ingrediente-estratto" class="modal-form">
+            <label for="nome-ingrediente-ocr" class="modal-label">Nome:</label>
+            <input type="text" id="nome-ingrediente-ocr" class="modal-input">
 
-            <label for="lotto-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Lotto:</label>
-            <input type="text" id="lotto-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:12px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+            <label for="lotto-ingrediente-ocr" class="modal-label">Lotto:</label>
+            <input type="text" id="lotto-ingrediente-ocr" class="modal-input">
 
-            <label for="scadenza-ingrediente-ocr" style="color:#4CAF50; font-weight:bold; display:block; margin-bottom:8px;">Scadenza:</label>
-            <input type="date" id="scadenza-ingrediente-ocr" style="width:100%; padding:10px; margin-bottom:15px; font-size:14px; background:#2a2a2a; border:1px solid #4CAF50; border-radius:5px; color:white;">
+            <label for="scadenza-ingrediente-ocr" class="modal-label">Scadenza:</label>
+            <input type="date" id="scadenza-ingrediente-ocr" class="modal-input">
             
-            <button type="button" onclick="confermaIngredienteScansionato()" style="width:100%; padding:12px; background:#4CAF50; border:none; border-radius:8px; color:white; font-size:16px; cursor:pointer;">
+            <button type="button" class="modal-btn is-success" onclick="confermaIngredienteScansionato()">
                 ✅ SALVA INGREDIENTE
             </button>
         </div>
         
-        <button type="button" onclick="chiudiModalScansioneIngrediente()" style="width:100%; padding:12px; background:#666; border:none; border-radius:8px; color:white; font-size:14px; cursor:pointer;">
+        <button type="button" class="modal-btn is-secondary" onclick="chiudiModalScansioneIngrediente()">
             ❌ ANNULLA
         </button>
     </div>
@@ -1478,8 +1604,8 @@
 
 <!-- MODAL NON CONFORMITÀ -->
 <div id="modal-nc" class="overlay-lotto" style="display:none;">
-    <div class="card-centrale" style="max-width: 600px;">
-        <h3 style="margin-bottom:20px; color: #ff5252;">⚠️ SEGNALA NON CONFORMITÀ</h3>
+    <div class="card-centrale">
+        <h3 class="modal-title is-danger">⚠️ SEGNALA NON CONFORMITÀ</h3>
         
         <label class="label-oro" for="nc-tipo">TIPO ANOMALIA:</label>
         <select id="nc-tipo">
@@ -1504,7 +1630,7 @@
         </select>
 
         <label class="label-oro" for="nc-descrizione">DESCRIZIONE DETTAGLIATA:</label>
-        <textarea id="nc-descrizione" placeholder="Descrivi cosa è successo..." style="min-height: 100px;"></textarea>
+        <textarea id="nc-descrizione" class="modal-textarea" placeholder="Descrivi cosa è successo..."></textarea>
 
         <label class="label-oro" for="nc-gravita">GRAVITÀ:</label>
         <select id="nc-gravita">
@@ -1513,9 +1639,9 @@
             <option value="Alta">🔴 Alta</option>
         </select>
 
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="salvaNC()" style="flex: 1; background: #ff5252;">REGISTRA NC</button>
-            <button onclick="chiudiModalNC()" style="flex: 1; background: #444;">ANNULLA</button>
+        <div class="modal-actions-row is-spaced">
+            <button class="modal-btn is-danger" onclick="salvaNC()">REGISTRA NC</button>
+            <button class="modal-btn is-secondary" onclick="chiudiModalNC()">ANNULLA</button>
         </div>
     </div>
 </div>
@@ -1523,19 +1649,19 @@
 <!-- MODAL AZIONE CORRETTIVA -->
 <div id="modal-azione-correttiva" class="overlay-lotto" style="display:none;">
     <div class="card-centrale">
-        <h3 style="margin-bottom:20px; color: #4CAF50;">✅ AZIONE CORRETTIVA</h3>
+        <h3 class="modal-title is-success">✅ AZIONE CORRETTIVA</h3>
         
         <input type="hidden" id="nc-id-chiusura">
         
         <label class="label-oro" for="nc-azione">AZIONE INTRAPRESA:</label>
-        <textarea id="nc-azione" placeholder="Descrivi cosa hai fatto..." style="min-height: 100px;"></textarea>
+        <textarea id="nc-azione" class="modal-textarea" placeholder="Descrivi cosa hai fatto..."></textarea>
 
         <label class="label-oro" for="nc-responsabile">RESPONSABILE CHIUSURA:</label>
         <input type="text" id="nc-responsabile" readonly>
 
-        <div style="display: flex; gap: 10px; margin-top: 20px;">
-            <button onclick="chiudiNC()" style="flex: 1; background: #4CAF50;">CHIUDI NC</button>
-            <button onclick="chiudiModalAzioneCorrettiva()" style="flex: 1; background: #444;">ANNULLA</button>
+        <div class="modal-actions-row is-spaced">
+            <button class="modal-btn is-success" onclick="chiudiNC()">CHIUDI NC</button>
+            <button class="modal-btn is-secondary" onclick="chiudiModalAzioneCorrettiva()">ANNULLA</button>
         </div>
     </div>
 </div>

@@ -986,6 +986,46 @@ const server = http.createServer((req, res) => {
             }
         });
     }
+
+    // Salva audit log
+    else if (req.url === '/api/audit-log' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', async () => {
+            try {
+                const { username, action, section, detail } = JSON.parse(body);
+
+                if (!username || !action) {
+                    res.writeHead(400, { 'Content-Type': 'application/json' });
+                    res.end(JSON.stringify({ success: false, error: 'Username e action richiesti' }));
+                    return;
+                }
+
+                const risultato = await database.salvaAuditLog({ username, action, section, detail });
+                res.writeHead(risultato.success ? 200 : 500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify(risultato));
+            } catch (error) {
+                console.error('❌ Errore audit log:', error);
+                res.writeHead(500, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, error: error.message }));
+            }
+        });
+    }
+
+    // Leggi audit log
+    else if (req.url.startsWith('/api/audit-log') && req.method === 'GET') {
+        try {
+            const urlObj = new URL(req.url, `http://${req.headers.host}`);
+            const limit = parseInt(urlObj.searchParams.get('limit') || '200', 10);
+            const risultato = await database.listaAuditLog({ limit: Number.isFinite(limit) ? limit : 200 });
+            res.writeHead(risultato.success ? 200 : 500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(risultato));
+        } catch (error) {
+            console.error('❌ Errore lettura audit log:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: error.message }));
+        }
+    }
     
     else {
         res.writeHead(404);

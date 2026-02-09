@@ -4,13 +4,51 @@
 
 let utenteLoggato = null;
 let sincroinCorso = false;
+let cloudReady = false;
+let cloudHasData = false;
 const AUTO_CLOUD_USERNAME_KEY = 'haccp_cloud_username';
 const AUTO_CLOUD_DEFAULT = 'il rifugio della volpe';
+const RENDER_CLOUD_URL_DEFAULT = 'https://vittorio-az8f.onrender.com';
+const RENDER_CLOUD_URL_KEY = 'haccp_render_url';
 const SEDE_PARAM_KEY = 'sede';
 const SEDE_MAP = {
     macelleria: 'il rifugio della volpe',
     braceria: 'braceria volpe'
 };
+
+const CLOUD_STORAGE_KEYS = {
+    utenti: 'haccp_utenti',
+    frigo: 'haccp_frigo',
+    temperature: 'haccp_log',
+    lotti: 'haccp_lotti',
+    nc: 'haccp_nc',
+    sanificazione: 'haccp_sanificazione',
+    attrezzature: 'haccp_attrezzature',
+    fornitori: 'haccp_fornitori',
+    allergeni: 'haccp_allergeni',
+    formazione: 'haccp_formazione',
+    inventario: 'haccp_inventario',
+    prodottiAdmin: 'haccp_prodotti_admin',
+    elencoNomi: 'haccp_elenco_nomi',
+    ccp: 'haccp_ccp',
+    configStampa: 'haccp_config_stampa',
+    configPec: 'haccp_pec_accounts',
+    ingredienti: 'haccp_ingredienti',
+    fotoLotti: 'haccp_foto_lotti',
+    tempNC: 'haccp_temp_nc',
+    ordini: 'haccp_ordini',
+    ricette: 'haccp_ricette',
+    reportPdf: 'haccp_report_pdf_config',
+    firma: 'haccp_signature_canvas',
+    layout: 'haccp_layout_positions',
+    notifSmart: 'haccp_notif_smart',
+    pecAutoscan: 'haccp_pec_autoscan',
+    pecIntervallo: 'haccp_pec_intervallo',
+    alertEmail: 'haccp_config_alert_email',
+    alertWhatsapp: 'haccp_config_alert_whatsapp'
+};
+
+const CLOUD_STORAGE_VALUES = Object.values(CLOUD_STORAGE_KEYS);
 
 function mostraNotificaSafe(testo, tipo) {
     if (typeof mostraNotifica === 'function') {
@@ -18,6 +56,18 @@ function mostraNotificaSafe(testo, tipo) {
         return;
     }
     console.log(`[${tipo || 'info'}] ${testo}`);
+}
+
+function getRenderCloudUrl() {
+    const saved = (localStorage.getItem(RENDER_CLOUD_URL_KEY) || '').trim();
+    return saved || RENDER_CLOUD_URL_DEFAULT;
+}
+
+function setRenderCloudUrl(value) {
+    const next = String(value || '').trim();
+    if (next) {
+        localStorage.setItem(RENDER_CLOUD_URL_KEY, next);
+    }
 }
 
 // Controlla se utente è loggato
@@ -83,7 +133,7 @@ function effettuaLogout() {
 function mostraLogin() {
     impostaUtenteCloudAutomatico();
     aggiornaBarraCloudUser();
-    caricaDatiDaCloud();
+    caricaDatiDaCloud({ force: true });
     return;
 
     const overlay = document.createElement('div');
@@ -163,7 +213,7 @@ async function effettuaLogin() {
             aggiornaBarraCloudUser();
             
             // Carica dati dal cloud
-            await caricaDatiDaCloud();
+            await caricaDatiDaCloud({ force: true });
             
             mostraNotificaSafe('✅ Benvenuto, ' + username + '!', 'success');
         } else {
@@ -265,26 +315,35 @@ async function salvaDatiSuCloud() {
     try {
         // Raccogli TUTTI i dati da localStorage
         const dati = {
-            utenti: localStorage.getItem('haccp_utenti'),
-            frigo: localStorage.getItem('haccp_frigo'),
-            temperature: localStorage.getItem('haccp_log'),
-            lotti: localStorage.getItem('haccp_lotti'),
-            nc: localStorage.getItem('haccp_nc'),
-            sanificazione: localStorage.getItem('haccp_sanificazione'),
-            attrezzature: localStorage.getItem('haccp_attrezzature'),
-            fornitori: localStorage.getItem('haccp_fornitori'),
-            allergeni: localStorage.getItem('haccp_allergeni'),
-            formazione: localStorage.getItem('haccp_formazione'),
-            inventario: localStorage.getItem('haccp_inventario'),
-            prodottiAdmin: localStorage.getItem('haccp_prodotti_admin'),
-            elencoNomi: localStorage.getItem('haccp_elenco_nomi'),
-            ccp: localStorage.getItem('haccp_ccp'),
-            configStampa: localStorage.getItem('haccp_config_stampa'),
-            configPec: localStorage.getItem('haccp_pec_accounts'),
-            ingredienti: localStorage.getItem('haccp_ingredienti'),
-            fotoLotti: localStorage.getItem('haccp_foto_lotti'),
-            tempNC: localStorage.getItem('haccp_temp_nc'),
-            ordini: localStorage.getItem('haccp_ordini'),
+            utenti: localStorage.getItem(CLOUD_STORAGE_KEYS.utenti),
+            frigo: localStorage.getItem(CLOUD_STORAGE_KEYS.frigo),
+            temperature: localStorage.getItem(CLOUD_STORAGE_KEYS.temperature),
+            lotti: localStorage.getItem(CLOUD_STORAGE_KEYS.lotti),
+            nc: localStorage.getItem(CLOUD_STORAGE_KEYS.nc),
+            sanificazione: localStorage.getItem(CLOUD_STORAGE_KEYS.sanificazione),
+            attrezzature: localStorage.getItem(CLOUD_STORAGE_KEYS.attrezzature),
+            fornitori: localStorage.getItem(CLOUD_STORAGE_KEYS.fornitori),
+            allergeni: localStorage.getItem(CLOUD_STORAGE_KEYS.allergeni),
+            formazione: localStorage.getItem(CLOUD_STORAGE_KEYS.formazione),
+            inventario: localStorage.getItem(CLOUD_STORAGE_KEYS.inventario),
+            prodottiAdmin: localStorage.getItem(CLOUD_STORAGE_KEYS.prodottiAdmin),
+            elencoNomi: localStorage.getItem(CLOUD_STORAGE_KEYS.elencoNomi),
+            ccp: localStorage.getItem(CLOUD_STORAGE_KEYS.ccp),
+            configStampa: localStorage.getItem(CLOUD_STORAGE_KEYS.configStampa),
+            configPec: localStorage.getItem(CLOUD_STORAGE_KEYS.configPec),
+            ingredienti: localStorage.getItem(CLOUD_STORAGE_KEYS.ingredienti),
+            fotoLotti: localStorage.getItem(CLOUD_STORAGE_KEYS.fotoLotti),
+            tempNC: localStorage.getItem(CLOUD_STORAGE_KEYS.tempNC),
+            ordini: localStorage.getItem(CLOUD_STORAGE_KEYS.ordini),
+            ricette: localStorage.getItem(CLOUD_STORAGE_KEYS.ricette),
+            reportPdf: localStorage.getItem(CLOUD_STORAGE_KEYS.reportPdf),
+            firma: localStorage.getItem(CLOUD_STORAGE_KEYS.firma),
+            layout: localStorage.getItem(CLOUD_STORAGE_KEYS.layout),
+            notifSmart: localStorage.getItem(CLOUD_STORAGE_KEYS.notifSmart),
+            pecAutoscan: localStorage.getItem(CLOUD_STORAGE_KEYS.pecAutoscan),
+            pecIntervallo: localStorage.getItem(CLOUD_STORAGE_KEYS.pecIntervallo),
+            alertEmail: localStorage.getItem(CLOUD_STORAGE_KEYS.alertEmail),
+            alertWhatsapp: localStorage.getItem(CLOUD_STORAGE_KEYS.alertWhatsapp),
             ultimoSync: new Date().toISOString()
         };
         
@@ -309,7 +368,7 @@ async function salvaDatiSuCloud() {
 }
 
 // Carica dati dal cloud
-async function caricaDatiDaCloud() {
+async function caricaDatiDaCloud(options = {}) {
     if (!isLoggato()) return;
     
     try {
@@ -322,68 +381,143 @@ async function caricaDatiDaCloud() {
         const risultato = await response.json();
         
         if (risultato.success && risultato.dati) {
-            const keyMap = {
-                utenti: 'haccp_utenti',
-                frigo: 'haccp_frigo',
-                temperature: 'haccp_log',
-                lotti: 'haccp_lotti',
-                nc: 'haccp_nc',
-                sanificazione: 'haccp_sanificazione',
-                attrezzature: 'haccp_attrezzature',
-                fornitori: 'haccp_fornitori',
-                allergeni: 'haccp_allergeni',
-                formazione: 'haccp_formazione',
-                inventario: 'haccp_inventario',
-                prodottiAdmin: 'haccp_prodotti_admin',
-                elencoNomi: 'haccp_elenco_nomi',
-                ccp: 'haccp_ccp',
-                configStampa: 'haccp_config_stampa',
-                configPec: 'haccp_pec_accounts',
-                ingredienti: 'haccp_ingredienti',
-                fotoLotti: 'haccp_foto_lotti',
-                tempNC: 'haccp_temp_nc',
-                ordini: 'haccp_ordini'
-            };
-
-            // Ripristina TUTTI i dati
-            for (const [chiave, valore] of Object.entries(risultato.dati)) {
-                if (chiave !== 'ultimoSync' && valore) {
-                    const storageKey = keyMap[chiave] || `haccp_${chiave}`;
-                    localStorage.setItem(storageKey, valore);
-                }
-            }
-            
+            applicaDatiCloud(risultato.dati, options);
             console.log('✅ Dati caricati dal cloud');
-            
-            // Ricarica interfaccia
-            if (typeof aggiornaListaUtenti === 'function') aggiornaListaUtenti();
-            if (typeof aggiornaListaFrigo === 'function') aggiornaListaFrigo();
-            if (typeof renderizzaLotti === 'function') renderizzaLotti();
-            if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
-            if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
-            if (typeof renderTempNCList === 'function') renderTempNCList();
-            if (typeof renderizzaProdottiAdmin === 'function') renderizzaProdottiAdmin();
-            if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
-            
-            mostraNotificaSafe('📥 Dati caricati dal cloud', 'success');
+            cloudReady = true;
+            cloudHasData = true;
+            mostraNotificaSafe('📥 Dati caricati dal cloud (sorgente Render)', 'success');
         } else if (risultato.nuovoUtente) {
-            console.log('ℹ️ Nuovo utente - nessun dato da caricare');
+            cloudReady = true;
+            cloudHasData = false;
+            mostraNotificaSafe('ℹ️ Nessun dato cloud per questo utente', 'warning');
         }
     } catch (error) {
+        cloudReady = false;
         console.error('❌ Errore caricamento dati:', error);
+        mostraNotificaSafe('❌ Sync cloud fallita: controlla rete o username', 'error');
+    }
+}
+
+function applicaDatiCloud(dati, options = {}) {
+    if (options.force) {
+        CLOUD_STORAGE_VALUES.forEach((key) => localStorage.removeItem(key));
+    }
+
+    const resolveStorageKey = (chiave) => {
+        if (chiave === 'prodotti' || chiave === 'prodotti_admin') return CLOUD_STORAGE_KEYS.prodottiAdmin;
+        if (chiave === 'elenco_prodotti' || chiave === 'elencoNomiProdotti') return CLOUD_STORAGE_KEYS.elencoNomi;
+        return CLOUD_STORAGE_KEYS[chiave] || `haccp_${chiave}`;
+    };
+
+    const normalizeValue = (valore) => {
+        if (valore === null || valore === undefined) return null;
+        if (typeof valore === 'string') return valore;
+        try {
+            return JSON.stringify(valore);
+        } catch (error) {
+            return String(valore);
+        }
+    };
+
+    for (const [chiave, valore] of Object.entries(dati || {})) {
+        if (chiave === 'ultimoSync') continue;
+        const storageKey = resolveStorageKey(chiave);
+        const normalized = normalizeValue(valore);
+        if (normalized === null) {
+            localStorage.removeItem(storageKey);
+        } else {
+            localStorage.setItem(storageKey, normalized);
+        }
+    }
+
+    const prodottiRaw = localStorage.getItem(CLOUD_STORAGE_KEYS.prodottiAdmin);
+    const elencoRaw = localStorage.getItem(CLOUD_STORAGE_KEYS.elencoNomi);
+    let prodottiParsed = [];
+    try {
+        prodottiParsed = JSON.parse(prodottiRaw || '[]');
+    } catch (error) {
+        prodottiParsed = [];
+    }
+    let elencoParsed = [];
+    try {
+        elencoParsed = JSON.parse(elencoRaw || '[]');
+    } catch (error) {
+        elencoParsed = [];
+    }
+    if ((!Array.isArray(prodottiParsed) || prodottiParsed.length === 0) && Array.isArray(elencoParsed) && elencoParsed.length > 0) {
+        const ricostruiti = elencoParsed.map((nome) => ({
+            nome: String(nome || '').trim(),
+            giorniScadenza: 3
+        })).filter((p) => p.nome);
+        localStorage.setItem(CLOUD_STORAGE_KEYS.prodottiAdmin, JSON.stringify(ricostruiti));
+    }
+
+    if (typeof ricaricaCacheLocali === 'function') ricaricaCacheLocali();
+    if (typeof aggiornaListaUtenti === 'function') aggiornaListaUtenti();
+    if (typeof aggiornaListaFrigo === 'function') aggiornaListaFrigo();
+    if (typeof renderizzaLotti === 'function') renderizzaLotti();
+    if (typeof renderizzaListaIngredienti === 'function') renderizzaListaIngredienti();
+    if (typeof renderizzaFotoLotti === 'function') renderizzaFotoLotti();
+    if (typeof renderTempNCList === 'function') renderTempNCList();
+    if (typeof renderizzaProdottiAdmin === 'function') renderizzaProdottiAdmin();
+    if (typeof renderizzaListaProdottiAssocia === 'function') renderizzaListaProdottiAssocia();
+}
+
+async function importaDatiDaRender() {
+    const inputUrl = document.getElementById('render-url-input');
+    if (inputUrl) setRenderCloudUrl(inputUrl.value);
+
+    const baseUrl = getRenderCloudUrl().replace(/\/+$/, '');
+    const username = (sessionStorage.getItem('haccp_username') || AUTO_CLOUD_DEFAULT).trim();
+
+    if (!baseUrl) {
+        mostraNotificaSafe('❌ URL Render mancante', 'error');
+        return;
+    }
+
+    mostraNotificaSafe('☁️ Importazione dati da Render...', 'info');
+
+    try {
+        const response = await fetch(`${baseUrl}/api/load-data`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        const risultato = await response.json();
+        if (risultato.success && risultato.dati) {
+            applicaDatiCloud(risultato.dati, { force: true });
+            cloudReady = true;
+            cloudHasData = true;
+            mostraNotificaSafe('✅ Dati Render importati nel PC', 'success');
+            return;
+        }
+
+        if (risultato.nuovoUtente) {
+            cloudReady = true;
+            cloudHasData = false;
+            mostraNotificaSafe('⚠️ Nessun dato trovato su Render', 'warning');
+            return;
+        }
+
+        mostraNotificaSafe('❌ Import fallito: risposta non valida', 'error');
+    } catch (error) {
+        cloudReady = false;
+        console.error('❌ Import Render fallito:', error);
+        mostraNotificaSafe('❌ Import Render fallito: controlla rete', 'error');
     }
 }
 
 // Auto-salvataggio ogni 30 secondi
 setInterval(() => {
-    if (isLoggato()) {
+    if (isLoggato() && cloudReady) {
         salvaDatiSuCloud();
     }
 }, 30000);
 
 // Salva prima di chiudere la pagina
 window.addEventListener('beforeunload', () => {
-    if (isLoggato()) {
+    if (isLoggato() && cloudReady) {
         navigator.sendBeacon('/api/save-data', JSON.stringify({
             username: utenteLoggato,
             dati: {
@@ -402,6 +536,11 @@ window.addEventListener('DOMContentLoaded', () => {
     } else {
         // Mostra barra utente e carica dati
         aggiornaBarraCloudUser();
-        caricaDatiDaCloud();
+        caricaDatiDaCloud({ force: true });
+    }
+
+    const renderUrlInput = document.getElementById('render-url-input');
+    if (renderUrlInput) {
+        renderUrlInput.value = getRenderCloudUrl();
     }
 });

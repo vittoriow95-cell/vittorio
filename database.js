@@ -40,6 +40,14 @@ function ensureSqlite() {
             dati TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            action TEXT NOT NULL,
+            section TEXT DEFAULT '',
+            detail TEXT DEFAULT '',
+            created_at TEXT NOT NULL
+        );
     `);
     return sqliteDb;
 }
@@ -273,6 +281,70 @@ async function registraUtente(username, password, email = '') {
     }
 }
 
+async function salvaAuditLog({ username, action, section = '', detail = '' }) {
+    const database = await connetti();
+    if (!database) return { success: false, error: 'Database non disponibile' };
+
+    const user = (username || '').toLowerCase();
+    const timestamp = new Date().toISOString();
+
+    if (USE_MONGO) {
+        try {
+            const collection = database.collection('audit_log');
+            const documento = {
+                username: user,
+                action: action || '',
+                section: section || '',
+                detail: detail || '',
+                created_at: new Date(timestamp)
+            };
+            await collection.insertOne(documento);
+            return { success: true, timestamp };
+        } catch (error) {
+            console.error('❌ Errore audit log:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    try {
+        const stmt = database.prepare(`
+            INSERT INTO audit_log (username, action, section, detail, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        `);
+        stmt.run(user, action || '', section || '', detail || '', timestamp);
+        return { success: true, timestamp };
+    } catch (error) {
+        console.error('❌ Errore audit log SQLite:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function listaAuditLog({ limit = 200 } = {}) {
+    const database = await connetti();
+    if (!database) return { success: false, error: 'Database non disponibile' };
+
+    if (USE_MONGO) {
+        try {
+            const collection = database.collection('audit_log');
+            const rows = await collection.find({}).sort({ created_at: -1 }).limit(limit).toArray();
+            return { success: true, rows };
+        } catch (error) {
+            console.error('❌ Errore lettura audit log:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    try {
+        const rows = database.prepare(
+            'SELECT id, username, action, section, detail, created_at FROM audit_log ORDER BY created_at DESC LIMIT ?'
+        ).all(limit);
+        return { success: true, rows };
+    } catch (error) {
+        console.error('❌ Errore lettura audit log SQLite:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Esporta funzioni
 module.exports = {
     connetti,
@@ -280,5 +352,7 @@ module.exports = {
     salvaDatiUtente,
     caricaDatiUtente,
     verificaUtente,
-    registraUtente
+    registraUtente,
+    salvaAuditLog,
+    listaAuditLog
 };

@@ -15,6 +15,28 @@ let databaseIngredienti = JSON.parse(localStorage.getItem("haccp_ingredienti")) 
 let databaseFotoLotti = JSON.parse(localStorage.getItem("haccp_foto_lotti")) || [];
 let prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || [];
 
+function ricaricaCacheLocali() {
+    databaseUtenti = JSON.parse(localStorage.getItem("haccp_utenti")) || [];
+    databaseFrigo = JSON.parse(localStorage.getItem("haccp_frigo")) || [];
+    databaseTemperature = JSON.parse(localStorage.getItem("haccp_log")) || [];
+    databaseTempNC = JSON.parse(localStorage.getItem("haccp_temp_nc")) || [];
+    databaseLotti = JSON.parse(localStorage.getItem("haccp_lotti")) || [];
+    elencoNomiProdotti = JSON.parse(localStorage.getItem("haccp_elenco_nomi")) || [];
+    databaseIngredienti = JSON.parse(localStorage.getItem("haccp_ingredienti")) || [];
+    databaseFotoLotti = JSON.parse(localStorage.getItem("haccp_foto_lotti")) || [];
+    prodottiAdmin = JSON.parse(localStorage.getItem('haccp_prodotti_admin')) || [];
+
+    if (typeof databasePulizie !== 'undefined') {
+        databasePulizie = JSON.parse(localStorage.getItem("haccp_pulizie")) || [];
+    }
+    if (typeof databaseNC !== 'undefined') {
+        databaseNC = JSON.parse(localStorage.getItem("haccp_nc")) || [];
+    }
+    if (typeof databasePuliziePiano !== 'undefined') {
+        databasePuliziePiano = caricaPianoPulizie();
+    }
+}
+
 // Controlli automatici all'avvio
 setTimeout(() => {
     controlliAutomaticiAvvio();
@@ -36,6 +58,21 @@ function richieidiPermessiNotifiche() {
             });
         }, 5000);
     }
+}
+
+function isSmartNotificationsEnabled() {
+    const val = localStorage.getItem('haccp_notif_smart');
+    return val !== 'false';
+}
+
+function initSmartNotificationsToggle() {
+    const toggle = document.getElementById('notif-smart-toggle');
+    if (!toggle) return;
+    toggle.checked = isSmartNotificationsEnabled();
+    toggle.addEventListener('change', () => {
+        localStorage.setItem('haccp_notif_smart', toggle.checked ? 'true' : 'false');
+        mostraNotifica(toggle.checked ? '🔔 Notifiche intelligenti attivate' : '🔔 Notifiche complete attivate', 'info');
+    });
 }
 
 function inviaNotificaBrowser(titolo, messaggio, tipo = 'info') {
@@ -69,6 +106,7 @@ function inviaNotificaBrowser(titolo, messaggio, tipo = 'info') {
 }
 
 function controlliAutomaticiAvvio() {
+    const smart = isSmartNotificationsEnabled();
     // Verifica scadenze prodotti
     const prodottiInScadenza = verificaScadenze();
     
@@ -102,20 +140,61 @@ function controlliAutomaticiAvvio() {
         inviaNotificaBrowser('PRODOTTI SCADUTI', `${prodottiInScadenza.critici} prodotti scaduti o in scadenza oggi!`, 'critica');
     }
     
-    if (prodottiInScadenza.imminenti > 0) {
+    if (!smart && prodottiInScadenza.imminenti > 0) {
         inviaNotificaBrowser('Scadenze Prossime', `${prodottiInScadenza.imminenti} prodotti in scadenza nei prossimi 3 giorni`, 'warning');
     }
     
-    if (manutenzioniScadenza.length > 0) {
+    if (!smart && manutenzioniScadenza.length > 0) {
         mostraNotifica(`🔧 ${manutenzioniScadenza.length} manutenzioni in scadenza!`, 'warning');
         inviaNotificaBrowser('Manutenzioni in Scadenza', `${manutenzioniScadenza.length} attrezzature richiedono manutenzione`, 'warning');
     }
     
-    if (attestatiScadenza.length > 0) {
+    if (!smart && attestatiScadenza.length > 0) {
         setTimeout(() => {
             mostraNotifica(`🎓 ${attestatiScadenza.length} attestati in scadenza!`, 'warning');
         }, 3000);
     }
+}
+
+function copiaUltimeTemperature() {
+    const inputs = document.querySelectorAll('[data-frigo-temp]');
+    if (!inputs || inputs.length === 0) return;
+
+    const lastByFrigo = {};
+    databaseTemperature.forEach((rec) => {
+        const frigo = rec.frigo || '';
+        if (!frigo) return;
+        const ts = parseRecordDateTime(rec).getTime();
+        const current = lastByFrigo[frigo];
+        if (!current || ts > current.ts) {
+            lastByFrigo[frigo] = { ts, gradi: rec.gradi };
+        }
+    });
+
+    let updated = 0;
+    inputs.forEach((input) => {
+        const frigo = input.getAttribute('data-frigo-nome') || '';
+        const last = lastByFrigo[frigo];
+        if (last && last.gradi !== undefined) {
+            input.value = last.gradi;
+            updated += 1;
+        }
+    });
+
+    if (updated > 0) {
+        mostraNotifica(`🔁 Inserite ${updated} temperature dall'ultima registrazione`, 'success');
+    } else {
+        mostraNotifica('Nessuna temperatura precedente trovata', 'info');
+    }
+}
+
+function parseRecordDateTime(rec) {
+    const dataRaw = String(rec.data || '').split(' ')[0];
+    const parti = dataRaw.split('/');
+    if (parti.length !== 3) return new Date(0);
+    const [giorno, mese, anno] = parti;
+    const ora = rec.ora || '00:00';
+    return new Date(`${anno}-${mese.padStart(2, '0')}-${giorno.padStart(2, '0')}T${ora}`);
 }
 
 function verificaTemperatureCritiche() {
@@ -145,6 +224,289 @@ function verificaTemperatureCritiche() {
     }).length;
 }
 
+/* ===========================================================
+   AUDIT LOG
+   =========================================================== */
+
+function getAuditUsername() {
+    return sessionStorage.getItem('nomeUtenteLoggato') || 'sistema';
+}
+
+async function logAudit(action, section = '', detail = '') {
+    const payload = {
+        username: getAuditUsername(),
+        action: action || '',
+        section: section || '',
+        detail: detail || ''
+    };
+
+    try {
+        await fetch('/api/audit-log', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (error) {
+        const fallback = JSON.parse(localStorage.getItem('haccp_audit_fallback') || '[]');
+        fallback.push({ ...payload, created_at: new Date().toISOString() });
+        localStorage.setItem('haccp_audit_fallback', JSON.stringify(fallback));
+    }
+}
+
+let auditLogCache = [];
+let auditLogBound = false;
+
+function initAuditLogUI() {
+    const filterInput = document.getElementById('audit-filter');
+    const limitSelect = document.getElementById('audit-limit');
+
+    if (!filterInput || !limitSelect || auditLogBound) return;
+
+    filterInput.addEventListener('input', () => renderAuditLogList(auditLogCache));
+    limitSelect.addEventListener('change', () => caricaAuditLog());
+    auditLogBound = true;
+}
+
+function formatAuditTimestamp(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    const data = date.toLocaleDateString('it-IT');
+    const ora = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    return `${data} ${ora}`;
+}
+
+function renderAuditLogList(rows) {
+    const list = document.getElementById('audit-list');
+    if (!list) return;
+
+    const filterInput = document.getElementById('audit-filter');
+    const term = (filterInput ? filterInput.value : '').trim().toLowerCase();
+
+    const filtrati = term
+        ? rows.filter((r) => {
+            const dataLabel = formatAuditTimestamp(r.created_at);
+            const haystack = [r.username, r.action, r.section, r.detail, dataLabel]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            return haystack.includes(term);
+        })
+        : rows;
+
+    if (!filtrati || filtrati.length === 0) {
+        list.innerHTML = '<div class="audit-empty">Nessun log trovato</div>';
+        return;
+    }
+
+    list.innerHTML = filtrati.map((r) => {
+        const actionLabel = r.action ? r.action.replace(/_/g, ' ') : 'AZIONE';
+        const sectionLabel = r.section ? r.section.replace(/_/g, ' ') : '';
+        const userLabel = r.username || 'sistema';
+        const dataLabel = formatAuditTimestamp(r.created_at);
+        const detail = r.detail ? escapeHtml(r.detail) : '';
+        const badgeSection = sectionLabel ? `<span class="audit-badge">${escapeHtml(sectionLabel)}</span>` : '';
+        const detailHtml = detail ? `<div>${detail}</div>` : '';
+        const dataHtml = dataLabel ? `<span>Data: ${escapeHtml(dataLabel)}</span>` : '';
+
+        return `
+            <div class="audit-item">
+                <div class="audit-item-header">
+                    <span class="audit-badge">${escapeHtml(actionLabel)}</span>
+                    ${badgeSection}
+                </div>
+                ${detailHtml}
+                <div class="audit-meta">
+                    <span>Utente: ${escapeHtml(userLabel)}</span>
+                    ${dataHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+async function caricaAuditLog() {
+    const list = document.getElementById('audit-list');
+    if (!list) return;
+
+    initAuditLogUI();
+    list.innerHTML = '<div class="audit-empty">Caricamento...</div>';
+
+    const limitValue = document.getElementById('audit-limit');
+    const limit = parseInt(limitValue ? limitValue.value : '200', 10);
+    const safeLimit = Number.isFinite(limit) ? limit : 200;
+
+    try {
+        const res = await fetch(`/api/audit-log?limit=${safeLimit}`);
+        const data = await res.json();
+        if (data && Array.isArray(data.rows)) {
+            auditLogCache = data.rows;
+        } else {
+            auditLogCache = [];
+        }
+    } catch (error) {
+        const fallback = JSON.parse(localStorage.getItem('haccp_audit_fallback') || '[]');
+        auditLogCache = fallback.slice().reverse().slice(0, safeLimit);
+    }
+
+    renderAuditLogList(auditLogCache);
+}
+
+/* ===========================================================
+   FIRMA DIGITALE
+   =========================================================== */
+
+const SIGNATURE_KEY = 'haccp_signature_canvas';
+let signatureState = {
+    canvas: null,
+    ctx: null,
+    drawing: false,
+    lastX: 0,
+    lastY: 0
+};
+
+function initSignatureCanvas() {
+    const canvas = document.getElementById('signature-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const ratio = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#ffffff';
+
+    signatureState = { canvas, ctx, drawing: false, lastX: 0, lastY: 0 };
+
+    if (!canvas.dataset.bound) {
+        canvas.addEventListener('pointerdown', startSignatureDraw);
+        canvas.addEventListener('pointermove', moveSignatureDraw);
+        canvas.addEventListener('pointerup', stopSignatureDraw);
+        canvas.addEventListener('pointerleave', stopSignatureDraw);
+        canvas.dataset.bound = '1';
+    }
+
+    loadSignaturePreview();
+}
+
+function startSignatureDraw(event) {
+    if (!signatureState.ctx) return;
+    signatureState.drawing = true;
+    const { offsetX, offsetY } = getCanvasPoint(event, signatureState.canvas);
+    signatureState.lastX = offsetX;
+    signatureState.lastY = offsetY;
+}
+
+function moveSignatureDraw(event) {
+    if (!signatureState.drawing || !signatureState.ctx) return;
+    const { offsetX, offsetY } = getCanvasPoint(event, signatureState.canvas);
+    signatureState.ctx.beginPath();
+    signatureState.ctx.moveTo(signatureState.lastX, signatureState.lastY);
+    signatureState.ctx.lineTo(offsetX, offsetY);
+    signatureState.ctx.stroke();
+    signatureState.lastX = offsetX;
+    signatureState.lastY = offsetY;
+}
+
+function stopSignatureDraw() {
+    signatureState.drawing = false;
+}
+
+function getCanvasPoint(event, canvas) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top
+    };
+}
+
+function clearSignatureCanvas() {
+    if (!signatureState.ctx || !signatureState.canvas) return;
+    signatureState.ctx.clearRect(0, 0, signatureState.canvas.width, signatureState.canvas.height);
+    localStorage.removeItem(SIGNATURE_KEY);
+    updateSignaturePreview('');
+    logAudit('SIGNATURE_CLEAR', 'admin-firma');
+}
+
+function saveSignatureCanvas() {
+    if (!signatureState.canvas) return;
+    const dataUrl = signatureState.canvas.toDataURL('image/png');
+    localStorage.setItem(SIGNATURE_KEY, dataUrl);
+    updateSignaturePreview(dataUrl);
+    logAudit('SIGNATURE_SAVE', 'admin-firma');
+    mostraNotifica('✅ Firma salvata', 'success');
+}
+
+function loadSignaturePreview() {
+    const dataUrl = localStorage.getItem(SIGNATURE_KEY) || '';
+    updateSignaturePreview(dataUrl);
+}
+
+function updateSignaturePreview(dataUrl) {
+    const preview = document.getElementById('signature-preview');
+    const img = document.getElementById('signature-preview-img');
+    if (!preview || !img) return;
+
+    if (!dataUrl) {
+        preview.style.display = 'none';
+        img.src = '';
+        return;
+    }
+
+    img.src = dataUrl;
+    preview.style.display = 'block';
+}
+
+/* ===========================================================
+   CHECKLIST GUIDATE
+   =========================================================== */
+
+let checklistConfirmHandler = null;
+
+function apriChecklistModal(titolo, items, onConfirm) {
+    const modal = document.getElementById('modal-checklist');
+    const titleEl = document.getElementById('checklist-title');
+    const itemsEl = document.getElementById('checklist-items');
+    const confirmBtn = document.getElementById('checklist-confirm');
+
+    if (!modal || !titleEl || !itemsEl || !confirmBtn) return;
+
+    titleEl.textContent = titolo || 'Checklist';
+    itemsEl.innerHTML = (items || []).map((text, idx) => `
+        <label class="checklist-item">
+            <input type="checkbox" data-checklist="${idx}">
+            <span>${text}</span>
+        </label>
+    `).join('');
+
+    checklistConfirmHandler = () => {
+        const checks = itemsEl.querySelectorAll('input[type="checkbox"]');
+        const allChecked = Array.from(checks).every((c) => c.checked);
+        if (!allChecked) {
+            alert('Completa tutte le voci della checklist prima di confermare.');
+            return;
+        }
+        chiudiChecklistModal();
+        if (typeof onConfirm === 'function') onConfirm();
+    };
+
+    confirmBtn.onclick = checklistConfirmHandler;
+    modal.style.display = 'flex';
+    setModalOpen(true);
+}
+
+function chiudiChecklistModal() {
+    const modal = document.getElementById('modal-checklist');
+    if (modal) modal.style.display = 'none';
+    setModalOpen(false);
+    checklistConfirmHandler = null;
+}
+
 
 
 /* ===========================================================
@@ -156,6 +518,7 @@ function logicaLogin() {
 }
 
 function entraAdminDirect() {
+    sessionStorage.setItem('ruoloUtenteLoggato', 'Responsabile');
     vaiA("sez-admin");
 }
 
@@ -165,6 +528,7 @@ function entraOperatoreDaLista(index) {
 
     console.log("Accesso Utente: " + utenteTrovato.nome);
     sessionStorage.setItem('nomeUtenteLoggato', utenteTrovato.nome);
+    sessionStorage.setItem('ruoloUtenteLoggato', utenteTrovato.ruolo || 'Operatore');
 
     const etichettaNome = document.getElementById("nome-operatore");
     if (etichettaNome) {
@@ -183,7 +547,18 @@ function entraOperatoreDaLista(index) {
     }
 
     aggiornaAssistente(utenteTrovato.nome);
+    logAudit('LOGIN', 'auth', `utente=${utenteTrovato.nome}`);
     vaiA("sez-operatore");
+}
+
+function isResponsabile() {
+    return sessionStorage.getItem('ruoloUtenteLoggato') === 'Responsabile';
+}
+
+function requireResponsabile(actionLabel) {
+    if (isResponsabile()) return true;
+    alert(`Solo il Responsabile può eseguire: ${actionLabel}`);
+    return false;
 }
 
 function renderizzaLoginUtenti() {
@@ -263,6 +638,12 @@ function vaiA(idSezione) {
 
     // 2. Cerchiamo la sezione da aprire
     const sezioneDaAprire = document.getElementById(idSezione);
+
+    if (idSezione && idSezione.startsWith('sez-admin') && !isResponsabile()) {
+        mostraNotifica('⛔ Accesso riservato al Responsabile', 'warning');
+        vaiA('sez-operatore');
+        return;
+    }
     
     if (sezioneDaAprire) {
         sezioneDaAprire.style.display = "block";
@@ -292,6 +673,10 @@ function vaiA(idSezione) {
 
     if (idSezione === "sez-op-temp-archivio") {
         renderizzaArchivioTemperature();
+    }
+
+    if (idSezione === "sez-admin-audit") {
+        caricaAuditLog();
     }
     
     // 4. Logica speciale per tracciabilita
@@ -336,6 +721,464 @@ function vaiA(idSezione) {
         renderPianoPulizieAdmin();
         aggiornaPianoPuliziaCampi();
     }
+
+    if (idSezione === 'sez-admin-firma') {
+        setTimeout(initSignatureCanvas, 50);
+    }
+
+    if (sezioneDaAprire && isAdminSection(sezioneDaAprire)) {
+        applySavedLayoutForSection(sezioneDaAprire);
+        if (layoutEditState.enabled) {
+            updateLayoutEditTargets();
+            placeLayoutEditButton();
+        } else {
+            placeLayoutEditButton();
+        }
+    } else {
+        if (layoutEditState.enabled) {
+            saveLayoutForPage();
+            setLayoutEditEnabled(false);
+        }
+        placeLayoutEditButton();
+    }
+}
+
+/* ===========================================================
+   MODALITA MODIFICA LAYOUT (DRAG TEMPORANEO)
+   =========================================================== */
+
+const layoutEditState = {
+    enabled: false,
+    dragging: false,
+    resizing: false,
+    startX: 0,
+    startY: 0,
+    startDx: 0,
+    startDy: 0,
+    startWidth: 0,
+    startHeight: 0,
+    pendingDx: 0,
+    pendingDy: 0,
+    rafId: null,
+    target: null,
+    button: null,
+    resetButton: null
+};
+
+const LAYOUT_STORAGE_KEY = 'haccp_layout_positions';
+const LAYOUT_TARGET_SELECTORS = [
+    '.header-admin',
+    '.header-sottopagina',
+    '.header-data',
+    '.header-app',
+    '.contenuto',
+    '.card-centrale',
+    '.grid-icone',
+    '.report-card',
+    '.report-screen',
+    '.report-date-grid',
+    '.report-field',
+    '.report-date-input',
+    'input[type="date"]',
+    '.calendario-toolbar',
+    '.calendario-legend',
+    '.calendario-container',
+    '.calendario-dettagli',
+    '.pulizie-alert',
+    '.pulizie-riepilogo',
+    '.pulizie-home-badge',
+    '.piano-item',
+    '.stat-card',
+    '.chart-container',
+    '.temp-nc-card',
+    '.modal-card',
+    '.overlay-lotto .card-centrale',
+    '.ordini-modal-card'
+];
+
+function initLayoutEditMode() {
+    if (document.getElementById('layout-edit-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'layout-edit-btn';
+    btn.className = 'layout-edit-btn';
+    btn.type = 'button';
+    btn.textContent = 'MODIFICA LAYOUT';
+    btn.addEventListener('click', toggleLayoutEdit);
+    layoutEditState.button = btn;
+
+    const resetBtn = document.createElement('button');
+    resetBtn.id = 'layout-reset-btn';
+    resetBtn.className = 'layout-reset-btn';
+    resetBtn.type = 'button';
+    resetBtn.textContent = 'RESET LAYOUT';
+    resetBtn.addEventListener('click', resetLayoutForPage);
+    layoutEditState.resetButton = resetBtn;
+
+    placeLayoutEditButton();
+
+    document.addEventListener('pointerdown', handleLayoutPointerDown, true);
+    document.addEventListener('pointermove', handleLayoutPointerMove, true);
+    document.addEventListener('pointerup', handleLayoutPointerUp, true);
+}
+
+function toggleLayoutEdit() {
+    if (layoutEditState.enabled) {
+        saveLayoutForPage();
+    }
+    setLayoutEditEnabled(!layoutEditState.enabled);
+}
+
+function setLayoutEditEnabled(enabled) {
+    layoutEditState.enabled = enabled;
+    document.body.classList.toggle('layout-edit-mode', layoutEditState.enabled);
+
+    const btn = document.getElementById('layout-edit-btn');
+    if (btn) {
+        btn.classList.toggle('is-active', layoutEditState.enabled);
+        btn.textContent = layoutEditState.enabled ? 'ESCI MODIFICA' : 'MODIFICA LAYOUT';
+    }
+
+    clearLayoutSelection();
+    placeLayoutEditButton();
+    updateLayoutEditTargets();
+}
+
+function updateLayoutEditTargets() {
+    document.querySelectorAll('.layout-resize-handle').forEach((el) => el.remove());
+    document.querySelectorAll('.layout-scale-controls').forEach((el) => el.remove());
+    document.querySelectorAll('.layout-draggable').forEach((el) => el.classList.remove('layout-draggable'));
+
+    if (!layoutEditState.enabled) return;
+
+    const activeSection = getActiveSection();
+
+    const nodes = activeSection ? activeSection.querySelectorAll(LAYOUT_TARGET_SELECTORS.join(',')) : [];
+    nodes.forEach((el, index) => addLayoutDraggable(el, activeSection, index));
+
+    document.querySelectorAll('.modal-overlay[style*="display: flex"], .overlay-lotto[style*="display: flex"], .temp-nc-overlay.is-visible').forEach((modal) => {
+        modal.querySelectorAll(LAYOUT_TARGET_SELECTORS.join(',')).forEach((el, index) => addLayoutDraggable(el, activeSection, index));
+    });
+}
+
+function clearLayoutSelection() {
+    document.querySelectorAll('.layout-resize-handle').forEach((el) => el.remove());
+    document.querySelectorAll('.layout-scale-controls').forEach((el) => el.remove());
+    document.querySelectorAll('.layout-selected').forEach((el) => {
+        el.classList.remove('layout-selected');
+    });
+}
+
+function selectLayoutTarget(el) {
+    clearLayoutSelection();
+    if (el) {
+        el.classList.add('layout-selected');
+        attachResizeHandle(el);
+        attachScaleControls(el);
+    }
+}
+
+function addLayoutDraggable(el, section, index) {
+    if (!isElementVisible(el)) return;
+    if (!section || !isAdminSection(section)) return;
+    el.classList.add('layout-draggable');
+    assignLayoutKey(el, section, index);
+    applySavedLayout(el, section);
+}
+
+function getActiveSection() {
+    return document.querySelector('.schermata[style*="display: block"]') || document.querySelector('.schermata') || null;
+}
+
+function isAdminSection(section) {
+    return Boolean(section && section.id && section.id.startsWith('sez-admin'));
+}
+
+function placeLayoutEditButton() {
+    const btn = layoutEditState.button || document.getElementById('layout-edit-btn');
+    const resetBtn = layoutEditState.resetButton || document.getElementById('layout-reset-btn');
+    if (!btn) return;
+
+    const activeSection = getActiveSection();
+    const header = activeSection
+        ? activeSection.querySelector('.header-sottopagina, .header-data, .header-app, .header-admin')
+        : null;
+
+    if (!activeSection || !isAdminSection(activeSection)) {
+        btn.style.display = 'none';
+        if (resetBtn) resetBtn.style.display = 'none';
+        return;
+    }
+
+    btn.style.display = 'inline-flex';
+
+    if (header) {
+        let slot = header.querySelector('.layout-edit-slot');
+        if (!slot) {
+            slot = document.createElement('div');
+            slot.className = 'layout-edit-slot';
+            header.appendChild(slot);
+        }
+        slot.appendChild(btn);
+        if (resetBtn) slot.appendChild(resetBtn);
+        btn.classList.add('is-inline');
+        btn.classList.remove('is-floating');
+    } else {
+        document.body.appendChild(btn);
+        btn.classList.add('is-floating');
+        btn.classList.remove('is-inline');
+        if (resetBtn) {
+            resetBtn.style.display = layoutEditState.enabled ? 'inline-flex' : 'none';
+        }
+    }
+
+    if (resetBtn) {
+        resetBtn.style.display = layoutEditState.enabled ? 'inline-flex' : 'none';
+    }
+}
+
+function isElementVisible(el) {
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+}
+
+function handleLayoutPointerDown(event) {
+    if (!layoutEditState.enabled) return;
+
+    if (event.target.closest('.layout-resize-handle')) return;
+    if (event.target.closest('.layout-scale-controls')) return;
+
+    const targetTag = event.target.tagName;
+    if (!layoutEditState.enabled && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'LABEL'].includes(targetTag)) {
+        return;
+    }
+
+    const target = event.target.closest('.layout-draggable');
+    if (!target) {
+        clearLayoutSelection();
+        return;
+    }
+
+    if (!target.classList.contains('layout-selected')) {
+        selectLayoutTarget(target);
+        return;
+    }
+
+    layoutEditState.dragging = true;
+    layoutEditState.target = target;
+    layoutEditState.startX = event.clientX;
+    layoutEditState.startY = event.clientY;
+    layoutEditState.startDx = parseFloat(target.style.getPropertyValue('--layout-dx')) || 0;
+    layoutEditState.startDy = parseFloat(target.style.getPropertyValue('--layout-dy')) || 0;
+    target.classList.add('is-dragging');
+
+    event.preventDefault();
+}
+
+function handleLayoutPointerMove(event) {
+    if (!layoutEditState.enabled) return;
+
+    if (layoutEditState.resizing && layoutEditState.target) {
+        const dx = event.clientX - layoutEditState.startX;
+        const dy = event.clientY - layoutEditState.startY;
+        const snap = 8;
+        const nextWidth = Math.max(140, layoutEditState.startWidth + dx);
+        const nextHeight = Math.max(120, layoutEditState.startHeight + dy);
+        const snappedWidth = Math.round(nextWidth / snap) * snap;
+        const snappedHeight = Math.round(nextHeight / snap) * snap;
+        layoutEditState.target.style.width = `${nextWidth}px`;
+        layoutEditState.target.style.height = `${nextHeight}px`;
+        layoutEditState.target.style.width = `${snappedWidth}px`;
+        layoutEditState.target.style.height = `${snappedHeight}px`;
+        return;
+    }
+
+    if (!layoutEditState.dragging || !layoutEditState.target) return;
+
+    const snap = 8;
+    const rawDx = layoutEditState.startDx + (event.clientX - layoutEditState.startX);
+    const rawDy = layoutEditState.startDy + (event.clientY - layoutEditState.startY);
+    layoutEditState.pendingDx = Math.round(rawDx / snap) * snap;
+    layoutEditState.pendingDy = Math.round(rawDy / snap) * snap;
+
+    if (!layoutEditState.rafId) {
+        layoutEditState.rafId = requestAnimationFrame(() => {
+            if (layoutEditState.target) {
+                layoutEditState.target.style.setProperty('--layout-dx', `${layoutEditState.pendingDx}px`);
+                layoutEditState.target.style.setProperty('--layout-dy', `${layoutEditState.pendingDy}px`);
+            }
+            layoutEditState.rafId = null;
+        });
+    }
+}
+
+function handleLayoutPointerUp() {
+    if (!layoutEditState.enabled) return;
+
+    if (layoutEditState.target) {
+        layoutEditState.target.classList.remove('is-dragging');
+    }
+
+    layoutEditState.dragging = false;
+    layoutEditState.resizing = false;
+    layoutEditState.target = null;
+    if (layoutEditState.rafId) {
+        cancelAnimationFrame(layoutEditState.rafId);
+        layoutEditState.rafId = null;
+    }
+}
+
+function attachResizeHandle(el) {
+    if (el.querySelector(':scope > .layout-resize-handle')) return;
+    const handle = document.createElement('div');
+    handle.className = 'layout-resize-handle';
+    handle.addEventListener('pointerdown', (event) => {
+        event.stopPropagation();
+        if (!el.classList.contains('layout-selected')) {
+            selectLayoutTarget(el);
+        }
+        layoutEditState.resizing = true;
+        layoutEditState.target = el;
+        layoutEditState.startX = event.clientX;
+        layoutEditState.startY = event.clientY;
+        layoutEditState.startWidth = el.offsetWidth;
+        layoutEditState.startHeight = el.offsetHeight;
+    });
+    el.appendChild(handle);
+}
+
+function attachScaleControls(el) {
+    if (el.querySelector(':scope > .layout-scale-controls')) return;
+    const controls = document.createElement('div');
+    controls.className = 'layout-scale-controls';
+
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'layout-scale-btn';
+    minus.textContent = '−';
+    minus.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!el.classList.contains('layout-selected')) {
+            selectLayoutTarget(el);
+        }
+        adjustLayoutScale(el, -0.05);
+    });
+
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'layout-scale-btn';
+    plus.textContent = '+';
+    plus.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (!el.classList.contains('layout-selected')) {
+            selectLayoutTarget(el);
+        }
+        adjustLayoutScale(el, 0.05);
+    });
+
+    controls.appendChild(minus);
+    controls.appendChild(plus);
+    el.appendChild(controls);
+}
+
+function adjustLayoutScale(el, delta) {
+    const current = parseFloat(el.style.getPropertyValue('--layout-scale')) || 1;
+    const next = Math.min(1.6, Math.max(0.6, current + delta));
+    el.style.setProperty('--layout-scale', next.toFixed(2));
+}
+
+function assignLayoutKey(el, section, index) {
+    if (el.dataset.layoutKey) return;
+    const id = el.id ? `#${el.id}` : null;
+    const key = id || `${section.id}::${el.tagName.toLowerCase()}::${index}`;
+    el.dataset.layoutKey = key;
+}
+
+function getLayoutStorage() {
+    return JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) || '{}');
+}
+
+function setLayoutStorage(data) {
+    localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(data));
+}
+
+function applySavedLayout(el, section) {
+    const data = getLayoutStorage();
+    const sectionData = data[section.id];
+    if (!sectionData) return;
+
+    const key = el.dataset.layoutKey;
+    const saved = key ? sectionData[key] : null;
+    if (!saved) return;
+
+    if (typeof saved.dx === 'number') el.style.setProperty('--layout-dx', `${saved.dx}px`);
+    if (typeof saved.dy === 'number') el.style.setProperty('--layout-dy', `${saved.dy}px`);
+    if (typeof saved.scale === 'number') el.style.setProperty('--layout-scale', saved.scale);
+    if (saved.width) el.style.width = saved.width;
+    if (saved.height) el.style.height = saved.height;
+    el.classList.add('layout-persisted');
+}
+
+function applySavedLayoutForSection(section) {
+    if (!section || !isAdminSection(section)) return;
+    const nodes = section.querySelectorAll(LAYOUT_TARGET_SELECTORS.join(','));
+    nodes.forEach((el, index) => {
+        assignLayoutKey(el, section, index);
+        applySavedLayout(el, section);
+    });
+}
+
+function saveLayoutForPage() {
+    const section = getActiveSection();
+    if (!section || !isAdminSection(section)) return;
+
+    const data = getLayoutStorage();
+    data[section.id] = {};
+
+    const nodes = section.querySelectorAll(LAYOUT_TARGET_SELECTORS.join(','));
+    nodes.forEach((el, index) => {
+        assignLayoutKey(el, section, index);
+        const key = el.dataset.layoutKey;
+        const dx = parseFloat(el.style.getPropertyValue('--layout-dx')) || 0;
+        const dy = parseFloat(el.style.getPropertyValue('--layout-dy')) || 0;
+        const scale = parseFloat(el.style.getPropertyValue('--layout-scale')) || 1;
+        const width = el.style.width || '';
+        const height = el.style.height || '';
+        data[section.id][key] = { dx, dy, scale, width, height };
+        if (dx || dy || scale !== 1 || width || height) {
+            el.classList.add('layout-persisted');
+        }
+    });
+
+    setLayoutStorage(data);
+}
+
+function resetLayoutForPage() {
+    const activeSection = getActiveSection();
+    if (!activeSection) return;
+
+    const selectors = '.layout-draggable';
+    activeSection.querySelectorAll(selectors).forEach((el) => {
+        el.style.removeProperty('--layout-dx');
+        el.style.removeProperty('--layout-dy');
+        el.style.removeProperty('--layout-scale');
+        el.style.removeProperty('width');
+        el.style.removeProperty('height');
+    });
+
+    document.querySelectorAll('.modal-overlay[style*="display: flex"], .overlay-lotto[style*="display: flex"], .temp-nc-overlay.is-visible').forEach((modal) => {
+        modal.querySelectorAll(selectors).forEach((el) => {
+            el.style.removeProperty('--layout-dx');
+            el.style.removeProperty('--layout-dy');
+            el.style.removeProperty('--layout-scale');
+            el.style.removeProperty('width');
+            el.style.removeProperty('height');
+        });
+    });
+
+    clearLayoutSelection();
+    updateLayoutEditTargets();
 }
 
 /* ===========================================================
@@ -343,6 +1186,7 @@ function vaiA(idSezione) {
    =========================================================== */
 
 function aggiungiUtente() {
+    if (!requireResponsabile('aggiunta utenti')) return;
     const nome = document.getElementById("nuovo-nome-utente").value.trim();
     
     // Recupera il ruolo selezionato (Operatore o Responsabile)
@@ -366,6 +1210,7 @@ function aggiungiUtente() {
     document.getElementById("nuovo-nome-utente").value = "";
     
     aggiornaListaUtenti();
+    logAudit('CREATE_USER', 'admin-utenti', `nome=${nome} ruolo=${ruolo}`);
     alert("Utente registrato come: " + ruolo);
 }
 
@@ -392,12 +1237,17 @@ function aggiornaListaUtenti() {
 }
 
 function eliminaUtente(indice) {
+    if (!requireResponsabile('eliminazione utenti')) return;
     const conferma = confirm("Vuoi davvero eliminare questo collaboratore?");
     
     if (conferma) {
+        const removed = databaseUtenti[indice];
         databaseUtenti.splice(indice, 1);
         localStorage.setItem("haccp_utenti", JSON.stringify(databaseUtenti));
         aggiornaListaUtenti();
+        if (removed) {
+            logAudit('DELETE_USER', 'admin-utenti', `nome=${removed.nome} ruolo=${removed.ruolo}`);
+        }
         console.log("Utente rimosso con successo.");
     }
 }
@@ -409,6 +1259,7 @@ function eliminaUtente(indice) {
    =========================================================== */
 
 function aggiungiFrigo() {
+    if (!requireResponsabile('aggiunta frigoriferi')) return;
     const inputNome = document.getElementById("nuovo-nome-frigo");
     const nomeVal = inputNome.value.trim();
     const radioSelezionato = document.querySelector('input[name="tipo-frigo"]:checked');
@@ -425,6 +1276,7 @@ function aggiungiFrigo() {
 
     inputNome.value = ""; 
     aggiornaListaFrigo();
+    logAudit('CREATE_FRIDGE', 'admin-frigo', `nome=${nomeVal} tipo=${tipoVal}`);
 }
 
 function aggiornaListaFrigo() {
@@ -446,10 +1298,15 @@ function aggiornaListaFrigo() {
 }
 
 function eliminaFrigo(indice) {
+    if (!requireResponsabile('eliminazione frigoriferi')) return;
     if (confirm("Vuoi davvero eliminare questo frigorifero?")) {
+        const removed = databaseFrigo[indice];
         databaseFrigo.splice(indice, 1);
         localStorage.setItem("haccp_frigo", JSON.stringify(databaseFrigo));
         aggiornaListaFrigo();
+        if (removed) {
+            logAudit('DELETE_FRIDGE', 'admin-frigo', `nome=${removed.nome} tipo=${removed.tipo}`);
+        }
     }
 } 
 
@@ -459,6 +1316,7 @@ function eliminaFrigo(indice) {
    =========================================================== */
 
 function aggiungiProdottoAdmin() {
+    if (!requireResponsabile('aggiunta prodotti')) return;
     const nomeEl = document.getElementById('admin-prodotto-nome');
     const giorniEl = document.getElementById('admin-prodotto-giorni');
     if (!nomeEl || !giorniEl) return;
@@ -899,6 +1757,7 @@ async function salvaNonConformitaTemperatura() {
     setTempNcPending(aggiornate);
     tempNcArmed = aggiornate.length > 0;
     mostraNotifica('✅ Non conformita temperatura salvata', 'success');
+    logAudit('TEMP_NC_SAVE', 'temperature', `frigo=${frigo} motivo=${motivo}`);
     initTempNCForm();
     chiudiTempNC();
     aggiornaAllarmiTemperatura();
@@ -908,7 +1767,16 @@ function salvaTemperatura() {
     salvaTemperatureGiornaliere();
 }
 
-function salvaTemperatureGiornaliere() {
+function salvaTemperatureGiornaliere(skipChecklist) {
+    if (!skipChecklist) {
+        apriChecklistModal('Checklist Temperature', [
+            'Ho verificato l’identificativo del frigo/freezer',
+            'Ho inserito la temperatura corretta',
+            'Ho segnalato eventuali anomalie'
+        ], () => salvaTemperatureGiornaliere(true));
+        return;
+    }
+
     const inputs = document.querySelectorAll('[data-frigo-temp]');
     const etichettaNome = document.getElementById("nome-operatore");
     if (!inputs || inputs.length === 0 || !etichettaNome) return;
@@ -951,6 +1819,7 @@ function salvaTemperatureGiornaliere() {
     localStorage.setItem("haccp_log", JSON.stringify(databaseTemperature));
     aggiornaAssistente(operatore);
     mostraNotifica('✅ Temperature salvate', 'success');
+    logAudit('TEMP_SAVE', 'temperature', `operatore=${operatore}`);
 
     const anomalie = rilevaAnomalieTemperature();
     const pending = anomalie.map((a) => ({
@@ -962,6 +1831,7 @@ function salvaTemperatureGiornaliere() {
     tempNcArmed = pending.length > 0;
     setTempNcPending(pending);
     aggiornaAllarmiTemperatura();
+    anomalie.filter(a => a.tipo === 'fuori-range').forEach((a) => creaNCTemperaturaAutomatica(a));
     vaiA("sez-operatore");
 }
 
@@ -1079,7 +1949,7 @@ function renderizzaTemperatureGiorno() {
                     ${righe}
                 </tbody>
             </table>
-            <div style="margin-top:12px; font-size:11px;">Firma responsabile: ________________________________</div>
+            <div style="margin-top:12px; font-size:11px;">Firma responsabile: ${escapeHtml(getNomeUtenteFirma())}</div>
         </div>
     `;
 }
@@ -1177,11 +2047,46 @@ function scaricaTemperatureGiornoPDF(dataStr) {
         });
     }
 
+    y = aggiungiFirmaPdf(doc, y, 14);
+
     doc.save(`temperature_${dataRif.replace(/\//g, '-')}.pdf`);
 }
 
 function getOraAttuale() {
     return new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getNomeUtenteFirma() {
+    const sessione = sessionStorage.getItem('nomeUtenteLoggato');
+    if (sessione) return sessione;
+    const label = document.getElementById('nome-operatore');
+    if (label && label.innerText) return label.innerText.trim();
+    return 'Operatore';
+}
+
+function aggiungiFirmaPdf(doc, y, x = 14) {
+    let cursor = y;
+    if (cursor > 270) {
+        doc.addPage();
+        cursor = 16;
+    }
+
+    const firmaImg = localStorage.getItem(SIGNATURE_KEY) || '';
+    if (firmaImg) {
+        try {
+            doc.addImage(firmaImg, 'PNG', x, cursor, 50, 20);
+            cursor += 24;
+        } catch (error) {
+            console.warn('Firma immagine non inserita:', error.message);
+        }
+    }
+
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    doc.text(`Firma operatore: ${getNomeUtenteFirma()}`, x, cursor);
+    cursor += 6;
+    doc.text(`Data e ora: ${new Date().toLocaleDateString('it-IT')} ${getOraAttuale()}`, x, cursor);
+    return cursor + 6;
 }
 
 function parseDataIt(dataStr) {
@@ -1259,6 +2164,7 @@ function stampaTemperatureArchivioSistema() {
         `;
     }).join('');
 
+    const firmaData = `${new Date().toLocaleDateString('it-IT')} ${getOraAttuale()}`;
     const html = `
         <!doctype html>
         <html lang="it">
@@ -1309,7 +2215,7 @@ function stampaTemperatureArchivioSistema() {
                         ${righe}
                     </tbody>
                 </table>
-                <div class="note">Firma responsabile: ________________________________</div>
+                <div class="note">Firma responsabile: ${escapeHtml(operatore)} • ${escapeHtml(firmaData)}</div>
             </div>
         </body>
         </html>
@@ -2585,7 +3491,16 @@ function popolaSelectProdotti() {
 }
 
 // Salva il lotto nel database e aggiorna la lista
-function confermaSalvataggioLotto() {
+function confermaSalvataggioLotto(skipChecklist) {
+    if (!skipChecklist) {
+        apriChecklistModal('Checklist Lotto', [
+            'Prodotto e ingredienti selezionati',
+            'Lotti ingredienti verificati',
+            'Scadenza controllata'
+        ], () => confermaSalvataggioLotto(true));
+        return false;
+    }
+
     try {
         const selectProdottoEl = document.getElementById("select-prodotto-lotto");
         const nuovoProdottoInputEl = document.getElementById("nuovo-prodotto-input");
@@ -2721,6 +3636,8 @@ function confermaSalvataggioLotto() {
         setTimeout(() => {
             mostraNotifica(`✅ LOTTO CREATO: ${codiceLotto}`, 'success');
         }, 300);
+
+        logAudit('LOTTO_CREATE', 'lotti', `prodotto=${prodottoFinale} lotto=${codiceLotto}`);
         
         return false;
         
@@ -4442,7 +5359,7 @@ function renderizzaPulizieGiorno() {
 }
 
 // Salva registrazione pulizie
-function registraPulizieGiorno() {
+function registraPulizieGiorno(skipChecklist) {
     const dataStr = dataVisualizzataPulizie.toLocaleDateString('it-IT');
     const operatore = sessionStorage.getItem('nomeUtenteLoggato') || 'Operatore';
     const dueTasks = getDueTasksForDate(dataVisualizzataPulizie);
@@ -4466,8 +5383,12 @@ function registraPulizieGiorno() {
         return;
     }
     
-    // Chiedi conferma
-    if (!confirm('Confermi che tutte le pulizie sono state eseguite correttamente?')) {
+    if (!skipChecklist) {
+        apriChecklistModal('Checklist Pulizie', [
+            'Ho completato tutte le aree previste',
+            'Ho usato DPI e prodotti corretti',
+            'Ho verificato il risultato finale'
+        ], () => registraPulizieGiorno(true));
         return;
     }
     
@@ -4488,6 +5409,7 @@ function registraPulizieGiorno() {
     // Ricarica visualizzazione
     renderizzaPulizieGiorno();
     aggiornaBadgePulizieHome();
+    logAudit('PULIZIE_SAVE', 'pulizie', `data=${dataStr} count=${dueTasks.length}`);
     
     alert('✅ Pulizie registrate con successo!');
 }
@@ -4541,6 +5463,7 @@ function resetPianoPuliziaForm() {
 }
 
 function salvaPianoPulizia() {
+    if (!requireResponsabile('modifica piano pulizie')) return;
     const editId = document.getElementById('pulizia-edit-id');
     const nomeEl = document.getElementById('pulizia-nome');
     const freqEl = document.getElementById('pulizia-frequenza');
@@ -4601,6 +5524,7 @@ function salvaPianoPulizia() {
 }
 
 function eliminaPianoPulizia(id) {
+    if (!requireResponsabile('eliminazione piano pulizie')) return;
     if (!confirm('Vuoi eliminare questa pulizia programmata?')) return;
     const list = (databasePuliziePiano || []).filter(t => t.id !== id);
     salvaPianoPulizie(list);
@@ -4609,6 +5533,7 @@ function eliminaPianoPulizia(id) {
 }
 
 function togglePianoPulizia(id) {
+    if (!requireResponsabile('attivazione piano pulizie')) return;
     const list = Array.isArray(databasePuliziePiano) ? [...databasePuliziePiano] : [];
     const idx = list.findIndex(t => t.id === id);
     if (idx < 0) return;
@@ -4619,6 +5544,7 @@ function togglePianoPulizia(id) {
 }
 
 function registraPuliziaManualeDaAdmin(taskId) {
+    if (!requireResponsabile('registrazione pulizie admin')) return;
     const task = (databasePuliziePiano || []).find(t => t.id === taskId);
     if (!task) return;
 
@@ -4771,6 +5697,59 @@ function renderPianoPulizieAdmin() {
 // Database non conformità
 let databaseNC = JSON.parse(localStorage.getItem("haccp_nc")) || [];
 
+function aggiungiNCAutomatica({ tipo, area, descrizione, gravita = 'Alta', autoKey }) {
+    if (!tipo || !area || !descrizione || !autoKey) return;
+    const esiste = databaseNC.some(nc => nc && nc.autoKey === autoKey && nc.stato === 'APERTA');
+    if (esiste) return;
+
+    const nuovaNC = {
+        id: Date.now(),
+        tipo,
+        area,
+        descrizione,
+        gravita,
+        dataApertura: new Date().toLocaleDateString('it-IT'),
+        oraApertura: new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }),
+        segnalatore: 'Sistema',
+        stato: 'APERTA',
+        azioneCorrettiva: null,
+        dataChiusura: null,
+        responsabileChiusura: null,
+        timestamp: new Date().toISOString(),
+        origine: 'auto',
+        autoKey
+    };
+
+    databaseNC.push(nuovaNC);
+    localStorage.setItem("haccp_nc", JSON.stringify(databaseNC));
+    if (typeof renderizzaListaNC === 'function') renderizzaListaNC();
+    logAudit('NC_AUTO_CREATE', 'nc', `tipo=${tipo} area=${area}`);
+}
+
+function creaNCTemperaturaAutomatica(anomalia) {
+    if (!anomalia || !anomalia.frigo) return;
+    const tipo = 'Temperatura Fuori Range';
+    const area = anomalia.frigo;
+    const valore = !isNaN(anomalia.valore) ? ` (${anomalia.valore}C)` : '';
+    const descrizione = `Temperatura fuori range su ${anomalia.frigo}${valore}`;
+    const autoKey = `AUTO_TEMP_${anomalia.frigo}_${new Date().toISOString().slice(0, 10)}`;
+    aggiungiNCAutomatica({ tipo, area, descrizione, gravita: 'Alta', autoKey });
+}
+
+function creaNCProdottoScadutoAutomatica(lotto, giorniDallaScadenza) {
+    if (!lotto) return;
+    const tipo = 'Prodotto Scaduto';
+    const area = 'Magazzino';
+    const prodotto = lotto.prodotto || 'Prodotto';
+    const lottoLabel = lotto.lottoInterno ? ` lotto ${lotto.lottoInterno}` : '';
+    const scad = lotto.scadenza ? ` scadenza ${lotto.scadenza}` : '';
+    const giorni = Number.isFinite(giorniDallaScadenza) ? ` (${giorniDallaScadenza} giorni)` : '';
+    const descrizione = `${prodotto}${lottoLabel}${scad}${giorni}`.trim();
+    const keyBase = lotto.lottoInterno || lotto.prodotto || 'prodotto';
+    const autoKey = `AUTO_SCAD_${keyBase}_${lotto.scadenza || ''}`;
+    aggiungiNCAutomatica({ tipo, area, descrizione, gravita: 'Alta', autoKey });
+}
+
 // Filtro attivo (default: aperte)
 let filtroNCAttivo = 'aperte';
 
@@ -4785,6 +5764,7 @@ function vaiANC() {
 function apriModalNC() {
     document.getElementById("modal-nc").style.display = "flex";
     setModalOpen(true);
+    aggiornaNcAreaOptions();
 }
 
 function chiudiModalNC() {
@@ -4795,10 +5775,60 @@ function chiudiModalNC() {
     document.getElementById("nc-area").value = "";
     document.getElementById("nc-descrizione").value = "";
     document.getElementById("nc-gravita").value = "Bassa";
+    aggiornaNcAreaOptions(true);
+}
+
+function aggiornaNcAreaOptions(reset) {
+    const tipoEl = document.getElementById('nc-tipo');
+    const areaEl = document.getElementById('nc-area');
+    const labelEl = document.querySelector('label[for="nc-area"]');
+    if (!tipoEl || !areaEl) return;
+
+    if (!areaEl.dataset.defaultOptions) {
+        areaEl.dataset.defaultOptions = areaEl.innerHTML;
+    }
+    if (labelEl && !labelEl.dataset.defaultText) {
+        labelEl.dataset.defaultText = labelEl.textContent || '';
+    }
+
+    if (reset) {
+        areaEl.innerHTML = areaEl.dataset.defaultOptions;
+        if (labelEl) labelEl.textContent = labelEl.dataset.defaultText || 'AREA/REPARTO:';
+        return;
+    }
+
+    if (tipoEl.value === 'Temperatura Fuori Range') {
+        areaEl.innerHTML = '';
+        if (labelEl) labelEl.textContent = 'CELLA/FRIGO:';
+
+        if (!databaseFrigo || databaseFrigo.length === 0) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Nessun frigo configurato';
+            areaEl.appendChild(opt);
+            return;
+        }
+
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = '';
+        emptyOpt.textContent = '-- Seleziona --';
+        areaEl.appendChild(emptyOpt);
+
+        databaseFrigo.forEach((f) => {
+            const opt = document.createElement('option');
+            opt.value = f.nome;
+            opt.textContent = f.nome;
+            areaEl.appendChild(opt);
+        });
+        return;
+    }
+
+    areaEl.innerHTML = areaEl.dataset.defaultOptions;
+    if (labelEl) labelEl.textContent = labelEl.dataset.defaultText || 'AREA/REPARTO:';
 }
 
 // Salva nuova NC
-function salvaNC() {
+function salvaNC(skipChecklist) {
     const tipo = document.getElementById("nc-tipo").value;
     const area = document.getElementById("nc-area").value;
     const descrizione = document.getElementById("nc-descrizione").value.trim();
@@ -4806,6 +5836,15 @@ function salvaNC() {
     
     if (!tipo || !area || !descrizione) {
         alert('⚠️ Compila tutti i campi obbligatori');
+        return;
+    }
+
+    if (!skipChecklist) {
+        apriChecklistModal('Checklist Non Conformita', [
+            'Ho descritto correttamente il problema',
+            'Ho indicato area e gravita',
+            'Ho informato il responsabile'
+        ], () => salvaNC(true));
         return;
     }
     
@@ -4830,6 +5869,7 @@ function salvaNC() {
     
     chiudiModalNC();
     renderizzaListaNC();
+    logAudit('NC_CREATE', 'nc', `tipo=${tipo} area=${area} gravita=${gravita}`);
     
     alert('⚠️ Non Conformità registrata!\n\nID: NC-' + nuovaNC.id);
 }
@@ -4973,6 +6013,7 @@ function chiudiNC() {
         
         chiudiModalAzioneCorrettiva();
         renderizzaListaNC();
+        logAudit('NC_CLOSE', 'nc', `id=NC-${idNC}`);
         
         alert('✅ Non Conformità chiusa con successo!\n\nID: NC-' + idNC);
     }
@@ -5040,6 +6081,8 @@ function generaReportMensile() {
     });
     
     // Genera HTML report
+    const firmaOperatore = getNomeUtenteFirma();
+    const firmaData = new Date().toLocaleDateString('it-IT');
     let html = `
         <div style="text-align: center; border-bottom: 3px solid #2196F3; padding-bottom: 20px; margin-bottom: 30px;">
             <h1 style="color: #2196F3; margin: 0; font-size: 2rem;">REPORT HACCP MENSILE</h1>
@@ -5171,11 +6214,11 @@ function generaReportMensile() {
             <div style="display: flex; justify-content: space-between; margin-top: 40px;">
                 <div style="text-align: center;">
                     <div style="border-top: 2px solid #333; width: 200px; margin-bottom: 5px;"></div>
-                    <small style="color: #666;">Firma Responsabile HACCP</small>
+                    <small style="color: #666;">Firma: ${escapeHtml(firmaOperatore)}</small>
                 </div>
                 <div style="text-align: center;">
                     <div style="border-top: 2px solid #333; width: 150px; margin-bottom: 5px;"></div>
-                    <small style="color: #666;">Data</small>
+                    <small style="color: #666;">Data: ${escapeHtml(firmaData)}</small>
                 </div>
             </div>
         </div>
@@ -6140,6 +7183,18 @@ function verificaScadenze() {
         return giorniDallaScadenza > 5;
     });
 
+    const scaduti = lottiAttivi.filter(lotto => {
+        if (!lotto.scadenza) return false;
+        const scadenza = parseDataItaliana(lotto.scadenza);
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        return giorniDallaScadenza > 0;
+    });
+    scaduti.forEach((lotto) => {
+        const scadenza = parseDataItaliana(lotto.scadenza);
+        const giorniDallaScadenza = Math.floor((oggi - scadenza) / (1000 * 60 * 60 * 24));
+        creaNCProdottoScadutoAutomatica(lotto, giorniDallaScadenza);
+    });
+
     if (critici.length > 0) {
         mostraNotifica(`🔴 ${critici.length} prodotti SCADUTI da oltre 5 giorni!`, 'error');
     } else if (attenzione.length > 0) {
@@ -7008,6 +8063,142 @@ function renderizzaOrdiniLista(containerId, opzioni) {
    EXPORT PDF REPORT HACCP
    =========================================================== */
 
+const REPORT_PDF_CONFIG_KEY = 'haccp_report_pdf_config';
+const REPORT_PDF_PRESETS = {
+    standard: {
+        title: 'REPORT HACCP',
+        color: '#0A84FF',
+        includeSignature: true
+    },
+    minimal: {
+        title: 'REPORT HACCP',
+        color: '#111111',
+        includeSignature: false
+    },
+    official: {
+        title: 'REPORT HACCP UFFICIALE',
+        color: '#1F4E79',
+        includeSignature: true
+    }
+};
+
+function getReportPdfConfig() {
+    return JSON.parse(localStorage.getItem(REPORT_PDF_CONFIG_KEY) || '{}');
+}
+
+function setReportPdfConfig(data) {
+    localStorage.setItem(REPORT_PDF_CONFIG_KEY, JSON.stringify(data));
+}
+
+function aggiornaReportPdfPreview(cfg) {
+    const preview = document.getElementById('report-logo-preview');
+    const logoInput = document.getElementById('report-logo-input');
+    if (!preview) return;
+
+    if (cfg.logoDataUrl) {
+        preview.style.display = 'block';
+        preview.innerHTML = `<img src="${cfg.logoDataUrl}" style="max-width:160px; max-height:80px;">`;
+    } else {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+        if (logoInput) logoInput.value = '';
+    }
+}
+
+function applicaPresetReportPdf(presetKey) {
+    const preset = REPORT_PDF_PRESETS[presetKey] || REPORT_PDF_PRESETS.standard;
+    const titleInput = document.getElementById('report-title-input');
+    const colorInput = document.getElementById('report-color-input');
+    const includeSignature = document.getElementById('report-include-signature');
+    const current = getReportPdfConfig();
+
+    const next = {
+        ...current,
+        ...preset,
+        preset: presetKey
+    };
+
+    if (presetKey === 'minimal') {
+        delete next.logoDataUrl;
+    }
+
+    setReportPdfConfig(next);
+
+    if (titleInput) titleInput.value = next.title || '';
+    if (colorInput) colorInput.value = next.color || '#0A84FF';
+    if (includeSignature) includeSignature.checked = next.includeSignature !== false;
+    aggiornaReportPdfPreview(next);
+}
+
+function initReportPdfCustomization() {
+    const presetSelect = document.getElementById('report-preset-select');
+    const titleInput = document.getElementById('report-title-input');
+    const colorInput = document.getElementById('report-color-input');
+    const logoInput = document.getElementById('report-logo-input');
+    const includeSignature = document.getElementById('report-include-signature');
+
+    if (!titleInput || !colorInput || !logoInput || !includeSignature) return;
+
+    const cfg = getReportPdfConfig();
+    const presetKey = cfg.preset || 'standard';
+    const preset = REPORT_PDF_PRESETS[presetKey] || REPORT_PDF_PRESETS.standard;
+    const merged = { ...preset, ...cfg, preset: presetKey };
+
+    setReportPdfConfig(merged);
+    if (presetSelect) presetSelect.value = presetKey;
+    titleInput.value = merged.title || 'REPORT HACCP';
+    colorInput.value = merged.color || '#0A84FF';
+    includeSignature.checked = merged.includeSignature !== false;
+    aggiornaReportPdfPreview(merged);
+
+    if (!titleInput.dataset.bound) {
+        titleInput.oninput = () => setReportPdfConfig({ ...getReportPdfConfig(), title: titleInput.value });
+        colorInput.oninput = () => setReportPdfConfig({ ...getReportPdfConfig(), color: colorInput.value });
+        includeSignature.onchange = () => setReportPdfConfig({ ...getReportPdfConfig(), includeSignature: includeSignature.checked });
+
+        logoInput.onchange = (event) => {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const logoDataUrl = String(reader.result || '');
+                setReportPdfConfig({ ...getReportPdfConfig(), logoDataUrl });
+                aggiornaReportPdfPreview({ ...getReportPdfConfig(), logoDataUrl });
+            };
+            reader.readAsDataURL(file);
+        };
+
+        if (presetSelect) {
+            presetSelect.onchange = () => applicaPresetReportPdf(presetSelect.value);
+        }
+
+        titleInput.dataset.bound = '1';
+    }
+}
+
+function rimuoviLogoReport() {
+    const preview = document.getElementById('report-logo-preview');
+    const logoInput = document.getElementById('report-logo-input');
+    const cfg = getReportPdfConfig();
+    if (logoInput) logoInput.value = '';
+    if (preview) {
+        preview.style.display = 'none';
+        preview.innerHTML = '';
+    }
+    const next = { ...cfg };
+    delete next.logoDataUrl;
+    setReportPdfConfig(next);
+}
+
+function hexToRgb(hex) {
+    const safe = String(hex || '').replace('#', '');
+    if (safe.length !== 6) return { r: 10, g: 132, b: 255 };
+    const r = parseInt(safe.slice(0, 2), 16);
+    const g = parseInt(safe.slice(2, 4), 16);
+    const b = parseInt(safe.slice(4, 6), 16);
+    return { r, g, b };
+}
+
 function apriGeneratoreReport() {
     vaiA('sez-admin-report');
     
@@ -7018,6 +8209,7 @@ function apriGeneratoreReport() {
     
     document.getElementById('report-data-inizio').value = meseFa.toISOString().split('T')[0];
     document.getElementById('report-data-fine').value = oggi.toISOString().split('T')[0];
+    setTimeout(initReportPdfCustomization, 50);
 }
 
 async function generaReportPDF() {
@@ -7031,6 +8223,7 @@ async function generaReportPDF() {
         
         const { jsPDF } = jspdf;
         const doc = new jsPDF();
+        const cfg = getReportPdfConfig();
         
         // Recupera date
         const dataInizio = new Date(document.getElementById('report-data-inizio').value);
@@ -7045,11 +8238,20 @@ async function generaReportPDF() {
         const includiForm = document.getElementById('report-inc-form').checked;
         
         let yPos = 20;
+
+        if (cfg.logoDataUrl) {
+            try {
+                doc.addImage(cfg.logoDataUrl, 'PNG', 20, 14, 28, 18);
+            } catch (error) {
+                console.warn('Logo report non inserito:', error.message);
+            }
+        }
         
         // INTESTAZIONE
         doc.setFontSize(20);
-        doc.setTextColor(0, 132, 255);
-        doc.text('REPORT HACCP', 105, yPos, { align: 'center' });
+        const rgb = hexToRgb(cfg.color || '#0A84FF');
+        doc.setTextColor(rgb.r, rgb.g, rgb.b);
+        doc.text(cfg.title || 'REPORT HACCP', 105, yPos, { align: 'center' });
         
         yPos += 10;
         doc.setFontSize(10);
@@ -7148,7 +8350,7 @@ async function generaReportPDF() {
                 yPos = 20;
             }
         }
-        
+
         // SANIFICAZIONI
         if (includiSanif) {
             const sanificazioni = JSON.parse(localStorage.getItem('haccp_sanificazione')) || [];
@@ -7211,11 +8413,11 @@ async function generaReportPDF() {
         doc.line(20, yPos, 190, yPos);
         yPos += 10;
         
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text('Responsabile HACCP: _________________________', 20, yPos);
-        yPos += 10;
-        doc.text('Data e Firma: _________________________', 20, yPos);
+        if (cfg.includeSignature !== false) {
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            yPos = aggiungiFirmaPdf(doc, yPos, 20);
+        }
         
         const pdfUrl = doc.output('bloburl');
         const win = window.open(pdfUrl, 'ANTEPRIMA_REPORT');
@@ -7246,6 +8448,7 @@ async function generaReportPDF() {
    =========================================================== */
 
 function esportaDatiCompleti() {
+    if (!requireResponsabile('export dati')) return;
     try {
         const dataBackup = {
             version: '2.0',
@@ -7298,6 +8501,7 @@ function esportaDatiCompleti() {
 }
 
 function importaDatiCompleti() {
+    if (!requireResponsabile('import dati')) return;
     const fileInput = document.getElementById('file-import-backup');
     const file = fileInput.files[0];
     
@@ -7637,4 +8841,10 @@ window.addEventListener('DOMContentLoaded', () => {
   aggiornaListaFrigo();
   richieidiPermessiNotifiche();
     renderizzaLoginUtenti();
+        initLayoutEditMode();
+        initSmartNotificationsToggle();
+    const ncTipo = document.getElementById('nc-tipo');
+    if (ncTipo) {
+        ncTipo.addEventListener('change', () => aggiornaNcAreaOptions());
+    }
 });
